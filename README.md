@@ -1,8 +1,9 @@
-# repository-title-goes-here
+# simulating-clinical-trials
 
 This is a single file stand-alone application using R Markdown.
 
-It was run and tested using RStudio and the knitr package.
+It was run and tested using RStudio and the knitr package. It
+also uses the rstan package.
 
 Use the file with the .Rmd extension as input, or examine the
 file with the .html extension to see what the output is like.

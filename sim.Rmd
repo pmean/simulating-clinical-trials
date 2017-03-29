@@ -1,0 +1,78 @@
+---
+title: "Simulating clinical trials"
+author: "Steve Simon"
+date: "March 22, 2017"
+output: html_document
+---
+
+```{r gamma-exponential, error=TRUE}
+library(broom)
+library(dplyr)
+library(ggplot2)
+library(magrittr)
+library(rstan)
+
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores())
+
+dat_before <- list(N=350, T=3*365, S=0.5)
+fit_before <- stan(file='gamma-exponential-before.stan',
+  data=dat_before, iter= 1000, chains = 4)
+
+tidy(fit_before, conf.int=TRUE)
+
+fit_before           %>%
+  as.data.frame      %>%
+  mutate(i="before") -> sim_before
+
+sim_before                               %>%
+  ggplot(aes(i, Tstar*12))                +
+  scale_y_continuous(breaks=3*(0:24),
+    minor_breaks=3*(0:24),
+    expand=c(0, 0))                       +
+  expand_limits(y=0)                      +
+  ylab("time in months")                  + 
+  Xlab(" ")                               +
+  geom_boxplot()                          +
+  coord_flip()
+
+dat_during <- list(N=350, T=3*365, S=0.5, n=41, t=239)
+fit_during <- stan(file='gamma-exponential-during.stan',
+  data=dat_during, iter= 1000, chains = 4)
+
+tidy(fit_during, conf.int=TRUE)
+
+fit_during           %>%
+  as.data.frame      %>%
+  mutate(i="during") %>%
+  bind_rows(sim_before) -> sim_during
+
+sim_during                               %>%
+  ggplot(aes(i, Tstar*12))                +
+  scale_y_continuous(breaks=3*(0:24),
+    minor_breaks=3*(0:24),
+    expand=c(0, 0))                       +
+  expand_limits(y=0)                      +
+  ylab("time in months")                  + 
+  xlab(" ")                               +
+  geom_boxplot()                          +
+  coord_flip()
+  
+dat_after <- list(n=341, T=1336)
+```
+
+```{r gamma-poisson, error=TRUE}
+library(rstan)
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores())
+
+gp <- list(N=350, T=3*365, S=0.5)
+gp_fit <- stan(file='gamma-poisson-before.stan', data=ge, iter= 1000, chains = 4)
+summary(gp_fit)
+
+gp <- list(N=350, T=3*365, S=0.5, n=41, t=239)
+gp_fit <- stan(file='gamma-poisson-during.stan', data=ge, iter= 1000, chains = 4)
+```
+
+summary(gp_fit)
+```
