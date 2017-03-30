@@ -1,7 +1,7 @@
 data {
   int<lower=1>           N; // planned number of patients 
   real<lower=0>          T; // planned duration of trial
-  real<lower=0, upper=1> P; // strength of prior
+  real<lower=0, upper=1> S; // strength of prior
   int<lower=0>           n; // observed patients
   real<lower=0>          t; // observed time
 }

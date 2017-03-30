@@ -32,7 +32,7 @@ sim_before                               %>%
     expand=c(0, 0))                       +
   expand_limits(y=0)                      +
   ylab("time in months")                  + 
-  Xlab(" ")                               +
+  xlab(" ")                               +
   geom_boxplot()                          +
   coord_flip()
 
@@ -58,7 +58,20 @@ sim_during                               %>%
   geom_boxplot()                          +
   coord_flip()
   
-dat_after <- list(n=341, T=1336)
+data.frame(
+  i="after",
+  beta=341/ 1336,
+  lambda=1336 / 341,
+  stringsAsFactors=FALSE) %>%
+  bind_rows(sim_before)   -> sim_after
+
+sim_after                                %>%
+  ggplot(aes(i, beta*30))                 +
+  ylab("patients per month")              + 
+  xlab(" ")                               +
+  geom_boxplot()                          +
+  coord_flip()
+
 ```
 
 ```{r gamma-poisson, error=TRUE}
@@ -66,13 +79,40 @@ library(rstan)
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 
-gp <- list(N=350, T=3*365, S=0.5)
-gp_fit <- stan(file='gamma-poisson-before.stan', data=ge, iter= 1000, chains = 4)
-summary(gp_fit)
+fit_before <- stan(file='gamma-poisson-before.stan',
+  data=dat_before, iter= 1000, chains = 4)
 
-gp <- list(N=350, T=3*365, S=0.5, n=41, t=239)
-gp_fit <- stan(file='gamma-poisson-during.stan', data=ge, iter= 1000, chains = 4)
-```
+tidy(fit_before, conf.int=TRUE)
 
-summary(gp_fit)
+fit_before           %>%
+  as.data.frame      %>%
+  mutate(i="before") -> sim_before
+
+sim_before                               %>%
+  ggplot(aes(i, Nstar))                   +
+  expand_limits(y=0)                      +
+  ylab("Final sample size")               + 
+  xlab(" ")                               +
+  geom_boxplot()                          +
+  coord_flip()
+
+
+
+fit_during <- stan(file='gamma-poisson-during.stan',
+  data=dat_during, iter= 1000, chains = 4)
+
+tidy(fit_during, conf.int=TRUE)
+
+fit_during           %>%
+  as.data.frame      %>%
+  mutate(i="during") %>%
+  bind_rows(sim_before) -> sim_during
+
+sim_during                               %>%
+  ggplot(aes(i, Nstar))                   +
+  expand_limits(y=0)                      +
+  ylab("Final sample size")               + 
+  xlab(" ")                               +
+  geom_boxplot()                          +
+  coord_flip()
 ```
