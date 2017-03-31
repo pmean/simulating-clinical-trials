@@ -1,10 +1,11 @@
 data {
-  int<lower=1>           N; // planned number of patients
+  int<lower=1>           N; // planned number of patients per center
+  int<lower=0>           M; // number of centers
   real<lower=0>          T; // planned duration of trial
   real<lower=0, upper=1> S; // strength of prior
 }
 parameters {
-  real<lower=0> lambda;
+  real<lower=0> lambda[M];
 }
 model {
   lambda ~ gamma(N*S, T*S);
