@@ -8,7 +8,7 @@ parameters {
   real<lower=1/(N*S), upper=1> pi;
 }
 model {
-  pi ~ uniform(1/(N*S), 1)
+  pi ~ uniform(1/(N*S), 1);
   lambda ~ gamma(pi*N*S, pi*T*S);
 }
 generated quantities {

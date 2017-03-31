@@ -13,46 +13,52 @@ library(magrittr)
 library(rstan)
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
+dat <- NULL
+fit <- NULL
+sim <- NULL
 ```
 
 ```{r gamma-poisson-before, error=TRUE}
+f <- "gamma-poisson-before.stan"
 dat_before <- list(N=350, T=3*365, S=0.5)
-fit_before <- stan(file='gamma-poisson-before.stan',
+fit_gp1 <- stan(file=f,
   data=dat_before, iter= 1000, chains = 4)
 
-tidy(fit_before, conf.int=TRUE)
+tidy(fit_gp1)
 
-fit_before           %>%
+fit_gp1              %>%
   as.data.frame      %>%
-  mutate(i="before") -> sim_before
+  mutate(i="before") -> sim_gp1
 
-sim_before                               %>%
+sim_gp1                                  %>%
   ggplot(aes(i, Nstar))                   +
   expand_limits(y=0)                      +
   ylab("Final sample size")               + 
   xlab(" ")                               +
+  ggtitle("gamma-poisson-before")         +
   geom_boxplot()                          +
   coord_flip()
 ```
 
 ```{r gamma-poisson-during, error=TRUE}
-
+f <- "gamma-poisson-during.stan"
 dat_during <- list(N=350, T=3*365, S=0.5, n=41, t=239)
-fit_during <- stan(file='gamma-poisson-during.stan',
+fit_gp2 <- stan(file=f,
   data=dat_during, iter= 1000, chains = 4)
 
-tidy(fit_during, conf.int=TRUE)
+tidy(fit_gp2)
 
-fit_during           %>%
+fit_gp2              %>%
   as.data.frame      %>%
   mutate(i="during") %>%
-  bind_rows(sim_before) -> sim_during
+  bind_rows(sim_gp1) -> sim_gp2
 
-sim_during                               %>%
+sim_gp2                                  %>%
   ggplot(aes(i, Nstar))                   +
   expand_limits(y=0)                      +
   ylab("Final sample size")               + 
   xlab(" ")                               +
+  ggtitle("gamma-poisson-during")         +
   geom_boxplot()                          +
   coord_flip()
 ```
@@ -62,56 +68,60 @@ data.frame(
   i="after",
   lambda=341/ 1336,
   stringsAsFactors=FALSE) %>%
-  bind_rows(sim_before)   -> sim_after
+  bind_rows(sim_gp1)      -> sim_gp3
 
-head(sim_after)
+head(sim_gp3)
 
-sim_after                                %>%
+sim_gp3                                  %>%
   ggplot(aes(i, lambda*30))               +
   ylab("patients per month")              + 
   xlab(" ")                               +
   geom_boxplot()                          +
+  ggtitle("gamma-poisson-after")          +
   coord_flip()
 ```
 
-```{r gamma-pi-extension-before, error=TRUE}
+```{r pi-extension-before, error=TRUE}
+f <- "pi-extension-before.stan"
 dat_before <- list(N=350, T=3*365, S=0.5)
-fit_before <- stan(file='gamma-poisson-before.stan',
+fit_pe1 <- stan(file=f,
   data=dat_before, iter= 1000, chains = 4)
 
-tidy(fit_before, conf.int=TRUE)
+tidy(fit_pe1, conf.int=TRUE)
 
-fit_before           %>%
+fit_pe1              %>%
   as.data.frame      %>%
-  mutate(i="before") -> sim_before
+  mutate(i="before") -> sim_pe1
 
-sim_before                               %>%
+sim_pe1                                  %>%
   ggplot(aes(i, Nstar))                   +
   expand_limits(y=0)                      +
   ylab("Final sample size")               + 
   xlab(" ")                               +
+  ggtitle("hedging prior before")         +
   geom_boxplot()                          +
   coord_flip()
 ```
 
 ```{r pi-extension-during, error=TRUE}
-
+f <- "pi-extension-during.stan"
 dat_during <- list(N=350, T=3*365, S=0.5, n=41, t=239)
-fit_during <- stan(file='pi-extension-during.stan',
+fit_pe2 <- stan(file=f,
   data=dat_during, iter= 1000, chains = 4)
 
-tidy(fit_during, conf.int=TRUE)
+tidy(fit_pe2, conf.int=TRUE)
 
-fit_during           %>%
+fit_pe2              %>%
   as.data.frame      %>%
   mutate(i="during") %>%
-  bind_rows(sim_before) -> sim_during
+  bind_rows(sim_pe1) -> sim_pe2
 
-sim_during                               %>%
+sim_pe2                                  %>%
   ggplot(aes(i, Nstar))                   +
   expand_limits(y=0)                      +
   ylab("Final sample size")               + 
   xlab(" ")                               +
+  ggtitle("hedging prior during")         +
   geom_boxplot()                          +
   coord_flip()
 ```
@@ -121,31 +131,33 @@ data.frame(
   i="after",
   lambda=341/ 1336,
   stringsAsFactors=FALSE) %>%
-  bind_rows(sim_before)   -> sim_after
+  bind_rows(sim_pe1)      -> sim_pe3
 
-head(sim_after)
+head(sim_pe3)
 
-sim_after                                %>%
+sim_pe3                                  %>%
   ggplot(aes(i, lambda*30))               +
   ylab("patients per month")              + 
   xlab(" ")                               +
+  ggtitle("hedging prior after")          +
   geom_boxplot()                          +
   coord_flip()
 ```
 
 
 ```{r alpha-extension-before, error=TRUE}
+f <- "alpha-extension-before.stan"
 dat_before <- list(N=350, T=3*365, S=0.5)
-fit_before <- stan(file='alpha-extension-before.stan',
+fit_ae1 <- stan(file=f,
   data=dat_before, iter= 1000, chains = 4)
 
-tidy(fit_before, conf.int=TRUE)
+tidy(fit_ae1, conf.int=TRUE)
 
-fit_before           %>%
+fit_ae1              %>%
   as.data.frame      %>%
-  mutate(i="before") -> sim_before
+  mutate(i="before") -> sim_ae1
 
-sim_before                               %>%
+sim_ae1                                  %>%
   ggplot(aes(i, Nstar))                   +
   expand_limits(y=0)                      +
   ylab("Final sample size")               + 
@@ -153,25 +165,25 @@ sim_before                               %>%
   geom_boxplot()                          +
   coord_flip()
 
-sim_before %>%
+sim_ae1                                  %>%
   ggplot(aes(30*lambda, Nstar))           +
   ylab("Final sample size")               + 
   xlab("Accrual rate")                    +
   geom_point()
 
-sim_before %>%
+sim_ae1                                  %>%
   ggplot(aes(alpha, Nstar))               +
   ylab("Final sample size")               + 
   xlab("Time before first accrual")       +
   geom_point()
 
-sim_before %>%
+sim_ae1                                  %>%
   ggplot(aes(omega, Nstar))               +
   ylab("Final sample size")               + 
   xlab("Time until full accrual")         +
   geom_point()
 
-sim_before %>%
+sim_ae1                                  %>%
   ggplot(aes(delta, Nstar))               +
   ylab("Final sample size")               + 
   xlab("Startup accrual penalty")         +
