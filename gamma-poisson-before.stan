@@ -5,13 +5,11 @@ data {
 }
 parameters {
   real<lower=0> lambda;
-  real<lower=0, upper=T/4> alpha;
 }
 model {
   lambda ~ gamma(N*S, T*S);
-  alpha ~ uniform(0, T/4);
 }
 generated quantities {
   real<lower=0> Nstar;
-  Nstar = poisson_rng(lambda*(T-alpha));
+  Nstar = poisson_rng(lambda*T);
 }

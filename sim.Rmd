@@ -5,19 +5,17 @@ date: "March 22, 2017"
 output: html_document
 ---
 
-```{preliminaries}
+```{r preliminaries}
 library(broom)
 library(dplyr)
 library(ggplot2)
 library(magrittr)
 library(rstan)
-```
-
-```{r gamma-poisson, error=TRUE}
-library(rstan)
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
+```
 
+```{r gamma-poisson-before, error=TRUE}
 dat_before <- list(N=350, T=3*365, S=0.5)
 fit_before <- stan(file='gamma-poisson-before.stan',
   data=dat_before, iter= 1000, chains = 4)
@@ -62,15 +60,120 @@ sim_during                               %>%
 ```{r gamma-poisson-after, error=TRUE}
 data.frame(
   i="after",
-  beta=341/ 1336,
-  lambda=1336 / 341,
+  lambda=341/ 1336,
   stringsAsFactors=FALSE) %>%
   bind_rows(sim_before)   -> sim_after
 
+head(sim_after)
+
 sim_after                                %>%
-  ggplot(aes(i, beta*30))                 +
+  ggplot(aes(i, lambda*30))               +
   ylab("patients per month")              + 
   xlab(" ")                               +
   geom_boxplot()                          +
   coord_flip()
+```
+
+```{r gamma-pi-extension-before, error=TRUE}
+dat_before <- list(N=350, T=3*365, S=0.5)
+fit_before <- stan(file='gamma-poisson-before.stan',
+  data=dat_before, iter= 1000, chains = 4)
+
+tidy(fit_before, conf.int=TRUE)
+
+fit_before           %>%
+  as.data.frame      %>%
+  mutate(i="before") -> sim_before
+
+sim_before                               %>%
+  ggplot(aes(i, Nstar))                   +
+  expand_limits(y=0)                      +
+  ylab("Final sample size")               + 
+  xlab(" ")                               +
+  geom_boxplot()                          +
+  coord_flip()
+```
+
+```{r pi-extension-during, error=TRUE}
+
+dat_during <- list(N=350, T=3*365, S=0.5, n=41, t=239)
+fit_during <- stan(file='pi-extension-during.stan',
+  data=dat_during, iter= 1000, chains = 4)
+
+tidy(fit_during, conf.int=TRUE)
+
+fit_during           %>%
+  as.data.frame      %>%
+  mutate(i="during") %>%
+  bind_rows(sim_before) -> sim_during
+
+sim_during                               %>%
+  ggplot(aes(i, Nstar))                   +
+  expand_limits(y=0)                      +
+  ylab("Final sample size")               + 
+  xlab(" ")                               +
+  geom_boxplot()                          +
+  coord_flip()
+```
+
+```{r pi-extension-after, error=TRUE}
+data.frame(
+  i="after",
+  lambda=341/ 1336,
+  stringsAsFactors=FALSE) %>%
+  bind_rows(sim_before)   -> sim_after
+
+head(sim_after)
+
+sim_after                                %>%
+  ggplot(aes(i, lambda*30))               +
+  ylab("patients per month")              + 
+  xlab(" ")                               +
+  geom_boxplot()                          +
+  coord_flip()
+```
+
+
+```{r alpha-extension-before, error=TRUE}
+dat_before <- list(N=350, T=3*365, S=0.5)
+fit_before <- stan(file='alpha-extension-before.stan',
+  data=dat_before, iter= 1000, chains = 4)
+
+tidy(fit_before, conf.int=TRUE)
+
+fit_before           %>%
+  as.data.frame      %>%
+  mutate(i="before") -> sim_before
+
+sim_before                               %>%
+  ggplot(aes(i, Nstar))                   +
+  expand_limits(y=0)                      +
+  ylab("Final sample size")               + 
+  xlab(" ")                               +
+  geom_boxplot()                          +
+  coord_flip()
+
+sim_before %>%
+  ggplot(aes(30*lambda, Nstar))           +
+  ylab("Final sample size")               + 
+  xlab("Accrual rate")                    +
+  geom_point()
+
+sim_before %>%
+  ggplot(aes(alpha, Nstar))               +
+  ylab("Final sample size")               + 
+  xlab("Time before first accrual")       +
+  geom_point()
+
+sim_before %>%
+  ggplot(aes(omega, Nstar))               +
+  ylab("Final sample size")               + 
+  xlab("Time until full accrual")         +
+  geom_point()
+
+sim_before %>%
+  ggplot(aes(delta, Nstar))               +
+  ylab("Final sample size")               + 
+  xlab("Startup accrual penalty")         +
+  geom_point()
 ```
