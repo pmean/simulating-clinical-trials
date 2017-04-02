@@ -13,3 +13,5 @@ generated quantities {
   real<lower=0> Nstar;
   Nstar = poisson_rng(lambda*T);
 }
+ 
+ 
