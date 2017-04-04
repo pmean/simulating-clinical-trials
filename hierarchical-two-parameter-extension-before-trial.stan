@@ -3,6 +3,11 @@ data {
   int<lower=0>           M; // number of centers
   real<lower=0>          T; // planned duration of trial
   real<lower=0, upper=1> S; // strength of prior
+  real<lower=0>          B[M]; // number of beds
+}
+transformed data {
+  real<lower=0> total_beds; 
+  total_beds = sum(B);
 }
 parameters {
   real<lower=0> lambda[M];  // rate for individual centers
@@ -16,11 +21,15 @@ transformed parameters {
   beta = scale / mu;
 }
 model {
-  mu ~ gamma(N*S, T*S*M);
+  mu ~ gamma(N*S, T*S*total_beds);
   scale ~ gamma(100, 100);
   lambda ~ gamma(alpha, beta);
 }
 generated quantities {
   real<lower=0> Nstar;
-  Nstar = poisson_rng(sum(lambda)*T);
+  real<lower=0> Mstar[M];
+  for (I in 1:M) {
+    Mstar[I] = poisson_rng(lambda[I]*T*B[I]);
+  }
+  Nstar = sum(Mstar);
 }
