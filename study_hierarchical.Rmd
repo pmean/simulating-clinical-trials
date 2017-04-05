@@ -1,0 +1,35 @@
+---
+title: "Studying hierarchical models with informative priors"
+author: "Steve Simon"
+date: "April 5, 2017"
+output: html_document
+---
+
+```{r read csv files}
+f <- "csp546 enrollment.csv"
+csp546 <- read.csv(file=f, stringsAsFactors=FALSE, header=TRUE)
+
+csp546a <- csp546
+csp546a[is.na(csp546a)] <- 0
+csp546a$Z <- apply(csp546a, 1, sum)
+csp546b <- as.data.frame(sapply(csp546a, cumsum))
+csp546b$t <- 1:(dim(csp546b)[1])
+csp546b
+
+f <- "csp558 enrollment.csv"
+csp558 <- read.csv(file=f, stringsAsFactors=FALSE, header=TRUE)
+
+csp558a <- csp558
+csp558a[is.na(csp558a)] <- 0
+csp558a$Z <- apply(csp558a, 1, sum)
+csp558b <- as.data.frame(sapply(csp558a, cumsum))
+csp558b$t <- 1:(dim(csp558b)[1])
+csp558b
+```
+
+```{r simple plot}
+library(ggplot2)
+ggplot(csp558b, aes(t, Z)) + 
+  geom_step() +
+  geom_step(aes(t,A))
+```
