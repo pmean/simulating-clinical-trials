@@ -133,7 +133,7 @@ f <- "mod03b.stan"
 # Here's what's hiding in the file 
 cat(readLines(f), sep="\n")
 # Here's the data.
-dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=0.5)
+dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, pseudo_n=100, pseudo_t=12)
 fit03b <- stan(file=f, data=dat)
 tidy(fit03b, estimate.method="median")
 ```

@@ -4,13 +4,8 @@ data {
   real<lower=0>          t;    // current time
   int<lower=0>           N;    // planned sample size overall
   real<lower=0>          T;    // planned time
-  real<lower=0, upper=1> S;    // strength of prior
-}
-transformed data {
-  real<lower=0>          pseudo_n;
+  int<lower=0>           pseudo_n;
   real<lower=0>          pseudo_t;
-  pseudo_n = N*S;
-  pseudo_t = T*S;
 }
 parameters {
   real<lower=0> lambda[J+1];   // single common rate for each center
