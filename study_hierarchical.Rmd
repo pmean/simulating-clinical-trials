@@ -58,7 +58,7 @@ csp558b[c(6, 24), ]
 
 The first model ignores the center effect completely. It also fits a non-informative prior.
 
-Since you have gone 1/4 of the way into the study and have 35 patients, the simple extrapolation is that you will have about 35*4 or 140 patients at the end of the study.
+Since you have gone 1/4 of the way into the study and have 35 patients, the simple extrapolation is that you will have about 35*4 or 140 patients at the end of the study. The accrual rate (lambda) should be close to 35/6 or 5.83.
 
 ```{r mod01, error=TRUE}
 f <- "mod01.stan"
@@ -70,7 +70,7 @@ fit01 <- stan(file=f, data=dat)
 tidy(fit01)
 ```
 
-Change this to an informative prior.
+Change this to an informative prior. This prior has a weight equal to 1/2 the total sample size (100). So the posterior mean is going to be a weighted average of the prior mean (8.33) and the rate calculated from the data (5.83) with about 3/4 of the weight being given to the prior.
 
 ```{r mod01a, error=TRUE}
 f <- "mod01.stan"
@@ -94,6 +94,8 @@ fit02 <- stan(file=f, data=dat)
 tidy(fit02)
 ```
 
+The results are identical to the earlier result (fit01).
+
 Next with an informative prior.
 
 ```{r mod02a, error=TRUE}
@@ -103,9 +105,11 @@ fit02a <- stan(file=f, data=dat)
 tidy(fit02a)
 ```
 
+These results are identical to fit01a.
+
 Now allow each center to vary.
 
-First with a non-informative prior.
+First with a non-informative prior. The rate for the average center should be 1/4 the overal rate or about 1.46. But the first center, with only 5 patients, should have the lowest rate and the second center, with 12 patients, should have the highest rate.
 
 ```{r mod03, error=TRUE}
 f <- "mod03.stan"
@@ -117,6 +121,8 @@ fit03 <- stan(file=f, data=dat)
 tidy(fit03, estimate.method="median")
 ```
 
+Now how do you incorporate an informative prior into a hierarchical setting. One way is to reparameterize the hyperprior.
+
 ```{r mod03a, error=TRUE}
 f <- "mod03a.stan"
 # Here's what's hiding in the file 
@@ -127,6 +133,7 @@ fit03a <- stan(file=f, data=dat)
 tidy(fit03a, estimate.method="median")
 ```
 
+You could also add a pseudo-center with parameters consistent with prior distribution.
 
 ```{r mod03b, error=TRUE}
 f <- "mod03b.stan"
@@ -134,6 +141,40 @@ f <- "mod03b.stan"
 cat(readLines(f), sep="\n")
 # Here's the data.
 dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, pseudo_n=100, pseudo_t=12)
-fit03b <- stan(file=f, data=dat)
+fit03b <- stan(file=f, data=dat, control = list(adapt_delta = 0.99))
 tidy(fit03b, estimate.method="median")
 ```
+
+Finally, you could look at a perturbation model. Here's a perturbation model with a non-informative prior.
+
+```{r mod04, error=TRUE}
+f <- "mod04.stan"
+# Here's what's hiding in the file 
+cat(readLines(f), sep="\n")
+# Here's the data.
+dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=1/200)
+fit04 <- stan(file=f, data=dat)
+tidy(fit04, estimate.method="median")
+```
+
+Here's a perturbation model with an informative prior.
+
+```{r mod04a, error=TRUE}
+# Here's the data.
+dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=0.5)
+fit04a <- stan(file=f, data=dat)
+tidy(fit04a, estimate.method="median")
+```
+
+Like before, you can also add a pseudo-center with parameters consistent with prior distribution.
+
+```{r mod04b, error=TRUE}
+f <- "mod04b.stan"
+# Here's what's hiding in the file 
+cat(readLines(f), sep="\n")
+# Here's the data.
+dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=1/200, pseudo_n=100, pseudo_t=12)
+fit04b <- stan(file=f, data=dat)
+tidy(fit04b, estimate.method="median")
+```
+

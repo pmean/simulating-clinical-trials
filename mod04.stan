@@ -7,20 +7,27 @@ data {
   real<lower=0, upper=1> S;    // strength of prior
 }
 parameters {
-  real<lower=0> lambda;        // single common rate for each center
+  real<lower=0> lambda;        // overall rate for each center
+  real<lower=0> eta[J];        // deviation from overall rate
+  real<lower=0> alpha;         // parameter from deviation distribution
 }
+transformed parameters {
+  real<lower=0> deviation_cv;
+  deviation_cv = 1/sqrt(alpha);
+} 
 model {
+  alpha ~ exponential(1.0);
   lambda ~ gamma(N*S, T*S*J);
-  // gamma(N*S/J, T*S) also works but it weakens the prior.
   for (j in 1:J) {
-    n[j] ~ poisson(lambda*t);
+    eta[J] ~ gamma(alpha, alpha); 
+    n[j] ~ poisson(eta[j]*lambda*t);
   }
 }
 generated quantities {
   real<lower=0> ntilde[J];
   real<lower=0> ntilde_total;
   for (j in 1:J) {
-    ntilde[j] = n[j] + poisson_rng(lambda*(T-t));
+    ntilde[j] = n[j] + poisson_rng(eta[j]*lambda*(T-t));
   }
   ntilde_total = sum(ntilde);
 }

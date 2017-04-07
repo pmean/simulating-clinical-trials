@@ -267,7 +267,7 @@ csp558b[c(6, 24), ]</code></pre>
 ## 6   5 12 10  8  35  6
 ## 24 27 37 27 36 127 24</code></pre>
 <p>The first model ignores the center effect completely. It also fits a non-informative prior.</p>
-<p>Since you have gone 1/4 of the way into the study and have 35 patients, the simple extrapolation is that you will have about 35*4 or 140 patients at the end of the study.</p>
+<p>Since you have gone 1/4 of the way into the study and have 35 patients, the simple extrapolation is that you will have about 35*4 or 140 patients at the end of the study. The accrual rate (lambda) should be close to 35/6 or 5.83.</p>
 <pre class="r"><code>f &lt;- &quot;mod01.stan&quot;
 # Here's what's hiding in the file 
 cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
@@ -298,10 +298,10 @@ fit01 &lt;- stan(file=f, data=dat)</code></pre>
 <pre><code>## Warning in readLines(file, warn = TRUE): incomplete final line found on 'C:
 ## \Users\steve\Documents\simulating-clinical-trials\mod01.stan'</code></pre>
 <pre class="r"><code>tidy(fit01)</code></pre>
-<pre><code>##     term   estimate std.error
-## 1 lambda   5.893842  0.977541
-## 2 ntilde 141.009750 20.326841</code></pre>
-<p>Change this to an informative prior.</p>
+<pre><code>##     term   estimate  std.error
+## 1 lambda   5.890584  0.9724053
+## 2 ntilde 140.792500 20.1371254</code></pre>
+<p>Change this to an informative prior. This prior has a weight equal to 1/2 the total sample size (100). So the posterior mean is going to be a weighted average of the prior mean (8.33) and the rate calculated from the data (5.83) with about 3/4 of the weight being given to the prior.</p>
 <pre class="r"><code>f &lt;- &quot;mod01.stan&quot;
 # Here's the data. Changing S to 0.5 produces an informative prior.
 dat &lt;- list(n=35, t=6, N=200, T=24, S=0.5)
@@ -309,9 +309,9 @@ fit01a &lt;- stan(file=f, data=dat)</code></pre>
 <pre><code>## Warning in readLines(file, warn = TRUE): incomplete final line found on 'C:
 ## \Users\steve\Documents\simulating-clinical-trials\mod01.stan'</code></pre>
 <pre class="r"><code>tidy(fit01a)</code></pre>
-<pre><code>##     term  estimate  std.error
-## 1 lambda   7.49582  0.6425268
-## 2 ntilde 169.80550 16.3034236</code></pre>
+<pre><code>##     term   estimate  std.error
+## 1 lambda   7.495092  0.6450247
+## 2 ntilde 170.078750 16.4463725</code></pre>
 <p>Run this as a multi-center trial, but with no center effect.</p>
 <p>First with a non-informative prior.</p>
 <pre class="r"><code>f &lt;- &quot;mod02.stan&quot;
@@ -353,12 +353,13 @@ fit02 &lt;- stan(file=f, data=dat)</code></pre>
 ## \Users\steve\Documents\simulating-clinical-trials\mod02.stan'</code></pre>
 <pre class="r"><code>tidy(fit02)</code></pre>
 <pre><code>##           term   estimate  std.error
-## 1       lambda   1.471064  0.2436862
-## 2    ntilde[1]  31.553500  6.7224204
-## 3    ntilde[2]  38.618750  6.7930063
-## 4    ntilde[3]  36.538500  6.7862015
-## 5    ntilde[4]  34.507750  6.6710618
-## 6 ntilde_total 141.218500 20.2796838</code></pre>
+## 1       lambda   1.471338  0.2412028
+## 2    ntilde[1]  31.525750  6.6442737
+## 3    ntilde[2]  38.555250  6.6638990
+## 4    ntilde[3]  36.540250  6.9445977
+## 5    ntilde[4]  34.467750  6.7562098
+## 6 ntilde_total 141.089000 20.2794081</code></pre>
+<p>The results are identical to the earlier result (fit01).</p>
 <p>Next with an informative prior.</p>
 <pre class="r"><code># Here's the data. S=1/200 gives a prior weight of one subject.
 dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=0.5)
@@ -367,14 +368,15 @@ fit02a &lt;- stan(file=f, data=dat)</code></pre>
 ## \Users\steve\Documents\simulating-clinical-trials\mod02.stan'</code></pre>
 <pre class="r"><code>tidy(fit02a)</code></pre>
 <pre><code>##           term   estimate  std.error
-## 1       lambda   1.872616  0.1610008
-## 2    ntilde[1]  38.672500  6.5344409
-## 3    ntilde[2]  45.730000  6.5428436
-## 4    ntilde[3]  43.774750  6.5352651
-## 5    ntilde[4]  41.758000  6.5925565
-## 6 ntilde_total 169.935250 16.6149803</code></pre>
+## 1       lambda   1.880068  0.1614387
+## 2    ntilde[1]  38.819250  6.4467798
+## 3    ntilde[2]  45.957000  6.5272354
+## 4    ntilde[3]  43.768000  6.5843006
+## 5    ntilde[4]  41.825500  6.5175662
+## 6 ntilde_total 170.369750 16.5276836</code></pre>
+<p>These results are identical to fit01a.</p>
 <p>Now allow each center to vary.</p>
-<p>First with a non-informative prior.</p>
+<p>First with a non-informative prior. The rate for the average center should be 1/4 the overal rate or about 1.46. But the first center, with only 5 patients, should have the lowest rate and the second center, with 12 patients, should have the highest rate.</p>
 <pre class="r"><code>f &lt;- &quot;mod03.stan&quot;
 # Here's what's hiding in the file 
 cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
@@ -415,24 +417,25 @@ cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
 <pre class="r"><code># Here's the data.
 dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24)
 fit03 &lt;- stan(file=f, data=dat)</code></pre>
-<pre><code>## Warning: There were 4 divergent transitions after warmup. Increasing adapt_delta above 0.8 may help. See
+<pre><code>## Warning: There were 3 divergent transitions after warmup. Increasing adapt_delta above 0.8 may help. See
 ## http://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup</code></pre>
 <pre><code>## Warning: Examine the pairs() plot to diagnose sampling problems</code></pre>
 <pre class="r"><code>tidy(fit03, estimate.method=&quot;median&quot;)</code></pre>
 <pre><code>##            term    estimate  std.error
-## 1     lambda[1]   0.8868189  0.3842151
-## 2     lambda[2]   1.9100038  0.5684051
-## 3     lambda[3]   1.6287111  0.4836252
-## 4     lambda[4]   1.3325678  0.4611255
-## 5         alpha   1.3646434  0.8222112
-## 6          beta   0.7788805  0.5878224
-## 7      hyper_mn   1.7893411  2.0635812
-## 8      hyper_cv   0.8560328  0.3074532
-## 9     ntilde[1]  21.0000000  8.0337111
-## 10    ntilde[2]  46.0000000 11.7334495
-## 11    ntilde[3]  39.0000000 10.1581729
-## 12    ntilde[4]  32.0000000  9.7130826
-## 13 ntilde_total 141.0000000 20.4163554</code></pre>
+## 1     lambda[1]   0.9013668  0.3878460
+## 2     lambda[2]   1.9296583  0.5363997
+## 3     lambda[3]   1.6129279  0.5068853
+## 4     lambda[4]   1.3593249  0.4550120
+## 5         alpha   1.2985997  0.9326008
+## 6          beta   0.7261588  0.6382887
+## 7      hyper_mn   1.8352461  2.1847915
+## 8      hyper_cv   0.8775308  0.3232606
+## 9     ntilde[1]  21.0000000  8.0233953
+## 10    ntilde[2]  47.0000000 11.1364669
+## 11    ntilde[3]  39.0000000 10.5125533
+## 12    ntilde[4]  32.0000000  9.6884892
+## 13 ntilde_total 142.0000000 19.9547735</code></pre>
+<p>Now how do you incorporate an informative prior into a hierarchical setting. One way is to reparameterize the hyperprior.</p>
 <pre class="r"><code>f &lt;- &quot;mod03a.stan&quot;
 # Here's what's hiding in the file 
 cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
@@ -476,19 +479,20 @@ dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=0.5)
 fit03a &lt;- stan(file=f, data=dat)
 tidy(fit03a, estimate.method=&quot;median&quot;)</code></pre>
 <pre><code>##            term    estimate  std.error
-## 1     lambda[1]   1.1155398  0.3945423
-## 2     lambda[2]   1.9565630  0.4961886
-## 3     lambda[3]   1.7387648  0.4482522
-## 4     lambda[4]   1.4815357  0.4232637
-## 5         alpha   4.4863601  2.8254952
-## 6          beta   2.2443765  1.4270433
-## 7      hyper_mn   2.0106425  0.1903482
-## 8      hyper_cv   0.4721206  0.1543884
-## 9     ntilde[1]  25.0000000  8.4690651
-## 10    ntilde[2]  47.0000000 10.6561752
-## 11    ntilde[3]  41.0000000  9.8603252
-## 12    ntilde[4]  35.0000000  9.3583950
-## 13 ntilde_total 150.0000000 19.5373956</code></pre>
+## 1     lambda[1]   1.1377484  0.3925345
+## 2     lambda[2]   1.9497751  0.4878330
+## 3     lambda[3]   1.7117504  0.4696048
+## 4     lambda[4]   1.4962908  0.4423014
+## 5         alpha   4.6482612  3.0077808
+## 6          beta   2.3103658  1.5071942
+## 7      hyper_mn   2.0118097  0.1893541
+## 8      hyper_cv   0.4638256  0.1537600
+## 9     ntilde[1]  25.0000000  8.4973801
+## 10    ntilde[2]  47.0000000 10.5974355
+## 11    ntilde[3]  41.0000000 10.0735657
+## 12    ntilde[4]  35.0000000  9.3727807
+## 13 ntilde_total 150.0000000 20.0089888</code></pre>
+<p>You could also add a pseudo-center with parameters consistent with prior distribution.</p>
 <pre class="r"><code>f &lt;- &quot;mod03b.stan&quot;
 # Here's what's hiding in the file 
 cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
@@ -532,6 +536,141 @@ cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
 <pre class="r"><code># Here's the data.
 dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, pseudo_n=100, pseudo_t=12)
 fit03b &lt;- stan(file=f, data=dat)</code></pre>
+<pre><code>## Warning: There were 1 divergent transitions after warmup. Increasing adapt_delta above 0.8 may help. See
+## http://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup</code></pre>
+<pre><code>## Warning: Examine the pairs() plot to diagnose sampling problems</code></pre>
+<pre class="r"><code>tidy(fit03b, estimate.method=&quot;median&quot;)</code></pre>
+<pre><code>##            term    estimate  std.error
+## 1     lambda[1]   0.9083559  0.3804924
+## 2     lambda[2]   1.9913352  0.5880113
+## 3     lambda[3]   1.6870428  0.5288384
+## 4     lambda[4]   1.3708861  0.4745920
+## 5     lambda[5]   8.1620258  0.8192006
+## 6         alpha   1.0592603  0.6235389
+## 7          beta   0.3356006  0.2541616
+## 8      hyper_mn   3.1969815  4.1035076
+## 9      hyper_cv   0.9716250  0.3079624
+## 10    ntilde[1]  21.0000000  8.0726872
+## 11    ntilde[2]  48.0000000 12.1402935
+## 12    ntilde[3]  40.0000000 10.9569910
+## 13    ntilde[4]  33.0000000 10.0018201
+## 14 ntilde_total 146.0000000 20.9726064</code></pre>
+<p>Finally, you could look at a perturbation model. Here’s a perturbation model with a non-informative prior.</p>
+<pre class="r"><code>f &lt;- &quot;mod04.stan&quot;
+# Here's what's hiding in the file 
+cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
+<pre><code>## data {
+##   int&lt;lower=0&gt;           J;    // number of centers
+##   int&lt;lower=0&gt;           n[J]; // current sample size in each center
+##   real&lt;lower=0&gt;          t;    // current time
+##   int&lt;lower=0&gt;           N;    // planned sample size overall
+##   real&lt;lower=0&gt;          T;    // planned time
+##   real&lt;lower=0, upper=1&gt; S;    // strength of prior
+## }
+## parameters {
+##   real&lt;lower=0&gt; lambda;        // overall rate for each center
+##   real&lt;lower=0&gt; eta[J];        // deviation from overall rate
+##   real&lt;lower=0&gt; alpha;         // parameter from deviation distribution
+## }
+## transformed parameters {
+##   real&lt;lower=0&gt; deviation_cv;
+##   deviation_cv = 1/sqrt(alpha);
+## } 
+## model {
+##   alpha ~ exponential(1.0);
+##   lambda ~ gamma(N*S, T*S*J);
+##   for (j in 1:J) {
+##     eta[J] ~ gamma(alpha, alpha); 
+##     n[j] ~ poisson(eta[j]*lambda*t);
+##   }
+## }
+## generated quantities {
+##   real&lt;lower=0&gt; ntilde[J];
+##   real&lt;lower=0&gt; ntilde_total;
+##   for (j in 1:J) {
+##     ntilde[j] = n[j] + poisson_rng(eta[j]*lambda*(T-t));
+##   }
+##   ntilde_total = sum(ntilde);
+## }</code></pre>
+<pre class="r"><code># Here's the data.
+dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=1/200)
+fit04 &lt;- stan(file=f, data=dat)
+tidy(fit04, estimate.method=&quot;median&quot;)</code></pre>
+<pre><code>##            term    estimate  std.error
+## 1        lambda   0.9855895  0.6777843
+## 2        eta[1]   0.9289596  0.9246957
+## 3        eta[2]   2.0895052  1.7670729
+## 4        eta[3]   1.7599674  1.5201723
+## 5        eta[4]   0.8946415  0.3359102
+## 6         alpha   2.3121930  1.5537320
+## 7  deviation_cv   0.6576396  0.2494594
+## 8     ntilde[1]  22.0000000  8.4584642
+## 9     ntilde[2]  50.0000000 12.4964001
+## 10    ntilde[3]  42.0000000 11.4310755
+## 11    ntilde[4]  24.0000000  7.8947660
+## 12 ntilde_total 140.0000000 20.2520146</code></pre>
+<p>Here’s a perturbation model with an informative prior.</p>
+<pre class="r"><code># Here's the data.
+dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=0.5)
+fit04a &lt;- stan(file=f, data=dat)
+tidy(fit04a, estimate.method=&quot;median&quot;)</code></pre>
+<pre><code>##            term    estimate  std.error
+## 1        lambda   2.0171391  0.2041752
+## 2        eta[1]   0.4684258  0.2121906
+## 3        eta[2]   1.0552189  0.3151551
+## 4        eta[3]   0.8844261  0.2843904
+## 5        eta[4]   0.6371822  0.1953662
+## 6         alpha   2.0106098  1.4206030
+## 7  deviation_cv   0.7052387  0.2642928
+## 8     ntilde[1]  22.0000000  8.4831738
+## 9     ntilde[2]  50.0000000 12.4789760
+## 10    ntilde[3]  42.0000000 11.4600429
+## 11    ntilde[4]  31.0000000  8.3687951
+## 12 ntilde_total 148.0000000 20.7031906</code></pre>
+<p>Like before, you can also add a pseudo-center with parameters consistent with prior distribution.</p>
+<pre class="r"><code>f &lt;- &quot;mod04b.stan&quot;
+# Here's what's hiding in the file 
+cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
+<pre><code>## data {
+##   int&lt;lower=0&gt;           J;    // number of centers
+##   int&lt;lower=0&gt;           n[J]; // current sample size in each center
+##   real&lt;lower=0&gt;          t;    // current time
+##   int&lt;lower=0&gt;           N;    // planned sample size overall
+##   real&lt;lower=0&gt;          T;    // planned time
+##   real&lt;lower=0, upper=1&gt; S;    // strength of prior
+##   int&lt;lower=0&gt;           pseudo_n;
+##   real&lt;lower=0&gt;          pseudo_t;
+## }
+## parameters {
+##   real&lt;lower=0&gt; lambda;        // overall rate for each center
+##   real&lt;lower=0&gt; eta[J+1];      // deviation from overall rate
+##   real&lt;lower=0&gt; alpha;         // parameter from deviation distribution
+## }
+## transformed parameters {
+##   real&lt;lower=0&gt; deviation_cv;
+##   deviation_cv = 1/sqrt(alpha);
+## } 
+## model {
+##   alpha ~ exponential(1.0);
+##   lambda ~ gamma(N*S, T*S*J);
+##   for (j in 1:J) {
+##     eta[J] ~ gamma(alpha, alpha); 
+##     n[j] ~ poisson(eta[j]*lambda*t);
+##   }
+##   
+##   pseudo_n ~ poisson(eta[J+1]*lambda*pseudo_t);
+## }
+## generated quantities {
+##   real&lt;lower=0&gt; ntilde[J];
+##   real&lt;lower=0&gt; ntilde_total;
+##   for (j in 1:J) {
+##     ntilde[j] = n[j] + poisson_rng(eta[j]*lambda*(T-t));
+##   }
+##   ntilde_total = sum(ntilde);
+## }</code></pre>
+<pre class="r"><code># Here's the data.
+dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=1/200, pseudo_n=100, pseudo_t=12)
+fit04b &lt;- stan(file=f, data=dat)</code></pre>
 <pre><code>## In file included from C:/Users/steve/Documents/R/win-library/3.3/BH/include/boost/config.hpp:39:0,
 ##                  from C:/Users/steve/Documents/R/win-library/3.3/BH/include/boost/math/tools/config.hpp:13,
 ##                  from C:/Users/steve/Documents/R/win-library/3.3/StanHeaders/include/stan/math/rev/core/var.hpp:7,
@@ -540,31 +679,27 @@ fit03b &lt;- stan(file=f, data=dat)</code></pre>
 ##                  from C:/Users/steve/Documents/R/win-library/3.3/StanHeaders/include/stan/math/rev/mat.hpp:4,
 ##                  from C:/Users/steve/Documents/R/win-library/3.3/StanHeaders/include/stan/math.hpp:4,
 ##                  from C:/Users/steve/Documents/R/win-library/3.3/StanHeaders/include/src/stan/model/model_header.hpp:4,
-##                  from file1d9421215931.cpp:8:
+##                  from file21e877dc34a5.cpp:8:
 ## C:/Users/steve/Documents/R/win-library/3.3/BH/include/boost/config/compiler/gcc.hpp:186:0: warning: &quot;BOOST_NO_CXX11_RVALUE_REFERENCES&quot; redefined
 ##  #  define BOOST_NO_CXX11_RVALUE_REFERENCES
 ##  ^
 ## &lt;command-line&gt;:0:0: note: this is the location of the previous definition
 ## cc1plus.exe: warning: unrecognized command line option &quot;-Wno-ignored-attributes&quot;</code></pre>
-<pre><code>## Warning: There were 3 divergent transitions after warmup. Increasing adapt_delta above 0.8 may help. See
-## http://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup</code></pre>
-<pre><code>## Warning: Examine the pairs() plot to diagnose sampling problems</code></pre>
-<pre class="r"><code>tidy(fit03b, estimate.method=&quot;median&quot;)</code></pre>
+<pre class="r"><code>tidy(fit04b, estimate.method=&quot;median&quot;)</code></pre>
 <pre><code>##            term    estimate  std.error
-## 1     lambda[1]   0.9150430  0.3936450
-## 2     lambda[2]   2.0127117  0.5802037
-## 3     lambda[3]   1.6848024  0.5369610
-## 4     lambda[4]   1.3618518  0.4785746
-## 5     lambda[5]   8.1706306  0.8213381
-## 6         alpha   1.0221205  0.6009692
-## 7          beta   0.3226120  0.2532563
-## 8      hyper_mn   3.2721810  4.3918923
-## 9      hyper_cv   0.9891199  0.3059090
-## 10    ntilde[1]  21.0000000  8.2326261
-## 11    ntilde[2]  48.0000000 12.2611775
-## 12    ntilde[3]  40.0000000 11.1485954
-## 13    ntilde[4]  32.0000000  9.8745017
-## 14 ntilde_total 146.0000000 21.3483361</code></pre>
+## 1        lambda   0.7302124  0.4975391
+## 2        eta[1]   1.2618238  1.3225447
+## 3        eta[2]   2.8617945  2.6564849
+## 4        eta[3]   2.3704051  2.2463828
+## 5        eta[4]   0.9958177  0.3562962
+## 6        eta[5]  11.4361466  9.2349066
+## 7         alpha   2.3642355  1.5756793
+## 8  deviation_cv   0.6503613  0.2255673
+## 9     ntilde[1]  22.0000000  8.4102237
+## 10    ntilde[2]  50.0000000 12.3398072
+## 11    ntilde[3]  41.0000000 11.3540166
+## 12    ntilde[4]  21.0000000  7.3192521
+## 13 ntilde_total 137.0000000 20.1847518</code></pre>
 
 
 
