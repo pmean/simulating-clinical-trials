@@ -14,8 +14,8 @@ parameters {
 transformed parameters {
   real<lower=0> alpha;
   real<lower=0> beta;
-  alpha = 1 / hyper_cv^2          // hyper_cv = 1/sqrt(alpha);
-  beta = (hyper_cv^2 * hyper_mn); // hyper_mn = alpha / beta;
+  alpha = 1 / hyper_cv^2;         // hyper_cv = 1/sqrt(alpha)
+  beta = (hyper_cv^2 * hyper_mn); // hyper_mn = alpha / beta
 }
 model {
   hyper_mn ~ gamma(N*S, T*S);

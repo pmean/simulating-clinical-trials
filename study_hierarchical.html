@@ -151,7 +151,7 @@ options(mc.cores = parallel::detectCores())
 getRversion()</code></pre>
 <pre><code>## [1] '3.3.3'</code></pre>
 <pre class="r"><code>Sys.time()</code></pre>
-<pre><code>## [1] &quot;2017-04-07 14:34:31 CDT&quot;</code></pre>
+<pre><code>## [1] &quot;2017-04-07 16:16:31 CDT&quot;</code></pre>
 <p>I wanted to fit a series of Bayesian models starting with a very simple model and moving to more complex models. I read in both enrollment data sets, and I made a totally unjustified change by converting the NAs to zeros. It’s easy to modify these models to account for the NAs (which represent, I assume, the weeks when a center was not yet through all the approvals needed to get started). In any case, I chose the sixth row of the second data set (csp558) as the place to test these models.</p>
 <pre class="r"><code>f &lt;- &quot;csp546 enrollment.csv&quot;
 csp546 &lt;- read.csv(file=f, stringsAsFactors=FALSE, header=TRUE)
@@ -292,34 +292,20 @@ cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
 ## }</code></pre>
 <pre class="r"><code># Here's the data. S=1/200 gives a prior weight of one subject.
 dat &lt;- list(n=35, t=6, N=200, T=24, S=1/200)
-fit01 &lt;- stan(file=f, data=dat)</code></pre>
-<pre><code>## In file included from C:/Program Files/R/R-3.3.3/library/BH/include/boost/config.hpp:39:0,
-##                  from C:/Program Files/R/R-3.3.3/library/BH/include/boost/math/tools/config.hpp:13,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/stan/math/rev/core/var.hpp:7,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/stan/math/rev/core/gevv_vvv_vari.hpp:5,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/stan/math/rev/core.hpp:12,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/stan/math/rev/mat.hpp:4,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/stan/math.hpp:4,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/src/stan/model/model_header.hpp:4,
-##                  from file1e5047674b05.cpp:8:
-## C:/Program Files/R/R-3.3.3/library/BH/include/boost/config/compiler/gcc.hpp:186:0: warning: &quot;BOOST_NO_CXX11_RVALUE_REFERENCES&quot; redefined
-##  #  define BOOST_NO_CXX11_RVALUE_REFERENCES
-##  ^
-## &lt;command-line&gt;:0:0: note: this is the location of the previous definition
-## cc1plus.exe: warning: unrecognized command line option &quot;-Wno-ignored-attributes&quot;</code></pre>
-<pre class="r"><code>tidy(fit01)</code></pre>
+fit01 &lt;- stan(file=f, data=dat)
+tidy(fit01)</code></pre>
 <pre><code>##     term   estimate  std.error
-## 1 lambda   5.905919  0.9675875
-## 2 ntilde 141.359250 20.1264244</code></pre>
+## 1 lambda   5.902766  0.9568485
+## 2 ntilde 141.328500 20.3450010</code></pre>
 <p>Change this to an informative prior. This prior has a weight equal to 1/2 the total sample size (100). So the posterior mean is going to be a weighted average of the prior mean (8.33) and the rate calculated from the data (5.83) with about 3/4 of the weight being given to the prior.</p>
 <pre class="r"><code>f &lt;- &quot;mod01.stan&quot;
 # Here's the data. Changing S to 0.5 produces an informative prior.
 dat &lt;- list(n=35, t=6, N=200, T=24, S=0.5)
 fit01a &lt;- stan(file=f, data=dat)
 tidy(fit01a)</code></pre>
-<pre><code>##     term  estimate  std.error
-## 1 lambda   7.49209  0.6517695
-## 2 ntilde 169.62650 16.5829203</code></pre>
+<pre><code>##     term   estimate  std.error
+## 1 lambda   7.512447  0.6567691
+## 2 ntilde 169.847250 16.1850983</code></pre>
 <p>Run this as a multi-center trial, but with no center effect.</p>
 <p>First with a non-informative prior.</p>
 <pre class="r"><code>f &lt;- &quot;mod02.stan&quot;
@@ -337,45 +323,31 @@ cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
 ##   real&lt;lower=0&gt; lambda;        // single common rate for each center
 ## }
 ## model {
-##   lambda ~ gamma(N*S, T*S*J);
+##   lambda ~ gamma(N*S, T*S);
 ##   // gamma(N*S/J, T*S) also works but it weakens the prior.
 ##   for (j in 1:J) {
-##     n[j] ~ poisson(lambda*t);
+##     n[j] ~ poisson(lambda*t/J);
 ##   }
 ## }
 ## generated quantities {
 ##   real&lt;lower=0&gt; ntilde[J];
 ##   real&lt;lower=0&gt; ntilde_total;
 ##   for (j in 1:J) {
-##     ntilde[j] = n[j] + poisson_rng(lambda*(T-t));
+##     ntilde[j] = n[j] + poisson_rng(lambda*(T-t)/J);
 ##   }
 ##   ntilde_total = sum(ntilde);
 ## }</code></pre>
 <pre class="r"><code># Here's the data. S=1/200 gives a prior weight of one subject.
 dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=1/200)
-fit02 &lt;- stan(file=f, data=dat)</code></pre>
-<pre><code>## In file included from C:/Program Files/R/R-3.3.3/library/BH/include/boost/config.hpp:39:0,
-##                  from C:/Program Files/R/R-3.3.3/library/BH/include/boost/math/tools/config.hpp:13,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/stan/math/rev/core/var.hpp:7,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/stan/math/rev/core/gevv_vvv_vari.hpp:5,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/stan/math/rev/core.hpp:12,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/stan/math/rev/mat.hpp:4,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/stan/math.hpp:4,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/src/stan/model/model_header.hpp:4,
-##                  from file1e50538d1074.cpp:8:
-## C:/Program Files/R/R-3.3.3/library/BH/include/boost/config/compiler/gcc.hpp:186:0: warning: &quot;BOOST_NO_CXX11_RVALUE_REFERENCES&quot; redefined
-##  #  define BOOST_NO_CXX11_RVALUE_REFERENCES
-##  ^
-## &lt;command-line&gt;:0:0: note: this is the location of the previous definition
-## cc1plus.exe: warning: unrecognized command line option &quot;-Wno-ignored-attributes&quot;</code></pre>
-<pre class="r"><code>tidy(fit02)</code></pre>
-<pre><code>##           term  estimate  std.error
-## 1       lambda   1.46380  0.2442863
-## 2    ntilde[1]  31.34775  6.8763101
-## 3    ntilde[2]  38.26800  6.6678926
-## 4    ntilde[3]  36.28225  6.7401738
-## 5    ntilde[4]  34.43125  6.7030968
-## 6 ntilde_total 140.32925 20.2882786</code></pre>
+fit02 &lt;- stan(file=f, data=dat)
+tidy(fit02)</code></pre>
+<pre><code>##           term   estimate  std.error
+## 1       lambda   5.872701  0.9644303
+## 2    ntilde[1]  31.398000  6.7457373
+## 3    ntilde[2]  38.535000  6.6425000
+## 4    ntilde[3]  36.336000  6.6145326
+## 5    ntilde[4]  34.425750  6.7919820
+## 6 ntilde_total 140.694750 19.9712114</code></pre>
 <p>The results are identical to the earlier result (fit01).</p>
 <p>Next with an informative prior.</p>
 <pre class="r"><code># Here's the data. S=1/200 gives a prior weight of one subject.
@@ -383,12 +355,12 @@ dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=0.5)
 fit02a &lt;- stan(file=f, data=dat)
 tidy(fit02a)</code></pre>
 <pre><code>##           term   estimate  std.error
-## 1       lambda   1.876221  0.1622769
-## 2    ntilde[1]  38.789000  6.5495193
-## 3    ntilde[2]  45.722250  6.4120109
-## 4    ntilde[3]  43.913000  6.5461931
-## 5    ntilde[4]  41.783750  6.3758253
-## 6 ntilde_total 170.208000 16.3969799</code></pre>
+## 1       lambda   7.485588  0.6507435
+## 2    ntilde[1]  38.744250  6.5370884
+## 3    ntilde[2]  45.664000  6.4761554
+## 4    ntilde[3]  43.760750  6.6401078
+## 5    ntilde[4]  41.664500  6.4999232
+## 6 ntilde_total 169.833500 16.8593249</code></pre>
 <p>These results are identical to fit01a.</p>
 <p>Now allow each center to vary.</p>
 <p>First with a non-informative prior. The rate for the average center should be 1/4 the overal rate or about 1.46. But the first center, with only 5 patients, should have the lowest rate and the second center, with 12 patients, should have the highest rate.</p>
@@ -418,52 +390,35 @@ cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
 ##   beta ~ gamma(0.1, 1.0);
 ##   lambda ~ gamma(alpha, beta);
 ##   for (j in 1:J) {
-##     n[j] ~ poisson(lambda[j]*t);
+##     n[j] ~ poisson(lambda[j]*t/J);
 ##   }
 ## }
 ## generated quantities {
 ##   real&lt;lower=0&gt; ntilde[J];
 ##   real&lt;lower=0&gt; ntilde_total;
 ##   for (j in 1:J) {
-##     ntilde[j] = n[j] + poisson_rng(lambda[j]*(T-t));
+##     ntilde[j] = n[j] + poisson_rng(lambda[j]*(T-t)/J);
 ##   }
 ##   ntilde_total = sum(ntilde);
 ## }</code></pre>
 <pre class="r"><code># Here's the data.
 dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24)
-fit03 &lt;- stan(file=f, data=dat)</code></pre>
-<pre><code>## In file included from C:/Program Files/R/R-3.3.3/library/BH/include/boost/config.hpp:39:0,
-##                  from C:/Program Files/R/R-3.3.3/library/BH/include/boost/math/tools/config.hpp:13,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/stan/math/rev/core/var.hpp:7,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/stan/math/rev/core/gevv_vvv_vari.hpp:5,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/stan/math/rev/core.hpp:12,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/stan/math/rev/mat.hpp:4,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/stan/math.hpp:4,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/src/stan/model/model_header.hpp:4,
-##                  from file1e5076015edf.cpp:8:
-## C:/Program Files/R/R-3.3.3/library/BH/include/boost/config/compiler/gcc.hpp:186:0: warning: &quot;BOOST_NO_CXX11_RVALUE_REFERENCES&quot; redefined
-##  #  define BOOST_NO_CXX11_RVALUE_REFERENCES
-##  ^
-## &lt;command-line&gt;:0:0: note: this is the location of the previous definition
-## cc1plus.exe: warning: unrecognized command line option &quot;-Wno-ignored-attributes&quot;</code></pre>
-<pre><code>## Warning: There were 9 divergent transitions after warmup. Increasing adapt_delta above 0.8 may help. See
-## http://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup</code></pre>
-<pre><code>## Warning: Examine the pairs() plot to diagnose sampling problems</code></pre>
-<pre class="r"><code>tidy(fit03, estimate.method=&quot;median&quot;)</code></pre>
+fit03 &lt;- stan(file=f, data=dat, control = list(adapt_delta = 0.99))
+tidy(fit03, estimate.method=&quot;mean&quot;)</code></pre>
 <pre><code>##            term    estimate  std.error
-## 1     lambda[1]   0.8908072  0.3882432
-## 2     lambda[2]   1.9179478  0.5495121
-## 3     lambda[3]   1.6195342  0.5042673
-## 4     lambda[4]   1.3414372  0.4517814
-## 5         alpha   1.3315785  0.8960961
-## 6          beta   0.7400990  0.6428952
-## 7      hyper_mn   1.8410628  1.5896776
-## 8      hyper_cv   0.8665959  0.3015617
-## 9     ntilde[1]  21.0000000  8.1504652
-## 10    ntilde[2]  46.0000000 11.4979909
-## 11    ntilde[3]  39.0000000 10.7192994
-## 12    ntilde[4]  32.0000000  9.4779646
-## 13 ntilde_total 141.0000000 21.1328367</code></pre>
+## 1     lambda[1]   3.7832140  1.4657099
+## 2     lambda[2]   7.6530659  2.1230525
+## 3     lambda[3]   6.5829766  1.9647694
+## 4     lambda[4]   5.4401023  1.7945849
+## 5         alpha   1.9698588  1.1707321
+## 6          beta   0.3325265  0.2273988
+## 7      hyper_mn   7.7196309 10.7412136
+## 8      hyper_cv   0.8208047  0.2849574
+## 9     ntilde[1]  21.9682500  7.9043255
+## 10    ntilde[2]  46.5115000 11.2552449
+## 11    ntilde[3]  39.6290000 10.4790893
+## 12    ntilde[4]  32.5217500  9.4613374
+## 13 ntilde_total 140.6305000 20.9504582</code></pre>
 <p>Now how do you incorporate an informative prior into a hierarchical setting. One way is to reparameterize the hyperprior.</p>
 <pre class="r"><code>f &lt;- &quot;mod03a.stan&quot;
 # Here's what's hiding in the file 
@@ -478,63 +433,49 @@ cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
 ## }
 ## parameters {
 ##   real&lt;lower=0&gt; lambda[J];     // single common rate for each center
-##   real&lt;lower=0&gt; alpha;         // parameters from hyperprior
-##   real&lt;lower=0&gt; beta;
+##   real&lt;lower=0&gt; hyper_mn;      // parameters from hyperprior
+##   real&lt;lower=0&gt; hyper_cv;      // parameters from hyperprior
 ## }
 ## transformed parameters {
-##   real&lt;lower=0&gt; hyper_mn;
-##   real&lt;lower=0&gt; hyper_cv;
-##   hyper_mn = alpha / beta;
-##   hyper_cv = 1/sqrt(alpha);
+##   real&lt;lower=0&gt; alpha;
+##   real&lt;lower=0&gt; beta;
+##   alpha = 1 / hyper_cv^2;         // hyper_cv = 1/sqrt(alpha)
+##   beta = (hyper_cv^2 * hyper_mn); // hyper_mn = alpha / beta
 ## }
 ## model {
-##   hyper_mn ~ gamma(N*S, T*S*J);
-##   beta ~ gamma(1, 1);
+##   hyper_mn ~ gamma(N*S, T*S);
+##   hyper_cv ~ gamma(1, 1);
 ##   lambda ~ gamma(alpha, beta);
 ##   for (j in 1:J) {
-##     n[j] ~ poisson(lambda[j]*t);
+##     n[j] ~ poisson(lambda[j]*t/J);
 ##   }
 ## }
 ## generated quantities {
 ##   real&lt;lower=0&gt; ntilde[J];
 ##   real&lt;lower=0&gt; ntilde_total;
 ##   for (j in 1:J) {
-##     ntilde[j] = n[j] + poisson_rng(lambda[j]*(T-t));
+##     ntilde[j] = n[j] + poisson_rng(lambda[j]*(T-t)/J);
 ##   }
 ##   ntilde_total = sum(ntilde);
 ## }</code></pre>
 <pre class="r"><code># Here's the data.
 dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=0.5)
-fit03a &lt;- stan(file=f, data=dat)</code></pre>
-<pre><code>## In file included from C:/Program Files/R/R-3.3.3/library/BH/include/boost/config.hpp:39:0,
-##                  from C:/Program Files/R/R-3.3.3/library/BH/include/boost/math/tools/config.hpp:13,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/stan/math/rev/core/var.hpp:7,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/stan/math/rev/core/gevv_vvv_vari.hpp:5,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/stan/math/rev/core.hpp:12,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/stan/math/rev/mat.hpp:4,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/stan/math.hpp:4,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/src/stan/model/model_header.hpp:4,
-##                  from file1e505961dd.cpp:8:
-## C:/Program Files/R/R-3.3.3/library/BH/include/boost/config/compiler/gcc.hpp:186:0: warning: &quot;BOOST_NO_CXX11_RVALUE_REFERENCES&quot; redefined
-##  #  define BOOST_NO_CXX11_RVALUE_REFERENCES
-##  ^
-## &lt;command-line&gt;:0:0: note: this is the location of the previous definition
-## cc1plus.exe: warning: unrecognized command line option &quot;-Wno-ignored-attributes&quot;</code></pre>
-<pre class="r"><code>tidy(fit03a, estimate.method=&quot;median&quot;)</code></pre>
-<pre><code>##            term    estimate  std.error
-## 1     lambda[1]   1.1350593  0.4053265
-## 2     lambda[2]   1.9741335  0.4877006
-## 3     lambda[3]   1.7256983  0.4750659
-## 4     lambda[4]   1.4761008  0.4336851
-## 5         alpha   4.5476212  2.9215789
-## 6          beta   2.2766830  1.4746687
-## 7      hyper_mn   2.0159134  0.1905338
-## 8      hyper_cv   0.4689299  0.1562387
-## 9     ntilde[1]  25.0000000  8.6551469
-## 10    ntilde[2]  47.0000000 10.4776495
-## 11    ntilde[3]  41.0000000 10.2914521
-## 12    ntilde[4]  34.0000000  9.3350977
-## 13 ntilde_total 150.0000000 20.0201937</code></pre>
+fit03a &lt;- stan(file=f, data=dat)
+tidy(fit03a, estimate.method=&quot;mean&quot;)</code></pre>
+<pre><code>##            term    estimate   std.error
+## 1     lambda[1]   4.4629384  1.38565917
+## 2     lambda[2]   7.0285944  1.74304332
+## 3     lambda[3]   6.2848398  1.63236992
+## 4     lambda[4]   5.5821491  1.59882245
+## 5      hyper_mn   8.3509295  0.81769215
+## 6      hyper_cv   0.3808433  0.02574757
+## 7         alpha   6.9880848  0.93231332
+## 8          beta   1.2111529  0.16686521
+## 9     ntilde[1]  25.0320000  7.59235714
+## 10    ntilde[2]  43.5230000  9.72898424
+## 11    ntilde[3]  38.3415000  9.28309871
+## 12    ntilde[4]  33.0685000  8.80784890
+## 13 ntilde_total 139.9650000 20.13315949</code></pre>
 <p>You could also add a pseudo-center with parameters consistent with prior distribution.</p>
 <pre class="r"><code>f &lt;- &quot;mod03b.stan&quot;
 # Here's what's hiding in the file 
@@ -547,6 +488,7 @@ cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
 ##   real&lt;lower=0&gt;          T;    // planned time
 ##   int&lt;lower=0&gt;           pseudo_n;
 ##   real&lt;lower=0&gt;          pseudo_t;
+##   real&lt;lower=0, upper=1&gt; S;    // strength of prior
 ## }
 ## parameters {
 ##   real&lt;lower=0&gt; lambda[J+1];   // single common rate for each center
@@ -564,7 +506,7 @@ cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
 ##   beta ~ gamma(0.1, 1.0);
 ##   lambda ~ gamma(alpha, beta);
 ##   for (j in 1:J) {
-##     n[j] ~ poisson(lambda[j]*t);
+##     n[j] ~ poisson(lambda[j]*t/J);
 ##   }
 ##   pseudo_n ~ poisson(lambda[J+1]*pseudo_t);
 ## }
@@ -572,13 +514,14 @@ cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
 ##   real&lt;lower=0&gt; ntilde[J];
 ##   real&lt;lower=0&gt; ntilde_total;
 ##   for (j in 1:J) {
-##     ntilde[j] = n[j] + poisson_rng(lambda[j]*(T-t));
+##     ntilde[j] = n[j] + poisson_rng(lambda[j]*(T-t)/J);
 ##   }
 ##   ntilde_total = sum(ntilde);
 ## }</code></pre>
 <pre class="r"><code># Here's the data.
-dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, pseudo_n=100, pseudo_t=12)
+dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, pseudo_n=100, pseudo_t=12, S=0.5)
 fit03b &lt;- stan(file=f, data=dat, control = list(adapt_delta = 0.99))</code></pre>
+<pre><code>## hash mismatch so recompiling; make sure Stan code ends with a blank line</code></pre>
 <pre><code>## In file included from C:/Program Files/R/R-3.3.3/library/BH/include/boost/config.hpp:39:0,
 ##                  from C:/Program Files/R/R-3.3.3/library/BH/include/boost/math/tools/config.hpp:13,
 ##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/stan/math/rev/core/var.hpp:7,
@@ -587,28 +530,28 @@ fit03b &lt;- stan(file=f, data=dat, control = list(adapt_delta = 0.99))</code></
 ##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/stan/math/rev/mat.hpp:4,
 ##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/stan/math.hpp:4,
 ##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/src/stan/model/model_header.hpp:4,
-##                  from file1e5045ab394d.cpp:8:
+##                  from file1ad8731a5e74.cpp:8:
 ## C:/Program Files/R/R-3.3.3/library/BH/include/boost/config/compiler/gcc.hpp:186:0: warning: &quot;BOOST_NO_CXX11_RVALUE_REFERENCES&quot; redefined
 ##  #  define BOOST_NO_CXX11_RVALUE_REFERENCES
 ##  ^
 ## &lt;command-line&gt;:0:0: note: this is the location of the previous definition
 ## cc1plus.exe: warning: unrecognized command line option &quot;-Wno-ignored-attributes&quot;</code></pre>
-<pre class="r"><code>tidy(fit03b, estimate.method=&quot;median&quot;)</code></pre>
+<pre class="r"><code>tidy(fit03b, estimate.method=&quot;mean&quot;)</code></pre>
 <pre><code>##            term    estimate  std.error
-## 1     lambda[1]   0.9110601  0.4005649
-## 2     lambda[2]   2.0065208  0.5733463
-## 3     lambda[3]   1.6931941  0.5221405
-## 4     lambda[4]   1.3769354  0.4746910
-## 5     lambda[5]   8.1342202  0.8226329
-## 6         alpha   1.0325275  0.6041998
-## 7          beta   0.3280034  0.2499275
-## 8      hyper_mn   3.2177043  5.0167083
-## 9      hyper_cv   0.9841226  0.3051653
-## 10    ntilde[1]  21.0000000  8.4106552
-## 11    ntilde[2]  48.0000000 12.0165918
-## 12    ntilde[3]  40.0000000 10.9484624
-## 13    ntilde[4]  33.0000000  9.8648081
-## 14 ntilde_total 146.0000000 21.1928732</code></pre>
+## 1     lambda[1]   3.9373263  1.5061519
+## 2     lambda[2]   7.8099489  2.1042541
+## 3     lambda[3]   6.6919646  1.9806217
+## 4     lambda[4]   5.5828648  1.7965903
+## 5     lambda[5]   8.2735594  0.8221722
+## 6         alpha   2.2983637  1.2702075
+## 7          beta   0.3539200  0.2215199
+## 8      hyper_mn   7.4522774  3.5167693
+## 9      hyper_cv   0.7409808  0.2237851
+## 10    ntilde[1]  22.6942500  7.9649939
+## 11    ntilde[2]  47.0032500 11.1499919
+## 12    ntilde[3]  40.2947500 10.4562520
+## 13    ntilde[4]  33.0510000  9.3104280
+## 14 ntilde_total 143.0432500 20.4085768</code></pre>
 <p>Finally, you could look at a perturbation model. Here’s a perturbation model with a non-informative prior.</p>
 <pre class="r"><code>f &lt;- &quot;mod04.stan&quot;
 # Here's what's hiding in the file 
@@ -632,69 +575,55 @@ cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
 ## } 
 ## model {
 ##   alpha ~ exponential(1.0);
-##   lambda ~ gamma(N*S, T*S*J);
+##   lambda ~ gamma(N*S, T*S);
 ##   for (j in 1:J) {
 ##     eta[J] ~ gamma(alpha, alpha); 
-##     n[j] ~ poisson(eta[j]*lambda*t);
+##     n[j] ~ poisson(eta[j]*lambda*t/J);
 ##   }
 ## }
 ## generated quantities {
 ##   real&lt;lower=0&gt; ntilde[J];
 ##   real&lt;lower=0&gt; ntilde_total;
 ##   for (j in 1:J) {
-##     ntilde[j] = n[j] + poisson_rng(eta[j]*lambda*(T-t));
+##     ntilde[j] = n[j] + poisson_rng(eta[j]*lambda*(T-t)/J);
 ##   }
 ##   ntilde_total = sum(ntilde);
 ## }</code></pre>
 <pre class="r"><code># Here's the data.
 dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=1/200)
-fit04 &lt;- stan(file=f, data=dat)</code></pre>
-<pre><code>## In file included from C:/Program Files/R/R-3.3.3/library/BH/include/boost/config.hpp:39:0,
-##                  from C:/Program Files/R/R-3.3.3/library/BH/include/boost/math/tools/config.hpp:13,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/stan/math/rev/core/var.hpp:7,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/stan/math/rev/core/gevv_vvv_vari.hpp:5,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/stan/math/rev/core.hpp:12,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/stan/math/rev/mat.hpp:4,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/stan/math.hpp:4,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/src/stan/model/model_header.hpp:4,
-##                  from file1e506e7543b0.cpp:8:
-## C:/Program Files/R/R-3.3.3/library/BH/include/boost/config/compiler/gcc.hpp:186:0: warning: &quot;BOOST_NO_CXX11_RVALUE_REFERENCES&quot; redefined
-##  #  define BOOST_NO_CXX11_RVALUE_REFERENCES
-##  ^
-## &lt;command-line&gt;:0:0: note: this is the location of the previous definition
-## cc1plus.exe: warning: unrecognized command line option &quot;-Wno-ignored-attributes&quot;</code></pre>
-<pre class="r"><code>tidy(fit04, estimate.method=&quot;median&quot;)</code></pre>
+fit04 &lt;- stan(file=f, data=dat)
+tidy(fit04, estimate.method=&quot;mean&quot;)</code></pre>
 <pre><code>##            term    estimate  std.error
-## 1        lambda   0.9554016  0.6638805
-## 2        eta[1]   0.9695785  0.9364421
-## 3        eta[2]   2.2278081  1.8185277
-## 4        eta[3]   1.8109495  1.5994337
-## 5        eta[4]   0.9135549  0.3196508
-## 6         alpha   2.3754434  1.5556230
-## 7  deviation_cv   0.6488251  0.2308841
-## 8     ntilde[1]  22.0000000  8.6173914
-## 9     ntilde[2]  50.0000000 12.6736064
-## 10    ntilde[3]  42.0000000 11.2531190
-## 11    ntilde[4]  23.0000000  7.9446696
-## 12 ntilde_total 140.0000000 20.7973341</code></pre>
+## 1        lambda   4.4684724  2.9346190
+## 2        eta[1]   1.2175782  0.9182295
+## 3        eta[2]   2.6364584  1.8084725
+## 4        eta[3]   2.2070180  1.4913506
+## 5        eta[4]   0.9383645  0.3477382
+## 6         alpha   2.6062136  1.6058000
+## 7  deviation_cv   0.7212756  0.2635310
+## 8     ntilde[1]  23.0222500  8.3572254
+## 9     ntilde[2]  50.9982500 12.7019519
+## 10    ntilde[3]  42.8135000 11.5691693
+## 11    ntilde[4]  24.3175000  7.6862841
+## 12 ntilde_total 141.1515000 20.6375756</code></pre>
 <p>Here’s a perturbation model with an informative prior.</p>
 <pre class="r"><code># Here's the data.
 dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=0.5)
 fit04a &lt;- stan(file=f, data=dat)
-tidy(fit04a, estimate.method=&quot;median&quot;)</code></pre>
+tidy(fit04a, estimate.method=&quot;mean&quot;)</code></pre>
 <pre><code>##            term    estimate  std.error
-## 1        lambda   2.0228057  0.2015177
-## 2        eta[1]   0.4726848  0.2079935
-## 3        eta[2]   1.0423047  0.3209207
-## 4        eta[3]   0.8804993  0.2944016
-## 5        eta[4]   0.6290830  0.2018067
-## 6         alpha   1.9578315  1.4562032
-## 7  deviation_cv   0.7146812  0.2724498
-## 8     ntilde[1]  22.0000000  8.4227151
-## 9     ntilde[2]  50.0000000 12.7363921
-## 10    ntilde[3]  42.0000000 11.3305554
-## 11    ntilde[4]  30.0000000  8.5981161
-## 12 ntilde_total 147.0000000 21.0918836</code></pre>
+## 1        lambda   8.0782844  0.8251718
+## 2        eta[1]   0.4963636  0.2100332
+## 3        eta[2]   1.0764977  0.3176482
+## 4        eta[3]   0.9161286  0.2926125
+## 5        eta[4]   0.6506774  0.2019058
+## 6         alpha   2.3087000  1.4545147
+## 7  deviation_cv   0.7668753  0.2734625
+## 8     ntilde[1]  22.7400000  8.3706282
+## 9     ntilde[2]  50.7507500 12.4226489
+## 10    ntilde[3]  42.8707500 11.3409082
+## 11    ntilde[4]  31.5687500  8.6421898
+## 12 ntilde_total 147.9302500 20.9612077</code></pre>
 <p>Like before, you can also add a pseudo-center with parameters consistent with prior distribution.</p>
 <pre class="r"><code>f &lt;- &quot;mod04b.stan&quot;
 # Here's what's hiding in the file 
@@ -720,10 +649,10 @@ cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
 ## } 
 ## model {
 ##   alpha ~ exponential(1.0);
-##   lambda ~ gamma(N*S, T*S*J);
+##   lambda ~ gamma(N*S, T*S);
 ##   for (j in 1:J) {
 ##     eta[J] ~ gamma(alpha, alpha); 
-##     n[j] ~ poisson(eta[j]*lambda*t);
+##     n[j] ~ poisson(eta[j]*lambda*t/J);
 ##   }
 ##   
 ##   pseudo_n ~ poisson(eta[J+1]*lambda*pseudo_t);
@@ -732,42 +661,28 @@ cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
 ##   real&lt;lower=0&gt; ntilde[J];
 ##   real&lt;lower=0&gt; ntilde_total;
 ##   for (j in 1:J) {
-##     ntilde[j] = n[j] + poisson_rng(eta[j]*lambda*(T-t));
+##     ntilde[j] = n[j] + poisson_rng(eta[j]*lambda*(T-t)/J);
 ##   }
 ##   ntilde_total = sum(ntilde);
 ## }</code></pre>
 <pre class="r"><code># Here's the data.
 dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=1/200, pseudo_n=100, pseudo_t=12)
-fit04b &lt;- stan(file=f, data=dat)</code></pre>
-<pre><code>## In file included from C:/Program Files/R/R-3.3.3/library/BH/include/boost/config.hpp:39:0,
-##                  from C:/Program Files/R/R-3.3.3/library/BH/include/boost/math/tools/config.hpp:13,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/stan/math/rev/core/var.hpp:7,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/stan/math/rev/core/gevv_vvv_vari.hpp:5,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/stan/math/rev/core.hpp:12,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/stan/math/rev/mat.hpp:4,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/stan/math.hpp:4,
-##                  from C:/Program Files/R/R-3.3.3/library/StanHeaders/include/src/stan/model/model_header.hpp:4,
-##                  from file1e501fa3f92.cpp:8:
-## C:/Program Files/R/R-3.3.3/library/BH/include/boost/config/compiler/gcc.hpp:186:0: warning: &quot;BOOST_NO_CXX11_RVALUE_REFERENCES&quot; redefined
-##  #  define BOOST_NO_CXX11_RVALUE_REFERENCES
-##  ^
-## &lt;command-line&gt;:0:0: note: this is the location of the previous definition
-## cc1plus.exe: warning: unrecognized command line option &quot;-Wno-ignored-attributes&quot;</code></pre>
-<pre class="r"><code>tidy(fit04b, estimate.method=&quot;median&quot;)</code></pre>
+fit04b &lt;- stan(file=f, data=dat)
+tidy(fit04b, estimate.method=&quot;mean&quot;)</code></pre>
 <pre><code>##            term    estimate  std.error
-## 1        lambda   0.7155075  0.4520971
-## 2        eta[1]   1.3269748  1.4506851
-## 3        eta[2]   2.8963237  2.7455040
-## 4        eta[3]   2.4745765  2.2751832
-## 5        eta[4]   1.0069823  0.3863033
-## 6        eta[5]  11.7495725  9.5342785
-## 7         alpha   2.4267783  1.5350158
-## 8  deviation_cv   0.6419260  0.2547289
-## 9     ntilde[1]  22.0000000  8.3849758
-## 10    ntilde[2]  49.0000000 12.2963922
-## 11    ntilde[3]  42.0000000 11.4804351
-## 12    ntilde[4]  21.0000000  7.1302818
-## 13 ntilde_total 137.0000000 19.9823706</code></pre>
+## 1        lambda   3.3237808  1.9752723
+## 2        eta[1]   1.6791308  1.5920907
+## 3        eta[2]   3.6209808  2.9479490
+## 4        eta[3]   3.0480196  2.4614948
+## 5        eta[4]   1.0460600  0.3790289
+## 6        eta[5]   3.5266797  2.6146396
+## 7         alpha   2.6905437  1.5867150
+## 8  deviation_cv   0.7032572  0.2452218
+## 9     ntilde[1]  22.9990000  8.4858412
+## 10    ntilde[2]  50.8155000 12.4894538
+## 11    ntilde[3]  42.8015000 11.4745158
+## 12    ntilde[4]  21.9210000  7.2585419
+## 13 ntilde_total 138.5370000 20.7248163</code></pre>
 
 
 
