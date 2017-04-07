@@ -1,0 +1,139 @@
+---
+title: "Studying hierarchical models with informative priors"
+author: "Steve Simon"
+date: "April 5, 2017"
+output: html_document
+---
+
+```{r preliminaries}
+library(broom)
+library(dplyr)
+library(ggplot2)
+library(magrittr)
+library(rstan)
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores())
+```
+
+I wanted to fit a series of Bayesian models starting with a very simple model and moving to more complex models. I read in both enrollment data sets, and I made a totally unjustified change by converting the NAs to zeros. It's easy to modify these models to account for the NAs (which represent, I assume, the weeks when a center was not yet through all the approvals needed to get started). In any case, I chose the sixth row of the second data set (csp558) as the place to test these models.
+
+```{r read csv files}
+f <- "csp546 enrollment.csv"
+csp546 <- read.csv(file=f, stringsAsFactors=FALSE, header=TRUE)
+
+csp546a <- csp546
+csp546a[is.na(csp546a)] <- 0
+csp546a$Z <- apply(csp546a, 1, sum)
+csp546b <- as.data.frame(sapply(csp546a, cumsum))
+csp546b$t <- 1:(dim(csp546b)[1])
+csp546b
+
+f <- "csp558 enrollment.csv"
+csp558 <- read.csv(file=f, stringsAsFactors=FALSE, header=TRUE)
+
+csp558a <- csp558
+csp558a[is.na(csp558a)] <- 0
+csp558a$Z <- apply(csp558a, 1, sum)
+csp558b <- as.data.frame(sapply(csp558a, cumsum))
+csp558b$t <- 1:(dim(csp558b)[1])
+csp558b
+```
+
+```{r simple plot}
+library(ggplot2)
+ggplot(csp558b, aes(t, Z/4)) + 
+  geom_step() +
+  geom_step(aes(t,A)) +
+  geom_step(aes(t,B)) +
+  geom_step(aes(t,C)) +
+  geom_step(aes(t,D))
+```
+
+Just to repeat, I want to use the sixth row of the second data set. The prior belief is that it will take 24 weeks to accumulate 200 patients. The researcher choose a prior distribution corresponding to 50% of the total sample size, or a gamma(100, 12).
+
+```{r recall}
+# recall what the values are for week 6 and week 24.
+csp558b[c(6, 24), ]
+```
+
+The first model ignores the center effect completely. It also fits a non-informative prior.
+
+Since you have gone 1/4 of the way into the study and have 35 patients, the simple extrapolation is that you will have about 35*4 or 140 patients at the end of the study.
+
+```{r mod01, error=TRUE}
+f <- "mod01.stan"
+# Here's what's hiding in the file 
+cat(readLines(f), sep="\n")
+# Here's the data. S=1/200 gives a prior weight of one subject.
+dat <- list(n=35, t=6, N=200, T=24, S=1/200)
+fit01 <- stan(file=f, data=dat)
+tidy(fit01)
+```
+
+Change this to an informative prior.
+
+```{r mod01a, error=TRUE}
+f <- "mod01.stan"
+# Here's the data. Changing S to 0.5 produces an informative prior.
+dat <- list(n=35, t=6, N=200, T=24, S=0.5)
+fit01a <- stan(file=f, data=dat)
+tidy(fit01a)
+```
+
+Run this as a multi-center trial, but with no center effect.
+
+First with a non-informative prior.
+
+```{r mod02, error=TRUE}
+f <- "mod02.stan"
+# Here's what's hiding in the file 
+cat(readLines(f), sep="\n")
+# Here's the data. S=1/200 gives a prior weight of one subject.
+dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=1/200)
+fit02 <- stan(file=f, data=dat)
+tidy(fit02)
+```
+
+Next with an informative prior.
+
+```{r mod02a, error=TRUE}
+# Here's the data. S=1/200 gives a prior weight of one subject.
+dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=0.5)
+fit02a <- stan(file=f, data=dat)
+tidy(fit02a)
+```
+
+Now allow each center to vary.
+
+First with a non-informative prior.
+
+```{r mod03, error=TRUE}
+f <- "mod03.stan"
+# Here's what's hiding in the file 
+cat(readLines(f), sep="\n")
+# Here's the data.
+dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24)
+fit03 <- stan(file=f, data=dat)
+tidy(fit03, estimate.method="median")
+```
+
+```{r mod03a, error=TRUE}
+f <- "mod03a.stan"
+# Here's what's hiding in the file 
+cat(readLines(f), sep="\n")
+# Here's the data.
+dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=0.5)
+fit03a <- stan(file=f, data=dat)
+tidy(fit03a, estimate.method="median")
+```
+
+
+```{r mod03b, error=TRUE}
+f <- "mod03b.stan"
+# Here's what's hiding in the file 
+cat(readLines(f), sep="\n")
+# Here's the data.
+dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=0.5)
+fit03b <- stan(file=f, data=dat)
+tidy(fit03b, estimate.method="median")
+```

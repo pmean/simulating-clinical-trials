@@ -1,0 +1,314 @@
+---
+title: "Why use informative priors?"
+author: "Steve Simon"
+date: "April 3, 2017"
+output: html_document
+---
+
+I've been working with some colleagues on accrual models an other than us, there seem to be no others interested in using a fully Bayesian approach to accrual. There are many reasons why you should consider a fully Bayesian approach, but with this program, I want to illustrate just one of these reasons: a fully Bayesian approach to accrual allows you to make reasonable forecasts very early in the trial.
+
+Cosinder a real accrual example described at
+
+http://www.pmean.com/07/CaseStudyOfAccrualPart2.html
+
+and
+
+http://www.pmean.com/07/CaseStudyOfAccrual.html
+
+I will repeat the key details here.
+
+A clinical trial was planned to start on August 28, 2007 and continue until January 31, 2008, for a total of 22 weeks. The researcher thought it would be reasonable to set the median recruitment rate at three patients per week and the worst case scenario would be recruiting only two patients per week. There is a recommended question that you should ask when eliciting a recruitment rate: "On a scale of 1 to 10, how confident are you in this estimate?" The client said "5" with no hesitation or uncertainty in his voice. 
+
+This leads to a gamma(33, 11) prior distribution.
+
+On the first week, one patient (not three) arrived. In weeks 2, 3, and 4, no patients arrived. Thankfully on week 5, three patients arrived. On week 6 one more patient arrived.
+
+So clearly, we are behind schedule. How bad is it?
+
+Let's try my old R function first, which you can find at
+
+```{r duration-plot}
+duration.plot <- function(n,T,P,m,tm,B=1000,Tmax=2*T,sample.paths=0) {
+# n is the target sample size
+# T is the target completion time
+# P is the prior certainty (0 <= P <= 1)
+# m is the sample observed to date
+# tm is the time to date
+# B is the number of simulated duration times
+# Tmax is the upper limit on the time axis of the graph
+#
+# set P to zero for a non-informative prior
+# set m and tm to zero if no data has been accumulated yet.
+
+  k <- n*P+m
+  V <- T*P+tm
+  theta <- 1/rgamma(B,shape=k,rate=V)
+  simulated.duration <- matrix(NA,nrow=n-m,ncol=B)
+
+  for (i in 1:B) {
+    wait <- rexp(n-m,1/theta[i])
+    simulated.duration[,i] <- tm+cumsum(wait)
+  }
+
+  lcl <- apply(simulated.duration,1,quantile,probs=0.025)
+  mid <- apply(simulated.duration,1,quantile,probs=0.500)
+  ucl <- apply(simulated.duration,1,quantile,probs=0.975)
+
+  layout(matrix(c(1,2,2,2)))
+  par(mar=c(0.1,4.1,0.1,0.1))
+  duration.hist <- cut(simulated.duration[n-m,],
+    seq(0,Tmax,length=40))
+  barplot(table(duration.hist),horiz=FALSE,
+    axes=FALSE,xlab=" ",ylab=" ",space=0,
+    col="white",names.arg=rep(" ",39))
+
+  par(mar=c(4.1,4.1,0.1,0.1))
+  plot(c(0,Tmax),c(0,n),xlab="Time",
+    ylab="Number of patients",type="n")
+  polygon(c(lcl,rev(ucl)),c((m+1):n,n:(m+1)),
+    density=-1,col="gray",border=NA)
+  lines(mid,(m+1):n,col="white")
+  segments(0,0,tm,m)
+
+  while (sample.paths>0) {
+    lines(simulated.duration[,sample.paths],(m+1):n)
+    sample.paths <- sample.paths-1
+  }
+
+  pctiles <- matrix(NA,nrow=2,ncol=3)
+  dimnames(pctiles) <- list(c("Waiting time","Trial duration")
+    ,c("2.5%","50%","97.5%"))
+  pctiles[1,] <- 1/qgamma(c(0.975,0.5,0.025),shape=k,rate=V)
+  pctiles[2,1] <- lcl[n-m]
+  pctiles[2,2] <- mid[n-m]
+  pctiles[2,3] <- ucl[n-m]
+  list(pct=pctiles,sd=simulated.duration)
+}
+
+p0 <- duration.plot(n=350,T=3,P=0.5,m= 0,tm= 0,Tmax=10)
+p1 <- duration.plot(n=350,T=3,P=0.5,m=41,tm=239/365,Tmax=10)
+p2 <- duration.plot(n=350,T=3,P=0, m=41,tm=239/365,Tmax=10)
+```
+
+```{r accrual-plot}
+accrual.plot <- function(n,T,P,m,tm,B=1000,nmax=2*n,sample.paths=0) {
+# n is the target sample size
+# T is the target completion time
+# P is the prior certainty (0 <= P <= 1)
+# m is the sample observed to date
+# tm is the time to date
+# B is the number of simulated accrual times
+# nmax is the upper limit on the sample size axis of the graph
+#
+# set P to zero for a non-informative prior
+# set m and tm to zero if no data has been accumulated yet.
+
+  k <- n*P+m
+  V <- T*P+tm
+  theta <- 1/rgamma(B,shape=k,rate=V)
+  simulated.duration <- matrix(NA,nrow=nmax-m,ncol=B)
+
+  for (i in 1:B) {
+    wait <- rexp(nmax-m,1/theta[i])
+    simulated.duration[,i] <- tm+cumsum(wait)
+  }
+
+  tlist <- seq(tm,T,length=100)
+  accrual.count <- function(x,t) {m+sum(x<=t)}
+  simulated.accrual <- matrix(NA,nrow=100,ncol=B)
+
+  for (i in 1:100) {
+    time <- tlist[i]
+    simulated.accrual[i,] <- apply(simulated.duration,2,
+      accrual.count,t=time)
+  }
+
+  lcl <- apply(simulated.accrual,1,quantile,probs=0.025)
+  mid <- apply(simulated.accrual,1,quantile,probs=0.500)
+  ucl <- apply(simulated.accrual,1,quantile,probs=0.975)
+
+  layout(matrix(c(2,2,2,1),nrow=1))
+  par(mar=c(4.1,0.1,0.1,0.1))
+  accrual.hist <- cut(simulated.accrual[100,],
+    seq(0,nmax,length=40))
+  barplot(table(accrual.hist),horiz=TRUE,
+    axes=FALSE,xlab=" ",ylab=" ",space=0,
+    col="white",names.arg=rep(" ",39))
+
+  par(mar=c(4.1,4.1,0.1,0.1))
+  plot(c(0,T),c(0,nmax),xlab="Time",
+    ylab="Number of patients",type="n")
+  polygon(c(tlist,rev(tlist)),c(lcl,rev(ucl)),
+    density=-1,col="gray",border=NA)
+  lines(tlist,mid,col="white")
+  segments(0,0,tm,m)
+
+  while (sample.paths>0) {
+    lines(tlist,simulated.accrual[,sample.paths])
+    sample.paths <- sample.paths-1
+  }
+
+  pctiles <- matrix(NA,nrow=2,ncol=3)
+  dimnames(pctiles) <- list(c("Waiting time",
+    "Trial accrual"),c("2.5%","50%","97.5%"))
+  pctiles[1,] <- 1/qgamma(c(0.975,0.5,0.025),shape=k,rate=V)
+  pctiles[2,1] <- lcl[100]
+  pctiles[2,2] <- mid[100]
+  pctiles[2,3] <- ucl[100]
+  list(pct=pctiles,sa=simulated.accrual)
+}
+
+# Run three test examples from the original webpage.
+
+d0 <- accrual.plot(n=350,T=3,P=0.5,m= 0,tm= 0,nmax=500)
+d1 <- accrual.plot(n=350,T=3,P=0, m=41,tm=239/365,nmax=500)
+d2 <- accrual.plot(n=350,T=3,P=0.5,m=41,tm=239/365,nmax=500)
+```
+
+That's a relief that my code from 2008 still works.
+
+So what does the prior prediction look like for 66 patients in 22 weeks and a prior strength of 0.5, which corresponds to a gamma(33, 11)? I am including a red reference line for the expected duration of 22 weeks and a blue reference line for the expected worst case duration of 33 weeks. 
+
+```{r prior}
+x0 <- duration.plot(n=66, T=22, P=0.5, m=0, tm=0)
+print(x0$pct)
+segments(0,0, 22, 66, col="red", lwd=3)
+segments(0,0, 33, 66, col="blue", lwd=3)
+text(22, 66, "22", col="red", cex=1.25, adj=0)
+text(33, 66, "33", col="blue", cex=1.25, adj=0)
+text(x0$pct[2, ], 66, round(x0$pct[2, ]), cex=1.25, adj=0)
+```
+
+```{r weeks one through six}
+# week=1, total patients=1
+x1 <- duration.plot(n=66, T=22, P=0.5, m=1, tm=1)
+print(x1$pct)
+segments(0,0, 22, 66, col="red", lwd=3)
+segments(0,0, 33, 66, col="blue", lwd=3)
+text(22, 66, "22", col="red", cex=1.25, adj=0)
+text(33, 66, "33", col="blue", cex=1.25, adj=0)
+text(x1$pct[2, ], 66, round(x1$pct[2, ]), cex=1.25, adj=0)
+
+
+
+# week=2, total patients=1
+x2 <- duration.plot(n=66, T=22, P=0.5, m=1, tm=2)
+print(x2$pct)
+segments(0,0, 22, 66, col="red", lwd=3)
+segments(0,0, 33, 66, col="blue", lwd=3)
+text(22, 66, "22", col="red", cex=1.25, adj=0)
+text(33, 66, "33", col="blue", cex=1.25, adj=0)
+text(x2$pct[2, ], 66, round(x2$pct[2, ]), cex=1.25, adj=0)
+
+# week=3, total patients=1
+x3 <- duration.plot(n=66, T=22, P=0.5, m=1, tm=3)
+print(x3$pct)
+segments(0,0, 22, 66, col="red", lwd=3)
+segments(0,0, 33, 66, col="blue", lwd=3)
+text(22, 66, "22", col="red", cex=1.25, adj=0)
+text(33, 66, "33", col="blue", cex=1.25, adj=0)
+text(x3$pct[2, ], 66, round(x3$pct[2, ]), cex=1.25, adj=0)
+
+# week=4, total patients=1
+x4 <- duration.plot(n=66, T=22, P=0.5, m=1, tm=4)
+print(x4$pct)
+segments(0,0, 22, 66, col="red", lwd=3)
+segments(0,0, 33, 66, col="blue", lwd=3)
+text(22, 66, "22", col="red", cex=1.25, adj=0)
+text(33, 66, "33", col="blue", cex=1.25, adj=0)
+text(x4$pct[2, ], 66, round(x4$pct[2, ]), cex=1.25, adj=0)
+
+# week=5, total patients=4
+x5 <- duration.plot(n=66, T=22, P=0.5, m=4, tm=5)
+print(x5$pct)
+segments(0,0, 22, 66, col="red", lwd=3)
+segments(0,0, 33, 66, col="blue", lwd=3)
+text(22, 66, "22", col="red", cex=1.25, adj=0)
+text(33, 66, "33", col="blue", cex=1.25, adj=0)
+text(x5$pct[2, ], 66, round(x5$pct[2, ]), cex=1.25, adj=0)
+
+# week=6, total patients=5
+x6 <- duration.plot(n=66, T=22, P=0.5, m=5, tm=6)
+print(x6$pct)
+segments(0,0, 22, 66, col="red", lwd=3)
+segments(0,0, 33, 66, col="blue", lwd=3)
+text(22, 66, "22", col="red", cex=1.25, adj=0)
+text(33, 66, "33", col="blue", cex=1.25, adj=0)
+text(x6$pct[2, ], 66, round(x6$pct[2, ]), cex=1.25, adj=0)
+```
+
+So how would this look if you didn't like using an informative prior? There are several approaches you can take. The first, outlined on the web at
+
+http://ms.mcmaster.ca/peter/s743/poissonalpha.html
+
+uses the chi-square distribution to get confidence intervals for the Poisson parameter lambda. "Let x be a single observation from a Poisson distribution with mean µ. Then "exact" 95% confidence limits for µ are given by the formula
+
+( qchisq(0.025, 2*x)/2, qchisq(0.975, 2*(x+1))/2 ) "
+
+If x=1, then this works out to be `r qchisq(0.025, 2)/2` to `r qchisq(0.975, 4)/2`. So after one week, you have a fairly wide range of possible rates per week. Divide these rates into 66 patients to get an estimated time range of `r 66/(qchisq(0.975, 4)/2)` weeks (which you round to `r round(66/(qchisq(0.975, 4)/2))`) and `r 66/(qchisq(0.025, 2)/2)` or `r round(66/(qchisq(0.025, 2)/2))` weeks.
+
+You have the same count (one patient) after two weeks, so the 95% confidence interval for rate of `r qchisq(0.025, 2)/2` to `r qchisq(0.975, 4)/2` still applies except that this is a rate over two weeks. Divide by two and then divide into 66 to get the lower and upper bounds of  `r 2*66/(qchisq(0.975, 4)/2)` and `r 2*66/(qchisq(0.025, 2)/2)`.
+
+It's worth a careful appreciation of how bad these intervals are. The upper limit is larger than the lower limit by more than two orders of magnitude.
+
+You do get a little better with these intervals by week 6. The 95% confidence interval for a rate associated with six events is `r qchisq(0.025, 2*5)/2` to `r qchisq(0.975, 2*6)/2`. You can extrapolate to the full 66 patients by dividing by 6 and dviding into 66, yielding  `r 6*66/(6*qchisq(0.975, 2*6)/2)` to `r 6*66/(qchisq(0.025, 2*5)/2)`. Even so, this interval is still ridiculously wide.
+
+You can also get an appreciation of how much the informative prior is needed by looking at the Bayesian prediction with a flat prior instead of an informative prior.
+
+```{r flat prior}
+# week=1, total patients=1
+x1 <- duration.plot(n=66, T=22, P=0, m=1, tm=1, Tmax=10000)
+print(x1$pct)
+segments(0,0, 22, 66, col="red", lwd=3)
+segments(0,0, 33, 66, col="blue", lwd=3)
+text(22, 66, "22", col="red", cex=1.25, adj=0)
+text(33, 66, "33", col="blue", cex=1.25, adj=0)
+text(x1$pct[2, ], 66, round(x1$pct[2, ]), cex=1.25, adj=0)
+
+
+
+# week=2, total patients=1
+x2 <- duration.plot(n=66, T=22, P=0, m=1, tm=2, Tmax=2000)
+print(x2$pct)
+segments(0,0, 22, 66, col="red", lwd=3)
+segments(0,0, 33, 66, col="blue", lwd=3)
+text(22, 66, "22", col="red", cex=1.25, adj=0)
+text(33, 66, "33", col="blue", cex=1.25, adj=0)
+text(x2$pct[2, ], 66, round(x2$pct[2, ]), cex=1.25, adj=0)
+
+# week=3, total patients=1
+x3 <- duration.plot(n=66, T=22, P=0, m=1, tm=3, Tmax=8000)
+print(x3$pct)
+segments(0,0, 22, 66, col="red", lwd=3)
+segments(0,0, 33, 66, col="blue", lwd=3)
+text(22, 66, "22", col="red", cex=1.25, adj=0)
+text(33, 66, "33", col="blue", cex=1.25, adj=0)
+text(x3$pct[2, ], 66, round(x3$pct[2, ]), cex=1.25, adj=0)
+
+# week=4, total patients=1
+x4 <- duration.plot(n=66, T=22, P=0, m=1, tm=4, Tmax=8000)
+print(x4$pct)
+segments(0,0, 22, 66, col="red", lwd=3)
+segments(0,0, 33, 66, col="blue", lwd=3)
+text(22, 66, "22", col="red", cex=1.25, adj=0)
+text(33, 66, "33", col="blue", cex=1.25, adj=0)
+text(x4$pct[2, ], 66, round(x4$pct[2, ]), cex=1.25, adj=0)
+
+# week=5, total patients=4
+x5 <- duration.plot(n=66, T=22, P=0, m=4, tm=5, Tmax=8000)
+print(x5$pct)
+segments(0,0, 22, 66, col="red", lwd=3)
+segments(0,0, 33, 66, col="blue", lwd=3)
+text(22, 66, "22", col="red", cex=1.25, adj=0)
+text(33, 66, "33", col="blue", cex=1.25, adj=0)
+text(x5$pct[2, ], 66, round(x5$pct[2, ]), cex=1.25, adj=0)
+
+# week=6, total patients=5
+x6 <- duration.plot(n=66, T=22, P=0, m=5, tm=6, Tmax=10000)
+print(x6$pct)
+segments(0,0, 22, 66, col="red", lwd=3)
+segments(0,0, 33, 66, col="blue", lwd=3)
+text(22, 66, "22", col="red", cex=1.25, adj=0)
+text(33, 66, "33", col="blue", cex=1.25, adj=0)
+text(x6$pct[2, ], 66, round(x6$pct[2, ]), cex=1.25, adj=0)
+```

@@ -5,74 +5,283 @@ date: "March 22, 2017"
 output: html_document
 ---
 
-```{r gamma-exponential, error=TRUE}
+```{r preliminaries}
 library(broom)
 library(dplyr)
 library(ggplot2)
 library(magrittr)
 library(rstan)
-
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
+```
 
+```{r gamma-poisson-before-trial, error=TRUE}
+f <- "gamma-poisson-before-trial.stan"
 dat_before <- list(N=350, T=3*365, S=0.5)
-fit_before <- stan(file='gamma-exponential-before.stan',
+fit_gp1 <- stan(file=f,
   data=dat_before, iter= 1000, chains = 4)
 
-tidy(fit_before, conf.int=TRUE)
+tidy(fit_gp1)
 
-fit_before           %>%
+fit_gp1              %>%
   as.data.frame      %>%
-  mutate(i="before") -> sim_before
+  mutate(i="before") -> sim_gp1
 
-sim_before                               %>%
-  ggplot(aes(i, Tstar*12))                +
-  scale_y_continuous(breaks=3*(0:24),
-    minor_breaks=3*(0:24),
-    expand=c(0, 0))                       +
+# Boxplot of final sample size
+sim_gp1                                  %>%
+  ggplot(aes(i, Nstar))                   +
   expand_limits(y=0)                      +
-  ylab("time in months")                  + 
-  Xlab(" ")                               +
+  ylab("Final sample size")               + 
+  xlab(" ")                               +
+  ggtitle(f)                              +
   geom_boxplot()                          +
   coord_flip()
 
+# Scatterplot of accrual rate versus final sample size
+sim_gp1                                  %>%
+  ggplot(aes(30*lambda, Nstar))           +
+  ylab("Final sample size")               + 
+  xlab("Accrual rate")                    +
+  ggtitle(f)                              +
+  geom_point()
+```
+
+```{r gamma-poisson-during-trial, error=TRUE}
+f <- "gamma-poisson-during-trial.stan"
 dat_during <- list(N=350, T=3*365, S=0.5, n=41, t=239)
-fit_during <- stan(file='gamma-exponential-during.stan',
+fit_gp2 <- stan(file=f,
   data=dat_during, iter= 1000, chains = 4)
 
-tidy(fit_during, conf.int=TRUE)
+tidy(fit_gp2)
 
-fit_during           %>%
+fit_gp2              %>%
   as.data.frame      %>%
   mutate(i="during") %>%
-  bind_rows(sim_before) -> sim_during
+  bind_rows(sim_gp1) -> sim_gp2
 
-sim_during                               %>%
-  ggplot(aes(i, Tstar*12))                +
-  scale_y_continuous(breaks=3*(0:24),
-    minor_breaks=3*(0:24),
-    expand=c(0, 0))                       +
+# Boxplot of final sample size
+sim_gp2                                  %>%
+  ggplot(aes(i, Nstar))                   +
   expand_limits(y=0)                      +
-  ylab("time in months")                  + 
+  ylab("Final sample size")               + 
   xlab(" ")                               +
+  ggtitle(f)                              +
   geom_boxplot()                          +
   coord_flip()
-  
-dat_after <- list(n=341, T=1336)
 ```
 
-```{r gamma-poisson, error=TRUE}
-library(rstan)
-rstan_options(auto_write = TRUE)
-options(mc.cores = parallel::detectCores())
+```{r gamma-poisson-after-trial, error=TRUE}
+f <- "gamma-poisson-after-trial"
+data.frame(
+  i="after",
+  lambda=341/ 1336,
+  stringsAsFactors=FALSE) %>%
+  bind_rows(sim_gp1)      -> sim_gp3
 
-gp <- list(N=350, T=3*365, S=0.5)
-gp_fit <- stan(file='gamma-poisson-before.stan', data=ge, iter= 1000, chains = 4)
-summary(gp_fit)
+head(sim_gp3)
 
-gp <- list(N=350, T=3*365, S=0.5, n=41, t=239)
-gp_fit <- stan(file='gamma-poisson-during.stan', data=ge, iter= 1000, chains = 4)
+# Boxplot of final sample size
+sim_gp3                                  %>%
+  ggplot(aes(i, lambda*30))               +
+  ylab("patients per month")              + 
+  xlab(" ")                               +
+  geom_boxplot()                          +
+  ggtitle("f")                            +
+  coord_flip()
 ```
 
-summary(gp_fit)
+```{r hedging-extension-before-trial, error=TRUE}
+f <- "hedging-extension-before-trial.stan"
+dat_before <- list(N=350, T=3*365, S=0.5)
+fit_h11 <- stan(file=f,
+  data=dat_before, iter= 1000, chains = 4)
+
+tidy(fit_h11, conf.int=TRUE)
+
+fit_h11              %>%
+  as.data.frame      %>%
+  mutate(i="before") -> sim_h11
+
+# Boxplot of final sample size
+sim_h11                                  %>%
+  ggplot(aes(i, Nstar))                   +
+  expand_limits(y=0)                      +
+  ylab("Final sample size")               + 
+  xlab(" ")                               +
+  ggtitle(f)                              +
+  geom_boxplot()                          +
+  coord_flip()
+```
+
+```{r hedging-extension-during-trial, error=TRUE}
+f <- "hedging-extension-during-trial.stan"
+dat_during <- list(N=350, T=3*365, S=0.5, n=41, t=239)
+fit_h12 <- stan(file=f,
+  data=dat_during, iter= 1000, chains = 4)
+
+tidy(fit_h12, conf.int=TRUE)
+
+fit_h12              %>%
+  as.data.frame      %>%
+  mutate(i="during") %>%
+  bind_rows(sim_h11) -> sim_h12
+
+# Boxplot of final sample size
+sim_h12                                  %>%
+  ggplot(aes(i, Nstar))                   +
+  expand_limits(y=0)                      +
+  ylab("Final sample size")               + 
+  xlab(" ")                               +
+  ggtitle(f)                              +
+  geom_boxplot()                          +
+  coord_flip()
+```
+
+```{r hedging-extension-after-trial, error=TRUE}
+data.frame(
+  i="after",
+  lambda=341/ 1336,
+  stringsAsFactors=FALSE) %>%
+  bind_rows(sim_h11)      -> sim_h13
+
+head(sim_h13)
+
+# Boxplot of final sample size
+sim_h13                                  %>%
+  ggplot(aes(i, lambda*30))               +
+  ylab("patients per month")              + 
+  xlab(" ")                               +
+  ggtitle(f)                              +
+  geom_boxplot()                          +
+  coord_flip()
+```
+
+
+```{r delay-three-parameter-extension-before-trial, error=TRUE}
+f <- "delay-three-parameter-extension-before-trial.stan"
+dat_before <- list(N=350, T=3*365, S=0.5)
+fit_d31 <- stan(file=f,
+  data=dat_before, iter= 1000, chains = 4)
+
+tidy(fit_d31, conf.int=TRUE)
+
+fit_d31              %>%
+  as.data.frame      %>%
+  mutate(i="before") -> sim_d31
+
+# Boxplot of final sample size
+sim_d31                                  %>%
+  ggplot(aes(i, Nstar))                   +
+  expand_limits(y=0)                      +
+  ylab("Final sample size")               + 
+  xlab(" ")                               +
+  ggtitle(f)                              +
+  geom_boxplot()                          +
+  coord_flip()
+
+# Scatterplot of accrual rate versus final sample size
+sim_d31                                  %>%
+  ggplot(aes(30*lambda, Nstar))           +
+  ylab("Final sample size")               + 
+  xlab("Accrual rate")                    +
+  ggtitle(f)                              +
+  geom_point()
+
+sim_d31                                  %>%
+  ggplot(aes(alpha, Nstar))               +
+  ylab("Final sample size")               + 
+  xlab("Time before first accrual")       +
+  ggtitle(f)                              +
+  geom_point()
+
+sim_d31                                  %>%
+  ggplot(aes(omega, Nstar))               +
+  ylab("Final sample size")               + 
+  xlab("Time until full accrual")         +
+  ggtitle(f)                              +
+  geom_point()
+
+sim_d31                                  %>%
+  ggplot(aes(delta, Nstar))               +
+  ylab("Final sample size")               + 
+  xlab("Startup accrual penalty")         +
+  ggtitle(f)                              +
+  geom_point()
+```
+
+```{r hierarchical-one-parameter-extension-before-trial, error=TRUE}
+f <- "hierarchical-one-parameter-extension-before-trial.stan"
+dat_before <- list(N=350, T=3*365, S=0.5, M=10)
+fit_h11 <- stan(file=f,
+  data=dat_before, iter= 1000, chains = 4)
+
+tidy(fit_h11, conf.int=TRUE)
+pairs(fit_h11)
+fit_h11              %>%
+  as.data.frame      %>%
+  mutate(i="before") -> sim_h11
+
+# Boxplot of final sample size
+sim_h11                                  %>%
+  ggplot(aes(i, Nstar))                   +
+  expand_limits(y=0)                      +
+  ylab("Final sample size")               + 
+  xlab(" ")                               +
+  ggtitle(f)                              +
+  geom_boxplot()                          +
+  coord_flip()
+
+# Scatterplot of accrual rate versus final sample size
+sim_h11                                  %>%
+  ggplot(aes(30*mu, Nstar))               +
+  ylab("Final sample size")               + 
+  xlab("Accrual rate")                    +
+  ggtitle(f)                              +
+  geom_point()
+
+sim_h11                                  %>%
+  ggplot(aes(scale, Nstar))               +
+  ylab("Final sample size")               + 
+  xlab("Hierarchical spread")             +
+  ggtitle(f)                              +
+  geom_point()
+```
+
+```{r hierarchical-two-parameter-extension-before-trial, error=TRUE}
+f <- "hierarchical-two-parameter-extension-before-trial.stan"
+dat_before <- list(N=350, T=3*365, S=0.5, M=10,
+                   B=c(20, 5, 5, 10, 10, 5, 10, 10, 5, 20))
+fit_h21 <- stan(file=f,
+  data=dat_before, iter= 1000, chains = 4)
+
+tidy(fit_h21, conf.int=TRUE)
+
+fit_h21              %>%
+  as.data.frame      %>%
+  mutate(i="before") -> sim_h21
+
+# Boxplot of final sample size
+sim_h21                                  %>%
+  ggplot(aes(i, Nstar))                   +
+  expand_limits(y=0)                      +
+  ylab("Final sample size")               + 
+  xlab(" ")                               +
+  ggtitle(f)                              +
+  geom_boxplot()                          +
+  coord_flip()
+
+# Scatterplot of accrual rate versus final sample size
+sim_h21                                  %>%
+  ggplot(aes(30*mu, Nstar))               +
+  ylab("Final sample size")               + 
+  xlab("Accrual rate")                    +
+  ggtitle(f)                              +
+  geom_point()
+
+sim_h21                                  %>%
+  ggplot(aes(scale, Nstar))               +
+  ylab("Final sample size")               + 
+  xlab("Hierarchical spread")             +
+  ggtitle(f)                              +
+  geom_point()
 ```
