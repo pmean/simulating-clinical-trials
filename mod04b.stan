@@ -19,10 +19,10 @@ transformed parameters {
 } 
 model {
   alpha ~ exponential(1.0);
-  lambda ~ gamma(N*S, T*S*J);
+  lambda ~ gamma(N*S, T*S);
   for (j in 1:J) {
     eta[J] ~ gamma(alpha, alpha); 
-    n[j] ~ poisson(eta[j]*lambda*t);
+    n[j] ~ poisson(eta[j]*lambda*t/J);
   }
   
   pseudo_n ~ poisson(eta[J+1]*lambda*pseudo_t);
@@ -31,7 +31,7 @@ generated quantities {
   real<lower=0> ntilde[J];
   real<lower=0> ntilde_total;
   for (j in 1:J) {
-    ntilde[j] = n[j] + poisson_rng(eta[j]*lambda*(T-t));
+    ntilde[j] = n[j] + poisson_rng(eta[j]*lambda*(T-t)/J);
   }
   ntilde_total = sum(ntilde);
 }
