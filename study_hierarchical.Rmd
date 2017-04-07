@@ -13,6 +13,8 @@ library(magrittr)
 library(rstan)
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
+getRversion()
+Sys.time()
 ```
 
 I wanted to fit a series of Bayesian models starting with a very simple model and moving to more complex models. I read in both enrollment data sets, and I made a totally unjustified change by converting the NAs to zeros. It's easy to modify these models to account for the NAs (which represent, I assume, the weeks when a center was not yet through all the approvals needed to get started). In any case, I chose the sixth row of the second data set (csp558) as the place to test these models.
