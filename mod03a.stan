@@ -28,6 +28,8 @@ model {
 generated quantities {
   real<lower=0> ntilde[J];
   real<lower=0> ntilde_total;
+  real<lower=0> average_lambda;
+  average_lambda = sum(lambda) / J;
   for (j in 1:J) {
     ntilde[j] = n[j] + poisson_rng(lambda[j]*(T-t)/J);
   }
