@@ -16,5 +16,3 @@ generated quantities {
   real<lower=0> ntilde;
   ntilde = n + poisson_rng(lambda*(T-t));
 }
- 
- 

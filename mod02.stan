@@ -24,5 +24,3 @@ generated quantities {
   }
   ntilde_total = sum(ntilde);
 }
- 
- 
