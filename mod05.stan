@@ -4,44 +4,32 @@ data {
   real<lower=0>          t;    // current time
   int<lower=0>           N;    // planned sample size overall
   real<lower=0>          T;    // planned time
-  real<lower=0, upper=1> S;
-}
-transformed data {
-  real<lower=0>          a;
-  real<lower=0>          b;
-  real<lower=0>          c;
-  real<lower=0>          d;
-  int<lower=0>           m;
-  m = sum(n);
-  a = (N/J)*t*S;
-  b = t;
-  c = T*S*m;
-  d = m;
+  real<lower=0, upper=1> S;    // strength of prior
 }
 parameters {
-  real<lower=0> lambda[J];     // single common rate for each center
-  real<lower=0> alpha;         // parameters from hyperprior
-  real<lower=0> beta;
+  real<lower=0> lambda;        // overall rate for each center
+  real<lower=0> eta[J];        // deviation from overall rate
+  real<lower=0> alpha;         // parameter from deviation distribution
 }
 transformed parameters {
-  real<lower=0> hyper_mn;
-  real<lower=0> hyper_cv;
-  hyper_mn = alpha / beta;
-  hyper_cv = 1/sqrt(alpha);
-}
+  real<lower=0> deviation_cv;
+  deviation_cv = 1/sqrt(alpha);
+} 
 model {
-  alpha ~ gamma(a, b);
-  beta ~ gamma(c, d);
-  lambda ~ gamma(alpha, beta);
+  alpha ~ exponential(1.0);
+  lambda ~ gamma(N*S, T*S);
   for (j in 1:J) {
-    n[j] ~ poisson(lambda[j]*t);
+    eta[J] ~ gamma(alpha, alpha); 
+    n[j] ~ poisson(eta[j]*lambda*t/J);
   }
 }
 generated quantities {
   real<lower=0> ntilde[J];
   real<lower=0> ntilde_total;
+  real<lower=0> average_lambda;
+  average_lambda = lambda*sum(eta) / J;
   for (j in 1:J) {
-    ntilde[j] = n[j] + poisson_rng(lambda[j]*(T-t));
+    ntilde[j] = n[j] + poisson_rng(eta[j]*lambda*(T-t)/J);
   }
   ntilde_total = sum(ntilde);
 }
