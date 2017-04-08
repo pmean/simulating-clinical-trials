@@ -10,17 +10,17 @@ parameters {
   real<lower=0> lambda;        // single common rate for each center
 }
 model {
-  lambda ~ gamma(N*S, T*S*J);
+  lambda ~ gamma(N*S, T*S);
   // gamma(N*S/J, T*S) also works but it weakens the prior.
   for (j in 1:J) {
-    n[j] ~ poisson(lambda*t);
+    n[j] ~ poisson(lambda*t/J);
   }
 }
 generated quantities {
   real<lower=0> ntilde[J];
   real<lower=0> ntilde_total;
   for (j in 1:J) {
-    ntilde[j] = n[j] + poisson_rng(lambda*(T-t));
+    ntilde[j] = n[j] + poisson_rng(lambda*(T-t)/J);
   }
   ntilde_total = sum(ntilde);
 }

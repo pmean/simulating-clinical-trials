@@ -6,6 +6,7 @@ data {
   real<lower=0>          T;    // planned time
   int<lower=0>           pseudo_n;
   real<lower=0>          pseudo_t;
+  real<lower=0, upper=1> S;    // strength of prior
 }
 parameters {
   real<lower=0> lambda[J+1];   // single common rate for each center
@@ -23,15 +24,18 @@ model {
   beta ~ gamma(0.1, 1.0);
   lambda ~ gamma(alpha, beta);
   for (j in 1:J) {
-    n[j] ~ poisson(lambda[j]*t);
+    n[j] ~ poisson(lambda[j]*t/J);
   }
   pseudo_n ~ poisson(lambda[J+1]*pseudo_t);
 }
 generated quantities {
   real<lower=0> ntilde[J];
   real<lower=0> ntilde_total;
+  real<lower=0> average_lambda;
+  average_lambda = 0;
   for (j in 1:J) {
-    ntilde[j] = n[j] + poisson_rng(lambda[j]*(T-t));
+    average_lambda = average_lambda + lambda[j]/J;
+    ntilde[j] = n[j] + poisson_rng(lambda[j]*(T-t)/J);
   }
   ntilde_total = sum(ntilde);
 }

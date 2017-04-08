@@ -13,6 +13,8 @@ library(magrittr)
 library(rstan)
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
+getRversion()
+Sys.time()
 ```
 
 I wanted to fit a series of Bayesian models starting with a very simple model and moving to more complex models. I read in both enrollment data sets, and I made a totally unjustified change by converting the NAs to zeros. It's easy to modify these models to account for the NAs (which represent, I assume, the weeks when a center was not yet through all the approvals needed to get started). In any case, I chose the sixth row of the second data set (csp558) as the place to test these models.
@@ -117,8 +119,8 @@ f <- "mod03.stan"
 cat(readLines(f), sep="\n")
 # Here's the data.
 dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24)
-fit03 <- stan(file=f, data=dat)
-tidy(fit03, estimate.method="median")
+fit03 <- stan(file=f, data=dat, control = list(adapt_delta = 0.99))
+tidy(fit03, estimate.method="mean")
 ```
 
 Now how do you incorporate an informative prior into a hierarchical setting. One way is to reparameterize the hyperprior.
@@ -130,7 +132,7 @@ cat(readLines(f), sep="\n")
 # Here's the data.
 dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=0.5)
 fit03a <- stan(file=f, data=dat)
-tidy(fit03a, estimate.method="median")
+tidy(fit03a, estimate.method="mean")
 ```
 
 You could also add a pseudo-center with parameters consistent with prior distribution.
@@ -140,9 +142,9 @@ f <- "mod03b.stan"
 # Here's what's hiding in the file 
 cat(readLines(f), sep="\n")
 # Here's the data.
-dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, pseudo_n=100, pseudo_t=12)
+dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, pseudo_n=100, pseudo_t=12, S=0.5)
 fit03b <- stan(file=f, data=dat, control = list(adapt_delta = 0.99))
-tidy(fit03b, estimate.method="median")
+tidy(fit03b, estimate.method="mean")
 ```
 
 Finally, you could look at a perturbation model. Here's a perturbation model with a non-informative prior.
@@ -154,7 +156,7 @@ cat(readLines(f), sep="\n")
 # Here's the data.
 dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=1/200)
 fit04 <- stan(file=f, data=dat)
-tidy(fit04, estimate.method="median")
+tidy(fit04, estimate.method="mean")
 ```
 
 Here's a perturbation model with an informative prior.
@@ -163,6 +165,7 @@ Here's a perturbation model with an informative prior.
 # Here's the data.
 dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=0.5)
 fit04a <- stan(file=f, data=dat)
+<<<<<<< HEAD
 tidy(fit04a, estimate.method="median")
 ```
 
@@ -174,6 +177,9 @@ cat(readLines(f), sep="\n")
 dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=1/200, pseudo_n=100, pseudo_t=12)
 fit04b <- stan(file=f, data=dat)
 tidy(fit04b, estimate.method="median")
+=======
+tidy(fit04a, estimate.method="mean")
+>>>>>>> 0d4caf0d83ffd64ae9d8b1a03322e0b64a037521
 ```
 
 One last try.
