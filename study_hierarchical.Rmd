@@ -60,129 +60,136 @@ csp558b[c(6, 24), ]
 
 ## Part 1
 
-The first model ignores the center effect completely. It also fits a non-informative prior.
-
-Since you have gone 1/4 of the way into the study and have 35 patients, the simple extrapolation is that you will have about 35*4 or 140 patients at the end of the study. The accrual rate (lambda) should be close to 35/6 or 5.83.
+The first model ignores the center effect completely. 
 
 ## Non-informative prior
 
-```{r mod01, error=TRUE}
+Start with a non-informative prior.
+
+Since you have gone 1/4 of the way into the study and have 35 patients, the simple extrapolation is that you will have about 35*4 or 140 patients at the end of the study. The accrual rate (lambda) should be close to 35/6 or 5.83.
+
+```{r mod01, error=TRUE, cache=FALSE}
 f <- "mod01.stan"
 # Here's what's hiding in the file 
 cat(readLines(f), sep="\n")
-# Here's the data. S=1/200 gives a prior weight of one subject.
-dat <- list(n=35, t=6, N=200, T=24, S=1/200)
+# Here's the data. P=1/200 gives a prior weight of one subject.
+dat <- list(n=35, t=6, N=200, T=24, P=1/200)
 fit01 <- stan(file=f, data=dat)
 tidy(fit01)
 ```
 
-Change this to an informative prior. This prior has a weight equal to 1/2 the total sample size (100). So the posterior mean is going to be a weighted average of the prior mean (8.33) and the rate calculated from the data (5.83) with about 3/4 of the weight being given to the prior.
-
 ## Informative prior, too optimistic
 
-```{r mod01a, error=TRUE}
+Change this to an informative prior. This prior has a weight equal to 1/2 the total sample size (100). This prior distribution is too optimistic, at least relative to the data we've seen so far. The prior rate is 100/12 = 8.33 which is a lot higher than the rate observed in the data (35/6 or 5.83). The posterior mean is going to be a weighted average of the prior rate and the rate calculated from the data with about 3/4 of the weight being given to the prior or roughly 7.7.
+
+```{r mod01a, error=TRUE, cache=FALSE}
 # Here's the data. Changing S to 0.5 produces an informative prior.
-dat <- list(n=35, t=6, N=200, T=24, S=0.5)
+dat <- list(n=35, t=6, N=200, T=24, P=0.5)
 fit01a <- stan(file=f, data=dat)
 tidy(fit01a)
+tidy(fit01)
 ```
-
-Try a different informative prior. This prior has the same weight as before (100), but this time the prior is not too much different from the data.
 
 ## Informative prior, more realistic
 
-```{r mod01b, error=TRUE}
+Try a different informative prior. This prior has the same weight as before (100), but this time the prior rate (100/18 = 5.5) is not too much different from the data. When you compare the estimated rate (lambda) from this informative prior to the non-informatative prior, you should notice a change not in the mean, but in the standard error.
+
+```{r mod01b, error=TRUE, cache=FALSE}
 f <- "mod01.stan"
 # Here's the data. Increasing T is equivalent
 # to setting a slower accrual rate.
-dat <- list(n=35, t=6, N=200, T=36, S=0.5)
+dat <- list(n=35, t=6, N=200, T=36, P=0.5)
 fit01b <- stan(file=f, data=dat)
 tidy(fit01b)
+tidy(fit01a)
+tidy(fit01)
 ```
-
-The standard errors are much smaller with either informative prior than with a non-informative prior.
 
 ## Part 2
 
-Run this as a multi-center trial, but with no center effect.
-
-First with a non-informative prior.
+Run this as a multi-center trial, but with no center effect. This is mathematically equivalent to a single center trial, but it's worth running to verify that Stan gives the expected results.
 
 ## Non-informative prior
 
-```{r mod02, error=TRUE}
+Start with a non-informative prior.
+
+```{r mod02, error=TRUE, cache=FALSE}
 f <- "mod02.stan"
 # Here's what's hiding in the file 
 cat(readLines(f), sep="\n")
-# Here's the data. S=1/200 gives a prior weight of one subject.
-dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=1/200)
+# Here's the data. P=1/200 gives a prior weight of one subject.
+dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, P=1/200)
 fit02 <- stan(file=f, data=dat)
 tidy(fit02)
+tidy(fit01)
 ```
 
-The results are identical to the earlier result (fit01).
-
-Next with an informative prior.
+The results are identical to the earlier result (fit01) after allowing for a small Monte Carlo sampling error.
 
 ## Informative prior, too optimistic
 
-```{r mod02a, error=TRUE}
-# Here's the data. S=1/200 gives a prior weight of one subject.
-dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=0.5)
+Next with an overly optimistic informative prior.
+
+```{r mod02a, error=TRUE, cache=FALSE}
+dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, P=0.5)
 fit02a <- stan(file=f, data=dat)
 tidy(fit02a)
+tidy(fit01a)
 ```
 
 These results are identical to fit01a.
 
 ## Informative prior, more realistic
 
-```{r mod02b, error=TRUE}
-# Here's the data. S=1/200 gives a prior weight of one subject.
-dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=36, S=0.5)
+Finally, look at a more realistic informative prior.
+
+```{r mod02b, error=TRUE, cache=FALSE}
+dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=36, P=0.5)
 fit02b <- stan(file=f, data=dat)
 tidy(fit02b)
+tidy(fit01b)
 ```
 
-These results are identical to fit01b.
+These results are identical to fit01b. These results re-assure us that Stan is behaving well, at least for these simple models.
 
 ## Part 3
 
 Now allow each center to vary.
 
-First with a non-informative prior. The rate for the average center should be 1/4 the overal rate or about 1.46. But the first center, with only 5 patients, should have the lowest rate and the second center, with 12 patients, should have the highest rate.
-
 ## Non-informative prior
 
-```{r mod03, error=TRUE}
+Start first with a non-informative prior. The rate for the average center should be roughly 35/6 or 5.83, but the first center, with only 5 patients, should have the lowest rate and the second center, with 12 patients, should have the highest rate.
+
+```{r mod03, error=TRUE, cache=FALSE}
 f <- "mod03.stan"
 # Here's what's hiding in the file 
 cat(readLines(f), sep="\n")
-# Here's the data.
 dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24)
 fit03 <- stan(file=f, data=dat, control = list(adapt_delta = 0.99))
 tidy(fit03, estimate.method="mean")
 ```
 
-Now how do you incorporate an informative prior into a hierarchical setting. One way is to reparameterize the hyperprior.
+Now how do you incorporate an informative prior into a hierarchical setting? One way is to reparameterize the hyperprior.
 
 ## Informative prior, too optimistic
 
-```{r mod03a, error=TRUE}
+Try this reparameterized model with the optimistic prior.
+
+```{r mod03a, error=TRUE, cache=FALSE}
 f <- "mod03a.stan"
 # Here's what's hiding in the file 
 cat(readLines(f), sep="\n")
-# Here's the data.
-dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=0.5)
+dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, P=0.5)
 fit03a <- stan(file=f, data=dat)
 tidy(fit03a, estimate.method="mean")
 ```
 
 ## Informative prior, more realistic
 
-```{r mod03b, error=TRUE}
-# Here's the data.
-dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=36, S=0.5)
+Now try it with the more realistic prior.
+
+```{r mod03b, error=TRUE, cache=FALSE}
+dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=36, P=0.5)
 fit03b <- stan(file=f, data=dat)
 tidy(fit03b, estimate.method="mean")
 ```
@@ -193,21 +200,19 @@ You could also add a pseudo-center with parameters consistent with prior distrib
 
 ## Informative prior, too optimistic
 
-```{r mod04a, error=TRUE}
+```{r mod04a, error=TRUE, cache=FALSE}
 f <- "mod04.stan"
 # Here's what's hiding in the file 
 cat(readLines(f), sep="\n")
-# Here's the data.
-dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, pseudo_n=100, pseudo_t=12, S=0.5)
+dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, pseudo_n=100, pseudo_t=12, P=0.5)
 fit04a <- stan(file=f, data=dat, control = list(adapt_delta = 0.99))
 tidy(fit04a, estimate.method="mean")
 ```
 
 ## Informative prior, more realistic
 
-```{r mod04b, error=TRUE}
-# Here's the data.
-dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=36, pseudo_n=100, pseudo_t=18, S=0.5)
+```{r mod04b, error=TRUE, cache=FALSE}
+dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=36, pseudo_n=100, pseudo_t=18, P=0.5)
 fit04b <- stan(file=f, data=dat, control = list(adapt_delta = 0.99))
 tidy(fit04b, estimate.method="mean")
 ```
@@ -218,12 +223,11 @@ Finally, you could look at a perturbation model. Here's a perturbation model wit
 
 ## Non-informative prior
 
-```{r mod05, error=TRUE}
+```{r mod05, error=TRUE, cache=FALSE}
 f <- "mod05.stan"
 # Here's what's hiding in the file 
 cat(readLines(f), sep="\n")
-# Here's the data.
-dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=1/200)
+dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, P=1/200)
 fit05 <- stan(file=f, data=dat)
 tidy(fit05, estimate.method="mean")
 ```
@@ -232,18 +236,18 @@ Here's a perturbation model with an informative prior.
 
 ## Informative prior, too optimistic
 
-```{r mod05a, error=TRUE}
+```{r mod05a, error=TRUE, cache=FALSE}
 # Here's the data.
-dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=0.5)
+dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, P=0.5)
 fit05a <- stan(file=f, data=dat)
 tidy(fit05a, estimate.method="mean")
 ```
 
 ## Informative prior, more realistic
 
-```{r mod05b, error=TRUE}
+```{r mod05b, error=TRUE, cache=FALSE}
 # Here's the data.
-dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=36, S=0.5)
+dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=36, P=0.5)
 fit05b <- stan(file=f, data=dat)
 tidy(fit05b, estimate.method="mean")
 ```
@@ -252,24 +256,30 @@ tidy(fit05b, estimate.method="mean")
 
 One last try. Here's the model in the paper, but I may have some of the numbers wrong.
 
+Tm is the amount of time that it has taken to accumulate a total of m subjects across all the J centers, I'm guessing. There is a fundamental problem here in that the prior distribution changes as you accumulate more data. The other problem is that the hyperprior for beta changes shape (not just scale) if you change the units of T, say from months to years or to days. In particular, the smaller the unit of measurement, the tighter the prior distribution.
+
 ## Informative prior, too optimistic
 
-```{r mod06a, error=TRUE}
+```{r mod06a, error=TRUE, cache=FALSE}
 f <- "mod06.stan"
 # Here's what's hiding in the file 
 cat(readLines(f), sep="\n")
-# Here's the data.
-dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=0.5)
+dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, P=0.5)
 fit06a <- stan(file=f, data=dat)
 tidy(fit06a, estimate.method="mean")
 ```
 
 ## Informative prior, more realistic
 
-```{r mod06b, error=TRUE}
+```{r mod06b, error=TRUE, cache=FALSE}
 # Here's the data.
-dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=36, S=0.5)
+dat <- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=36, P=0.5)
 fit06b <- stan(file=f, data=dat)
 tidy(fit06b, estimate.method="mean")
 ```
 
+Now save everything for later review
+
+```{r save everything}
+save.image(file="study_hierarchical.RData")
+```

@@ -6,9 +6,9 @@ data {
   real<lower=0>          T;    // planned time
 }
 parameters {
-  real<lower=0> lambda[J];     // single common rate for each center
+  real<lower=0> lambda[J];     // separate rate for each center
   real<lower=0> alpha;         // parameters from hyperprior
-  real<lower=0> beta;
+  real<lower=0> beta;          // parameters from hyperprior
 }
 transformed parameters {
   real<lower=0> hyper_mn;
@@ -17,8 +17,8 @@ transformed parameters {
   hyper_cv = 1/sqrt(alpha);
 }
 model {
-  alpha ~ exponential(1.0);
-  beta ~ gamma(0.1, 1.0);
+  alpha ~ gamma(1, 1);
+  beta  ~ gamma(1, 1);
   for (j in 1:J) {
     lambda[j] ~ gamma(alpha, beta);
     n[j] ~ poisson(lambda[j]*t/J);

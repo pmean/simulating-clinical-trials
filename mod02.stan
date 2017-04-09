@@ -4,14 +4,14 @@ data {
   real<lower=0>          t;    // current time
   int<lower=0>           N;    // planned sample size overall
   real<lower=0>          T;    // planned time
-  real<lower=0, upper=1> S;    // strength of prior
+  real<lower=0, upper=1> P;    // strength of prior
 }
 parameters {
   real<lower=0> lambda;        // single common rate for each center
 }
 model {
-  lambda ~ gamma(N*S, T*S);
-  // gamma(N*S/J, T*S) also works but it weakens the prior.
+  lambda ~ gamma(N*P, T*P);
+  // gamma(N*P/J, T*P) also works but it weakens the prior.
   for (j in 1:J) {
     n[j] ~ poisson(lambda*t/J);
   }

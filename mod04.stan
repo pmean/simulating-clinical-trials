@@ -6,7 +6,7 @@ data {
   real<lower=0>          T;    // planned time
   int<lower=0>           pseudo_n;
   real<lower=0>          pseudo_t;
-  real<lower=0, upper=1> S;    // strength of prior
+  real<lower=0, upper=1> P;    // strength of prior
 }
 parameters {
   real<lower=0> lambda[J+1];   // single common rate for each center

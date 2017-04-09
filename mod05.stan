@@ -4,7 +4,7 @@ data {
   real<lower=0>          t;    // current time
   int<lower=0>           N;    // planned sample size overall
   real<lower=0>          T;    // planned time
-  real<lower=0, upper=1> S;    // strength of prior
+  real<lower=0, upper=1> P;    // strength of prior
 }
 parameters {
   real<lower=0> lambda;        // overall rate for each center
@@ -17,7 +17,7 @@ transformed parameters {
 } 
 model {
   alpha ~ exponential(1.0);
-  lambda ~ gamma(N*S, T*S);
+  lambda ~ gamma(N*P, T*P);
   for (j in 1:J) {
     eta[J] ~ gamma(alpha, alpha); 
     n[j] ~ poisson(eta[j]*lambda*t/J);

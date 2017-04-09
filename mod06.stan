@@ -4,7 +4,7 @@ data {
   real<lower=0>          t;    // current time
   int<lower=0>           N;    // planned sample size overall
   real<lower=0>          T;    // planned time
-  real<lower=0, upper=1> S;
+  real<lower=0, upper=1> P;
 }
 transformed data {
   real<lower=0>          a;
@@ -13,9 +13,9 @@ transformed data {
   real<lower=0>          d;
   int<lower=0>           m;
   m = sum(n);
-  a = (N/J)*t*S;
+  a = N*t*P/J;                 // order is important because N/J is integer division
   b = t;
-  c = T*S*m;
+  c = T*P*m;
   d = m;
 }
 parameters {

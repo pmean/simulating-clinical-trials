@@ -4,10 +4,10 @@ data {
   real<lower=0>          t;    // current time
   int<lower=0>           N;    // planned sample size overall
   real<lower=0>          T;    // planned time
-  real<lower=0, upper=1> S;    // strength of prior
+  real<lower=0, upper=1> P;    // strength of prior
 }
 parameters {
-  real<lower=0> lambda[J];     // single common rate for each center
+  real<lower=0> lambda[J];     // separate rate for each center
   real<lower=0> hyper_mn;      // parameters from hyperprior
   real<lower=0> hyper_cv;      // parameters from hyperprior
 }
@@ -18,7 +18,7 @@ transformed parameters {
   beta = (hyper_cv^2 * hyper_mn); // hyper_mn = alpha / beta
 }
 model {
-  hyper_mn ~ gamma(N*S, T*S);
+  hyper_mn ~ gamma(N*P, T*P);
   hyper_cv ~ gamma(1, 1);
   lambda ~ gamma(alpha, beta);
   for (j in 1:J) {
