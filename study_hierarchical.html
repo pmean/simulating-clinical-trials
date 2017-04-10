@@ -124,12 +124,11 @@ $(document).ready(function () {
 
 
 <pre class="r"><code>getRversion()</code></pre>
-<pre><code>## [1] '3.3.2'</code></pre>
+<pre><code>## [1] '3.3.3'</code></pre>
 <pre class="r"><code>Sys.time()</code></pre>
-<pre><code>## [1] &quot;2017-04-08 15:44:20 CDT&quot;</code></pre>
-<pre class="r"><code>library(broom)</code></pre>
-<pre><code>## Warning: package 'broom' was built under R version 3.3.3</code></pre>
-<pre class="r"><code>library(dplyr)</code></pre>
+<pre><code>## [1] &quot;2017-04-09 21:27:51 CDT&quot;</code></pre>
+<pre class="r"><code>library(broom)
+library(dplyr)</code></pre>
 <pre><code>## 
 ## Attaching package: 'dplyr'</code></pre>
 <pre><code>## The following objects are masked from 'package:stats':
@@ -141,9 +140,7 @@ $(document).ready(function () {
 <pre class="r"><code>library(ggplot2)
 library(magrittr)
 library(rstan)</code></pre>
-<pre><code>## Warning: package 'rstan' was built under R version 3.3.3</code></pre>
 <pre><code>## Loading required package: StanHeaders</code></pre>
-<pre><code>## Warning: package 'StanHeaders' was built under R version 3.3.3</code></pre>
 <pre><code>## rstan (Version 2.14.2, packaged: 2017-03-19 00:42:29 UTC, GitRev: 5fa1e80eb817)</code></pre>
 <pre><code>## For execution on a local, multicore CPU with excess RAM we recommend calling
 ## rstan_options(auto_write = TRUE)
@@ -272,11 +269,12 @@ csp558b[c(6, 24), ]</code></pre>
 ## 24 27 37 27 36 127 24</code></pre>
 <div id="part-1" class="section level2">
 <h2>Part 1</h2>
-<p>The first model ignores the center effect completely. It also fits a non-informative prior.</p>
-<p>Since you have gone 1/4 of the way into the study and have 35 patients, the simple extrapolation is that you will have about 35*4 or 140 patients at the end of the study. The accrual rate (lambda) should be close to 35/6 or 5.83.</p>
+<p>The first model ignores the center effect completely.</p>
 </div>
 <div id="non-informative-prior" class="section level2">
 <h2>Non-informative prior</h2>
+<p>Start with a non-informative prior.</p>
+<p>Since you have gone 1/4 of the way into the study and have 35 patients, the simple extrapolation is that you will have about 35*4 or 140 patients at the end of the study. The accrual rate (lambda) should be close to 35/6 or 5.83.</p>
 <pre class="r"><code>f &lt;- &quot;mod01.stan&quot;
 # Here's what's hiding in the file 
 cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
@@ -285,59 +283,70 @@ cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
 ##   real&lt;lower=0&gt;          t;    // current time
 ##   int&lt;lower=0&gt;           N;    // planned sample size
 ##   real&lt;lower=0&gt;          T;    // planned time
-##   real&lt;lower=0, upper=1&gt; S;    // strength of prior
+##   real&lt;lower=0, upper=1&gt; P;    // strength of prior
 ## }
 ## parameters {
 ##   real&lt;lower=0&gt; lambda;        // single rate for each center
 ## }
 ## model {
-##   lambda ~ gamma(N*S, T*S);
+##   lambda ~ gamma(N*P, T*P);
 ##   n ~ poisson(lambda*t);
 ## }
 ## generated quantities {
 ##   real&lt;lower=0&gt; ntilde;
 ##   ntilde = n + poisson_rng(lambda*(T-t));
 ## }</code></pre>
-<pre class="r"><code># Here's the data. S=1/200 gives a prior weight of one subject.
-dat &lt;- list(n=35, t=6, N=200, T=24, S=1/200)
+<pre class="r"><code># Here's the data. P=1/200 gives a prior weight of one subject.
+dat &lt;- list(n=35, t=6, N=200, T=24, P=1/200)
 fit01 &lt;- stan(file=f, data=dat)
 tidy(fit01)</code></pre>
 <pre><code>##     term   estimate  std.error
-## 1 lambda   5.900422  0.9879683
-## 2 ntilde 141.267500 20.7245463</code></pre>
-<p>Change this to an informative prior. This prior has a weight equal to 1/2 the total sample size (100). So the posterior mean is going to be a weighted average of the prior mean (8.33) and the rate calculated from the data (5.83) with about 3/4 of the weight being given to the prior.</p>
+## 1 lambda   5.893552  0.9819753
+## 2 ntilde 141.092000 20.4757747</code></pre>
 </div>
 <div id="informative-prior-too-optimistic" class="section level2">
 <h2>Informative prior, too optimistic</h2>
+<p>Change this to an informative prior. This prior has a weight equal to 1/2 the total sample size (100). This prior distribution is too optimistic, at least relative to the data we’ve seen so far. The prior rate is 100/12 = 8.33 which is a lot higher than the rate observed in the data (35/6 or 5.83). The posterior mean is going to be a weighted average of the prior rate and the rate calculated from the data with about 3/4 of the weight being given to the prior or roughly 7.7.</p>
 <pre class="r"><code># Here's the data. Changing S to 0.5 produces an informative prior.
-dat &lt;- list(n=35, t=6, N=200, T=24, S=0.5)
+dat &lt;- list(n=35, t=6, N=200, T=24, P=0.5)
 fit01a &lt;- stan(file=f, data=dat)
 tidy(fit01a)</code></pre>
-<pre><code>##     term  estimate  std.error
-## 1 lambda   7.50258  0.6505027
-## 2 ntilde 169.70075 16.2488832</code></pre>
-<p>Try a different informative prior. This prior has the same weight as before (100), but this time the prior is not too much different from the data.</p>
+<pre><code>##     term   estimate  std.error
+## 1 lambda   7.519982  0.6569742
+## 2 ntilde 170.816500 16.7195608</code></pre>
+<pre class="r"><code>tidy(fit01)</code></pre>
+<pre><code>##     term   estimate  std.error
+## 1 lambda   5.893552  0.9819753
+## 2 ntilde 141.092000 20.4757747</code></pre>
 </div>
 <div id="informative-prior-more-realistic" class="section level2">
 <h2>Informative prior, more realistic</h2>
+<p>Try a different informative prior. This prior has the same weight as before (100), but this time the prior rate (100/18 = 5.5) is not too much different from the data. When you compare the estimated rate (lambda) from this informative prior to the non-informatative prior, you should notice a change not in the mean, but in the standard error.</p>
 <pre class="r"><code>f &lt;- &quot;mod01.stan&quot;
 # Here's the data. Increasing T is equivalent
 # to setting a slower accrual rate.
-dat &lt;- list(n=35, t=6, N=200, T=36, S=0.5)
+dat &lt;- list(n=35, t=6, N=200, T=36, P=0.5)
 fit01b &lt;- stan(file=f, data=dat)
 tidy(fit01b)</code></pre>
 <pre><code>##     term   estimate  std.error
-## 1 lambda   5.620306  0.4755067
-## 2 ntilde 203.755250 19.2818514</code></pre>
-<p>The standard errors are much smaller with either informative prior than with a non-informative prior.</p>
+## 1 lambda   5.629273  0.4999755
+## 2 ntilde 204.164500 20.0044616</code></pre>
+<pre class="r"><code>tidy(fit01a)</code></pre>
+<pre><code>##     term   estimate  std.error
+## 1 lambda   7.519982  0.6569742
+## 2 ntilde 170.816500 16.7195608</code></pre>
+<pre class="r"><code>tidy(fit01)</code></pre>
+<pre><code>##     term   estimate  std.error
+## 1 lambda   5.893552  0.9819753
+## 2 ntilde 141.092000 20.4757747</code></pre>
 </div>
 <div id="part-2" class="section level2">
 <h2>Part 2</h2>
-<p>Run this as a multi-center trial, but with no center effect.</p>
-<p>First with a non-informative prior.</p>
+<p>Run this as a multi-center trial, but with no center effect. This is mathematically equivalent to a single center trial, but it’s worth running to verify that Stan gives the expected results.</p>
 </div>
 <div id="non-informative-prior-1" class="section level2">
 <h2>Non-informative prior</h2>
+<p>Start with a non-informative prior.</p>
 <pre class="r"><code>f &lt;- &quot;mod02.stan&quot;
 # Here's what's hiding in the file 
 cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
@@ -347,14 +356,14 @@ cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
 ##   real&lt;lower=0&gt;          t;    // current time
 ##   int&lt;lower=0&gt;           N;    // planned sample size overall
 ##   real&lt;lower=0&gt;          T;    // planned time
-##   real&lt;lower=0, upper=1&gt; S;    // strength of prior
+##   real&lt;lower=0, upper=1&gt; P;    // strength of prior
 ## }
 ## parameters {
 ##   real&lt;lower=0&gt; lambda;        // single common rate for each center
 ## }
 ## model {
-##   lambda ~ gamma(N*S, T*S);
-##   // gamma(N*S/J, T*S) also works but it weakens the prior.
+##   lambda ~ gamma(N*P, T*P);
+##   // gamma(N*P/J, T*P) also works but it weakens the prior.
 ##   for (j in 1:J) {
 ##     n[j] ~ poisson(lambda*t/J);
 ##   }
@@ -367,57 +376,68 @@ cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
 ##   }
 ##   ntilde_total = sum(ntilde);
 ## }</code></pre>
-<pre class="r"><code># Here's the data. S=1/200 gives a prior weight of one subject.
-dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=1/200)
+<pre class="r"><code># Here's the data. P=1/200 gives a prior weight of one subject.
+dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, P=1/200)
 fit02 &lt;- stan(file=f, data=dat)
 tidy(fit02)</code></pre>
-<pre><code>##           term   estimate  std.error
-## 1       lambda   5.905974  0.9636325
-## 2    ntilde[1]  31.618750  6.7220678
-## 3    ntilde[2]  38.592750  6.6903728
-## 4    ntilde[3]  36.654500  6.6844446
-## 5    ntilde[4]  34.592750  6.7607932
-## 6 ntilde_total 141.458750 20.1054434</code></pre>
-<p>The results are identical to the earlier result (fit01).</p>
-<p>Next with an informative prior.</p>
+<pre><code>##           term   estimate std.error
+## 1       lambda   5.915194  0.990661
+## 2    ntilde[1]  31.610750  6.832050
+## 3    ntilde[2]  38.622500  6.780006
+## 4    ntilde[3]  36.471000  6.830251
+## 5    ntilde[4]  34.631500  6.896492
+## 6 ntilde_total 141.335750 20.571736</code></pre>
+<pre class="r"><code>tidy(fit01)</code></pre>
+<pre><code>##     term   estimate  std.error
+## 1 lambda   5.893552  0.9819753
+## 2 ntilde 141.092000 20.4757747</code></pre>
+<p>The results are identical to the earlier result (fit01) after allowing for a small Monte Carlo sampling error.</p>
 </div>
 <div id="informative-prior-too-optimistic-1" class="section level2">
 <h2>Informative prior, too optimistic</h2>
-<pre class="r"><code># Here's the data. S=1/200 gives a prior weight of one subject.
-dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=0.5)
+<p>Next with an overly optimistic informative prior.</p>
+<pre class="r"><code>dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, P=0.5)
 fit02a &lt;- stan(file=f, data=dat)
 tidy(fit02a)</code></pre>
-<pre><code>##           term  estimate  std.error
-## 1       lambda   7.48386  0.6426349
-## 2    ntilde[1]  38.65925  6.4525614
-## 3    ntilde[2]  45.74225  6.5324179
-## 4    ntilde[3]  43.64425  6.4378998
-## 5    ntilde[4]  41.62825  6.2786469
-## 6 ntilde_total 169.67400 16.1051876</code></pre>
+<pre><code>##           term   estimate std.error
+## 1       lambda   7.505832  0.638460
+## 2    ntilde[1]  38.676250  6.442656
+## 3    ntilde[2]  45.950750  6.543893
+## 4    ntilde[3]  43.908000  6.503123
+## 5    ntilde[4]  41.834250  6.498179
+## 6 ntilde_total 170.369250 16.317934</code></pre>
+<pre class="r"><code>tidy(fit01a)</code></pre>
+<pre><code>##     term   estimate  std.error
+## 1 lambda   7.519982  0.6569742
+## 2 ntilde 170.816500 16.7195608</code></pre>
 <p>These results are identical to fit01a.</p>
 </div>
 <div id="informative-prior-more-realistic-1" class="section level2">
 <h2>Informative prior, more realistic</h2>
-<pre class="r"><code># Here's the data. S=1/200 gives a prior weight of one subject.
-dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=36, S=0.5)
+<p>Finally, look at a more realistic informative prior.</p>
+<pre class="r"><code>dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=36, P=0.5)
 fit02b &lt;- stan(file=f, data=dat)
 tidy(fit02b)</code></pre>
-<pre><code>##           term   estimate  std.error
-## 1       lambda   5.629019  0.4877486
-## 2    ntilde[1]  47.260500  7.4654922
-## 3    ntilde[2]  54.467000  7.5420907
-## 4    ntilde[3]  52.282500  7.5674639
-## 5    ntilde[4]  50.122750  7.3529041
-## 6 ntilde_total 204.132750 19.8187367</code></pre>
-<p>These results are identical to fit01b.</p>
+<pre><code>##           term   estimate std.error
+## 1       lambda   5.617247  0.483181
+## 2    ntilde[1]  47.067500  7.319654
+## 3    ntilde[2]  54.182750  7.442594
+## 4    ntilde[3]  51.942750  7.321023
+## 5    ntilde[4]  50.109750  7.308526
+## 6 ntilde_total 203.302750 19.066475</code></pre>
+<pre class="r"><code>tidy(fit01b)</code></pre>
+<pre><code>##     term   estimate  std.error
+## 1 lambda   5.629273  0.4999755
+## 2 ntilde 204.164500 20.0044616</code></pre>
+<p>These results are identical to fit01b. These results re-assure us that Stan is behaving well, at least for these simple models.</p>
 </div>
 <div id="part-3" class="section level2">
 <h2>Part 3</h2>
 <p>Now allow each center to vary.</p>
-<p>First with a non-informative prior. The rate for the average center should be 1/4 the overal rate or about 1.46. But the first center, with only 5 patients, should have the lowest rate and the second center, with 12 patients, should have the highest rate.</p>
 </div>
 <div id="non-informative-prior-2" class="section level2">
 <h2>Non-informative prior</h2>
+<p>Start first with a non-informative prior. The rate for the average center should be roughly 35/6 or 5.83, but the first center, with only 5 patients, should have the lowest rate and the second center, with 12 patients, should have the highest rate.</p>
 <pre class="r"><code>f &lt;- &quot;mod03.stan&quot;
 # Here's what's hiding in the file 
 cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
@@ -429,9 +449,9 @@ cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
 ##   real&lt;lower=0&gt;          T;    // planned time
 ## }
 ## parameters {
-##   real&lt;lower=0&gt; lambda[J];     // single common rate for each center
+##   real&lt;lower=0&gt; lambda[J];     // separate rate for each center
 ##   real&lt;lower=0&gt; alpha;         // parameters from hyperprior
-##   real&lt;lower=0&gt; beta;
+##   real&lt;lower=0&gt; beta;          // parameters from hyperprior
 ## }
 ## transformed parameters {
 ##   real&lt;lower=0&gt; hyper_mn;
@@ -440,8 +460,8 @@ cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
 ##   hyper_cv = 1/sqrt(alpha);
 ## }
 ## model {
-##   alpha ~ exponential(1.0);
-##   beta ~ gamma(0.1, 1.0);
+##   alpha ~ gamma(1, 1);
+##   beta  ~ gamma(1, 1);
 ##   for (j in 1:J) {
 ##     lambda[j] ~ gamma(alpha, beta);
 ##     n[j] ~ poisson(lambda[j]*t/J);
@@ -457,29 +477,30 @@ cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
 ##   }
 ##   ntilde_total = sum(ntilde);
 ## }</code></pre>
-<pre class="r"><code># Here's the data.
-dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24)
+<pre class="r"><code>dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24)
 fit03 &lt;- stan(file=f, data=dat, control = list(adapt_delta = 0.99))
 tidy(fit03, estimate.method=&quot;mean&quot;)</code></pre>
 <pre><code>##              term    estimate  std.error
-## 1       lambda[1]   3.7605269  1.5010150
-## 2       lambda[2]   7.6967359  2.1317409
-## 3       lambda[3]   6.5970360  1.9478206
-## 4       lambda[4]   5.5353860  1.7982523
-## 5           alpha   1.9566876  1.1767109
-## 6            beta   0.3294262  0.2405627
-## 7        hyper_mn   7.4536661  5.2655993
-## 8        hyper_cv   0.8258786  0.2933666
-## 9       ntilde[1]  21.8762500  7.9144233
-## 10      ntilde[2]  46.9412500 11.3685359
-## 11      ntilde[3]  39.6212500 10.3586739
-## 12      ntilde[4]  32.9052500  9.5294268
-## 13   ntilde_total 141.3440000 20.9982474
-## 14 average_lambda   5.8974212  1.0087376</code></pre>
-<p>Now how do you incorporate an informative prior into a hierarchical setting. One way is to reparameterize the hyperprior.</p>
+## 1       lambda[1]   3.8094295  1.4253222
+## 2       lambda[2]   7.4131418  2.0628741
+## 3       lambda[3]   6.3934819  1.9120829
+## 4       lambda[4]   5.3295125  1.7365999
+## 5           alpha   2.5692318  1.3429466
+## 6            beta   0.4820008  0.2782121
+## 7        hyper_mn   5.9660956  2.5834295
+## 8        hyper_cv   0.6951025  0.2054000
+## 9       ntilde[1]  22.1260000  7.6146976
+## 10      ntilde[2]  45.3282500 10.9863632
+## 11      ntilde[3]  38.7120000 10.1031963
+## 12      ntilde[4]  31.8482500  9.2831981
+## 13   ntilde_total 138.0145000 20.4880631
+## 14 average_lambda   5.7363914  0.9970216</code></pre>
+<p>Now how do you incorporate an informative prior into a hierarchical setting? One way is to reparameterize the hyperprior.</p>
 </div>
 <div id="informative-prior-too-optimistic-2" class="section level2">
 <h2>Informative prior, too optimistic</h2>
+<p>I have some serious reservations about this approach, but I’m inlcuding here because it might work if we could find the right tweaks.</p>
+<p>Try this reparameterized model with the optimistic prior.</p>
 <pre class="r"><code>f &lt;- &quot;mod03a.stan&quot;
 # Here's what's hiding in the file 
 cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
@@ -489,10 +510,10 @@ cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
 ##   real&lt;lower=0&gt;          t;    // current time
 ##   int&lt;lower=0&gt;           N;    // planned sample size overall
 ##   real&lt;lower=0&gt;          T;    // planned time
-##   real&lt;lower=0, upper=1&gt; S;    // strength of prior
+##   real&lt;lower=0, upper=1&gt; P;    // strength of prior
 ## }
 ## parameters {
-##   real&lt;lower=0&gt; lambda[J];     // single common rate for each center
+##   real&lt;lower=0&gt; lambda[J];     // separate rate for each center
 ##   real&lt;lower=0&gt; hyper_mn;      // parameters from hyperprior
 ##   real&lt;lower=0&gt; hyper_cv;      // parameters from hyperprior
 ## }
@@ -503,7 +524,7 @@ cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
 ##   beta = (hyper_cv^2 * hyper_mn); // hyper_mn = alpha / beta
 ## }
 ## model {
-##   hyper_mn ~ gamma(N*S, T*S);
+##   hyper_mn ~ gamma(N*P, T*P);
 ##   hyper_cv ~ gamma(1, 1);
 ##   lambda ~ gamma(alpha, beta);
 ##   for (j in 1:J) {
@@ -520,47 +541,46 @@ cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
 ##   }
 ##   ntilde_total = sum(ntilde);
 ## }</code></pre>
-<pre class="r"><code># Here's the data.
-dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=0.5)
+<pre class="r"><code>dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, P=0.5)
 fit03a &lt;- stan(file=f, data=dat)
 tidy(fit03a, estimate.method=&quot;mean&quot;)</code></pre>
-<pre><code>##              term    estimate  std.error
-## 1       lambda[1]   4.5029544  1.4070468
-## 2       lambda[2]   7.0681403  1.8162003
-## 3       lambda[3]   6.3178819  1.6660782
-## 4       lambda[4]   5.5351404  1.5310677
-## 5        hyper_mn   8.3479429  0.8438403
-## 6        hyper_cv   0.3801226  0.0252176
-## 7           alpha   7.0111179  0.9174560
-## 8            beta   1.2057905  0.1643418
-## 9       ntilde[1]  25.2412500  7.7567771
-## 10      ntilde[2]  43.9012500 10.0485940
-## 11      ntilde[3]  38.4360000  9.1225659
-## 12      ntilde[4]  32.9302500  8.4198342
-## 13   ntilde_total 140.5087500 20.3419240
-## 14 average_lambda   5.8560293  0.9684768</code></pre>
+<pre><code>##              term    estimate   std.error
+## 1       lambda[1]   4.4679956  1.40875414
+## 2       lambda[2]   7.0841538  1.79070008
+## 3       lambda[3]   6.3208898  1.63138171
+## 4       lambda[4]   5.5915847  1.60804880
+## 5        hyper_mn   8.3313963  0.84803501
+## 6        hyper_cv   0.3808916  0.02567707
+## 7           alpha   6.9859281  0.93009888
+## 8            beta   1.2082656  0.16685488
+## 9       ntilde[1]  25.1215000  7.61759442
+## 10      ntilde[2]  43.7812500  9.88993686
+## 11      ntilde[3]  38.3912500  9.13816447
+## 12      ntilde[4]  33.1795000  8.95705515
+## 13   ntilde_total 140.4735000 20.42476660
+## 14 average_lambda   5.8661560  0.97888876</code></pre>
 </div>
 <div id="informative-prior-more-realistic-2" class="section level2">
 <h2>Informative prior, more realistic</h2>
-<pre class="r"><code># Here's the data.
-dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=36, S=0.5)
+<p>Now try it with the more realistic prior.</p>
+<pre class="r"><code>dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=36, P=0.5)
 fit03b &lt;- stan(file=f, data=dat)
 tidy(fit03b, estimate.method=&quot;mean&quot;)</code></pre>
-<pre><code>##              term    estimate  std.error
-## 1       lambda[1]   4.3524515  1.4342852
-## 2       lambda[2]   7.1779716  1.8621921
-## 3       lambda[3]   6.3634666  1.7029582
-## 4       lambda[4]   5.5329723  1.6126899
-## 5        hyper_mn   5.5670079  0.5547845
-## 6        hyper_cv   0.4208967  0.0298848
-## 7           alpha   5.7293645  0.8044788
-## 8            beta   0.9866527  0.1439915
-## 9       ntilde[1]  37.7090000 12.2745259
-## 10      ntilde[2]  65.6957500 15.6801195
-## 11      ntilde[3]  57.7105000 14.5645536
-## 12      ntilde[4]  49.3487500 13.7384246
-## 13   ntilde_total 210.4640000 32.3032828
-## 14 average_lambda   5.8567155  0.9767354</code></pre>
+<pre><code>##              term    estimate   std.error
+## 1       lambda[1]   4.3449381  1.41377108
+## 2       lambda[2]   7.1616204  1.82024123
+## 3       lambda[3]   6.3487270  1.70509325
+## 4       lambda[4]   5.5754097  1.57455676
+## 5        hyper_mn   5.5719471  0.55963370
+## 6        hyper_cv   0.4211877  0.03006219
+## 7           alpha   5.7225098  0.80855860
+## 8            beta   0.9884771  0.14199783
+## 9       ntilde[1]  37.6660000 12.04183107
+## 10      ntilde[2]  65.9237500 15.47364839
+## 11      ntilde[3]  57.5837500 14.59284838
+## 12      ntilde[4]  49.8127500 13.56855607
+## 13   ntilde_total 210.9862500 32.25259863
+## 14 average_lambda   5.8576738  0.97480860</code></pre>
 </div>
 <div id="part-4" class="section level1">
 <h1>Part 4</h1>
@@ -578,7 +598,7 @@ cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
 ##   real&lt;lower=0&gt;          T;    // planned time
 ##   int&lt;lower=0&gt;           pseudo_n;
 ##   real&lt;lower=0&gt;          pseudo_t;
-##   real&lt;lower=0, upper=1&gt; S;    // strength of prior
+##   real&lt;lower=0, upper=1&gt; P;    // strength of prior
 ## }
 ## parameters {
 ##   real&lt;lower=0&gt; lambda[J+1];   // single common rate for each center
@@ -611,49 +631,47 @@ cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
 ##   }
 ##   ntilde_total = sum(ntilde);
 ## }</code></pre>
-<pre class="r"><code># Here's the data.
-dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, pseudo_n=100, pseudo_t=12, S=0.5)
+<pre class="r"><code>dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, pseudo_n=100, pseudo_t=12, P=0.5)
 fit04a &lt;- stan(file=f, data=dat, control = list(adapt_delta = 0.99))
 tidy(fit04a, estimate.method=&quot;mean&quot;)</code></pre>
 <pre><code>##              term    estimate  std.error
-## 1       lambda[1]   3.9120076  1.5115854
-## 2       lambda[2]   7.7726964  2.0643504
-## 3       lambda[3]   6.6471616  2.0107348
-## 4       lambda[4]   5.5549464  1.7592932
-## 5       lambda[5]   8.2882309  0.8237384
-## 6           alpha   2.2712609  1.2492868
-## 7            beta   0.3487984  0.2213907
-## 8        hyper_mn   7.5100588  3.6434508
-## 9        hyper_cv   0.7494368  0.2391656
-## 10      ntilde[1]  22.6287500  8.0650595
-## 11      ntilde[2]  47.0852500 11.0930269
-## 12      ntilde[3]  39.9550000 10.5703315
-## 13      ntilde[4]  32.9130000  9.3229373
-## 14   ntilde_total 142.5820000 20.8457769
-## 15 average_lambda   5.9717030  0.9811579</code></pre>
+## 1       lambda[1]   3.9570166  1.5424010
+## 2       lambda[2]   7.6810082  2.1369294
+## 3       lambda[3]   6.6638444  2.0077841
+## 4       lambda[4]   5.5504651  1.7341122
+## 5       lambda[5]   8.2842917  0.8219073
+## 6           alpha   2.2542331  1.2198374
+## 7            beta   0.3454814  0.2128247
+## 8        hyper_mn   7.4542702  3.3299244
+## 9        hyper_cv   0.7478170  0.2285113
+## 10      ntilde[1]  22.8632500  8.2001134
+## 11      ntilde[2]  46.6422500 11.1827782
+## 12      ntilde[3]  39.9820000 10.5780031
+## 13      ntilde[4]  32.9925000  9.3434345
+## 14   ntilde_total 142.4800000 20.4972592
+## 15 average_lambda   5.9630836  0.9715028</code></pre>
 </div>
 <div id="informative-prior-more-realistic-3" class="section level2">
 <h2>Informative prior, more realistic</h2>
-<pre class="r"><code># Here's the data.
-dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=36, pseudo_n=100, pseudo_t=18, S=0.5)
+<pre class="r"><code>dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=36, pseudo_n=100, pseudo_t=18, P=0.5)
 fit04b &lt;- stan(file=f, data=dat, control = list(adapt_delta = 0.99))
 tidy(fit04b, estimate.method=&quot;mean&quot;)</code></pre>
 <pre><code>##              term    estimate  std.error
-## 1       lambda[1]   3.8384860  1.4428435
-## 2       lambda[2]   7.6183369  2.0686597
-## 3       lambda[3]   6.5720079  1.9533761
-## 4       lambda[4]   5.4626086  1.7705245
-## 5       lambda[5]   5.5445411  0.5519887
-## 6           alpha   2.3140688  1.2838678
-## 7            beta   0.3922083  0.2477815
-## 8        hyper_mn   6.7784515  3.1841885
-## 9        hyper_cv   0.7383132  0.2219818
-## 10      ntilde[1]  33.8127500 12.0591684
-## 11      ntilde[2]  69.1765000 17.2071895
-## 12      ntilde[3]  59.3212500 16.1577788
-## 13      ntilde[4]  48.8370000 14.5580189
-## 14   ntilde_total 211.1475000 31.9111238
-## 15 average_lambda   5.8728598  0.9818651</code></pre>
+## 1       lambda[1]   3.8182955  1.4717948
+## 2       lambda[2]   7.6200696  2.0824202
+## 3       lambda[3]   6.5538342  1.9314727
+## 4       lambda[4]   5.4903537  1.7498027
+## 5       lambda[5]   5.5646219  0.5400819
+## 6           alpha   2.2923295  1.2578236
+## 7            beta   0.3886760  0.2442212
+## 8        hyper_mn   6.7506911  3.1216224
+## 9        hyper_cv   0.7427773  0.2305625
+## 10      ntilde[1]  33.5757500 12.0826843
+## 11      ntilde[2]  69.0485000 17.1328787
+## 12      ntilde[3]  59.2347500 16.1537574
+## 13      ntilde[4]  49.0080000 14.5526073
+## 14   ntilde_total 210.8670000 31.5392928
+## 15 average_lambda   5.8706382  0.9637721</code></pre>
 </div>
 </div>
 <div id="part-5" class="section level1">
@@ -670,7 +688,7 @@ cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
 ##   real&lt;lower=0&gt;          t;    // current time
 ##   int&lt;lower=0&gt;           N;    // planned sample size overall
 ##   real&lt;lower=0&gt;          T;    // planned time
-##   real&lt;lower=0, upper=1&gt; S;    // strength of prior
+##   real&lt;lower=0, upper=1&gt; P;    // strength of prior
 ## }
 ## parameters {
 ##   real&lt;lower=0&gt; lambda;        // overall rate for each center
@@ -683,7 +701,7 @@ cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
 ## } 
 ## model {
 ##   alpha ~ exponential(1.0);
-##   lambda ~ gamma(N*S, T*S);
+##   lambda ~ gamma(N*P, T*P);
 ##   for (j in 1:J) {
 ##     eta[J] ~ gamma(alpha, alpha); 
 ##     n[j] ~ poisson(eta[j]*lambda*t/J);
@@ -699,72 +717,72 @@ cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
 ##   }
 ##   ntilde_total = sum(ntilde);
 ## }</code></pre>
-<pre class="r"><code># Here's the data.
-dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=1/200)
+<pre class="r"><code>dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, P=1/200)
 fit05 &lt;- stan(file=f, data=dat)
 tidy(fit05, estimate.method=&quot;mean&quot;)</code></pre>
 <pre><code>##              term    estimate  std.error
-## 1          lambda   4.3856920  2.7580223
-## 2          eta[1]   1.2470819  0.9614725
-## 3          eta[2]   2.7015934  1.9394677
-## 4          eta[3]   2.3123421  1.7036925
-## 5          eta[4]   0.9483789  0.3399680
-## 6           alpha   2.7214855  1.6332710
-## 7    deviation_cv   0.7012087  0.2468156
-## 8       ntilde[1]  23.0025000  8.6509655
-## 9       ntilde[2]  50.9757500 12.5280046
-## 10      ntilde[3]  43.2170000 11.5144716
-## 11      ntilde[4]  24.2402500  7.9173039
-## 12   ntilde_total 141.4355000 20.5238190
-## 13 average_lambda   5.8982706  0.9815114</code></pre>
+## 1          lambda   4.4642348  2.5466485
+## 2          eta[1]   1.1910132  0.9067954
+## 3          eta[2]   2.5901883  1.7769859
+## 4          eta[3]   2.1947485  1.5268891
+## 5          eta[4]   0.9411389  0.3492335
+## 6           alpha   2.6558069  1.6220829
+## 7    deviation_cv   0.7116750  0.2547219
+## 8       ntilde[1]  22.8657500  8.4021352
+## 9       ntilde[2]  50.7482500 12.6739903
+## 10      ntilde[3]  42.9472500 11.5315529
+## 11      ntilde[4]  24.6540000  8.1054740
+## 12   ntilde_total 141.2152500 20.9004456
+## 13 average_lambda   5.9086870  1.0058370</code></pre>
 <p>Here’s a perturbation model with an informative prior.</p>
 </div>
 <div id="informative-prior-too-optimistic-4" class="section level2">
 <h2>Informative prior, too optimistic</h2>
 <pre class="r"><code># Here's the data.
-dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=0.5)
+dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, P=0.5)
 fit05a &lt;- stan(file=f, data=dat)
 tidy(fit05a, estimate.method=&quot;mean&quot;)</code></pre>
 <pre><code>##              term    estimate  std.error
-## 1          lambda   8.1167177  0.8169635
-## 2          eta[1]   0.4983009  0.2064548
-## 3          eta[2]   1.0808287  0.3194071
-## 4          eta[3]   0.9160141  0.2905588
-## 5          eta[4]   0.6449449  0.2018581
-## 6           alpha   2.2866191  1.4635627
-## 7    deviation_cv   0.7758391  0.2883157
-## 8       ntilde[1]  22.9762500  8.3948677
-## 9       ntilde[2]  51.2067500 12.7544766
-## 10      ntilde[3]  43.0700000 11.4448830
-## 11      ntilde[4]  31.4045000  8.5503600
-## 12   ntilde_total 148.6575000 21.0552375
-## 13 average_lambda   6.3147734  1.0099489</code></pre>
+## 1          lambda   8.1022427  0.8015934
+## 2          eta[1]   0.4991246  0.2106556
+## 3          eta[2]   1.0753530  0.3210091
+## 4          eta[3]   0.9118439  0.2879333
+## 5          eta[4]   0.6431551  0.1933154
+## 6           alpha   2.2643123  1.3710841
+## 7    deviation_cv   0.7716610  0.2849387
+## 8       ntilde[1]  23.0765000  8.5542353
+## 9       ntilde[2]  50.7462500 12.2719604
+## 10      ntilde[3]  42.8927500 11.4682661
+## 11      ntilde[4]  31.1985000  8.4556178
+## 12   ntilde_total 147.9140000 20.2671235
+## 13 average_lambda   6.2813168  0.9713565</code></pre>
 </div>
 <div id="informative-prior-more-realistic-4" class="section level2">
 <h2>Informative prior, more realistic</h2>
 <pre class="r"><code># Here's the data.
-dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=36, S=0.5)
+dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=36, P=0.5)
 fit05b &lt;- stan(file=f, data=dat)
 tidy(fit05b, estimate.method=&quot;mean&quot;)</code></pre>
 <pre><code>##              term    estimate  std.error
-## 1          lambda   5.4646934  0.5364443
-## 2          eta[1]   0.7406296  0.3103531
-## 3          eta[2]   1.6082874  0.4636080
-## 4          eta[3]   1.3603911  0.4396775
-## 5          eta[4]   0.8127031  0.2277790
-## 6           alpha   2.5927793  1.5374992
-## 7    deviation_cv   0.7144691  0.2473584
-## 8       ntilde[1]  34.8405000 13.0894573
-## 9       ntilde[2]  77.5710000 19.5632855
-## 10      ntilde[3]  65.2267500 18.4437354
-## 11      ntilde[4]  41.1162500 11.1364824
-## 12   ntilde_total 218.7545000 32.0247580
-## 13 average_lambda   6.1270522  0.9708064</code></pre>
+## 1          lambda   5.4495354  0.5358449
+## 2          eta[1]   0.7290169  0.3135205
+## 3          eta[2]   1.6105044  0.4746405
+## 4          eta[3]   1.3662193  0.4303920
+## 5          eta[4]   0.8174201  0.2263994
+## 6           alpha   2.6705162  1.5518372
+## 7    deviation_cv   0.7016961  0.2405237
+## 8       ntilde[1]  34.6092500 13.3975348
+## 9       ntilde[2]  77.2152500 19.7454523
+## 10      ntilde[3]  65.3437500 17.9852844
+## 11      ntilde[4]  41.1427500 10.7918482
+## 12   ntilde_total 218.3110000 32.1843089
+## 13 average_lambda   6.1068083  0.9672022</code></pre>
 </div>
 </div>
 <div id="part-6" class="section level1">
 <h1>Part 6</h1>
 <p>One last try. Here’s the model in the paper, but I may have some of the numbers wrong.</p>
+<p>Tm is the amount of time that it has taken to accumulate a total of m subjects across all the J centers, I’m guessing. There is a fundamental problem here in that the prior distribution changes as you accumulate more data. The other problem is that the hyperprior for beta changes shape (not just scale) if you change the units of T, say from months to years or to days. In particular, the smaller the unit of measurement, the tighter the prior distribution.</p>
 <div id="informative-prior-too-optimistic-5" class="section level2">
 <h2>Informative prior, too optimistic</h2>
 <pre class="r"><code>f &lt;- &quot;mod06.stan&quot;
@@ -776,7 +794,7 @@ cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
 ##   real&lt;lower=0&gt;          t;    // current time
 ##   int&lt;lower=0&gt;           N;    // planned sample size overall
 ##   real&lt;lower=0&gt;          T;    // planned time
-##   real&lt;lower=0, upper=1&gt; S;
+##   real&lt;lower=0, upper=1&gt; P;
 ## }
 ## transformed data {
 ##   real&lt;lower=0&gt;          a;
@@ -785,9 +803,9 @@ cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
 ##   real&lt;lower=0&gt;          d;
 ##   int&lt;lower=0&gt;           m;
 ##   m = sum(n);
-##   a = (N/J)*t*S;
+##   a = N*t*P/J;                 // order is important because N/J is integer division
 ##   b = t;
-##   c = T*S*m;
+##   c = T*P*m;
 ##   d = m;
 ## }
 ## parameters {
@@ -812,50 +830,57 @@ cat(readLines(f), sep=&quot;\n&quot;)</code></pre>
 ## generated quantities {
 ##   real&lt;lower=0&gt; ntilde[J];
 ##   real&lt;lower=0&gt; ntilde_total;
+##   real&lt;lower=0&gt; average_lambda;
+##   average_lambda = 0;
 ##   for (j in 1:J) {
+##     average_lambda = average_lambda + lambda[j]/J;
 ##     ntilde[j] = n[j] + poisson_rng(lambda[j]*(T-t));
 ##   }
+##   average_lambda = average_lambda * J; // rescale
 ##   ntilde_total = sum(ntilde);
 ## }</code></pre>
-<pre class="r"><code># Here's the data.
-dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, S=0.5)
+<pre class="r"><code>dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=24, P=0.5)
 fit06a &lt;- stan(file=f, data=dat)
 tidy(fit06a, estimate.method=&quot;mean&quot;)</code></pre>
-<pre><code>##            term    estimate    std.error
-## 1     lambda[1]   1.5703852  0.310191637
-## 2     lambda[2]   1.9616636  0.339057117
-## 3     lambda[3]   1.8473686  0.328065930
-## 4     lambda[4]   1.7442607  0.338472234
-## 5         alpha  23.6666792  1.809336969
-## 6          beta  12.2083242  0.582222096
-## 7      hyper_mn   1.9419773  0.163638069
-## 8      hyper_cv   0.2060074  0.007887156
-## 9     ntilde[1]  33.2790000  7.864198650
-## 10    ntilde[2]  47.2342500  8.275838285
-## 11    ntilde[3]  43.3445000  8.252505420
-## 12    ntilde[4]  39.4500000  8.245877675
-## 13 ntilde_total 163.3077500 17.734617817</code></pre>
+<pre><code>##              term    estimate    std.error
+## 1       lambda[1]   1.5698527  0.314841702
+## 2       lambda[2]   1.9618255  0.352226031
+## 3       lambda[3]   1.8470649  0.334463712
+## 4       lambda[4]   1.7395919  0.322592769
+## 5           alpha  23.7043443  1.757127428
+## 6            beta  12.2346738  0.575283851
+## 7        hyper_mn   1.9411408  0.163431535
+## 8        hyper_cv   0.2058181  0.007663346
+## 9       ntilde[1]  33.4480000  7.792847882
+## 10      ntilde[2]  47.2915000  8.757665324
+## 11      ntilde[3]  43.2320000  8.300415666
+## 12      ntilde[4]  39.2982500  8.086602823
+## 13   ntilde_total 163.2697500 17.660406491
+## 14 average_lambda   7.1183349  0.759348778</code></pre>
 </div>
 <div id="informative-prior-more-realistic-5" class="section level2">
 <h2>Informative prior, more realistic</h2>
 <pre class="r"><code># Here's the data.
-dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=36, S=0.5)
+dat &lt;- list(J=4, n=c(5, 12, 10, 8), t=6, N=200, T=36, P=0.5)
 fit06b &lt;- stan(file=f, data=dat)
 tidy(fit06b, estimate.method=&quot;mean&quot;)</code></pre>
-<pre><code>##            term   estimate    std.error
-## 1     lambda[1]   1.260899  0.246157746
-## 2     lambda[2]   1.563102  0.267738307
-## 3     lambda[3]   1.472493  0.259272796
-## 4     lambda[4]   1.382053  0.255008445
-## 5         alpha  25.238827  1.903326890
-## 6          beta  17.953784  0.693299415
-## 7      hyper_mn   1.407536  0.115389319
-## 8      hyper_cv   0.199477  0.007543689
-## 9     ntilde[1]  42.773000  9.585245966
-## 10    ntilde[2]  58.879250 10.455500888
-## 11    ntilde[3]  54.303000 10.104044434
-## 12    ntilde[4]  49.538750 10.008273569
-## 13 ntilde_total 205.494000 22.251342534</code></pre>
+<pre><code>##              term    estimate    std.error
+## 1       lambda[1]   1.2505430  0.247849307
+## 2       lambda[2]   1.5512174  0.271080140
+## 3       lambda[3]   1.4635622  0.257065662
+## 4       lambda[4]   1.3826194  0.259157825
+## 5           alpha  25.1476523  1.910086073
+## 6            beta  17.9754894  0.708147769
+## 7        hyper_mn   1.4009838  0.117665060
+## 8        hyper_cv   0.1998431  0.007589898
+## 9       ntilde[1]  42.6497500  9.730146138
+## 10      ntilde[2]  58.5597500 10.643953841
+## 11      ntilde[3]  53.8590000 10.171454351
+## 12      ntilde[4]  49.5290000 10.187055660
+## 13   ntilde_total 204.5975000 22.541440124
+## 14 average_lambda   5.6479419  0.608221772</code></pre>
+<p>Now save everything for later review</p>
+<pre class="r"><code>save.image(file=&quot;study_hierarchical.RData&quot;)</code></pre>
 </div>
 </div>
 

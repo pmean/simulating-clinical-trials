@@ -173,7 +173,9 @@ Now how do you incorporate an informative prior into a hierarchical setting? One
 
 ## Informative prior, too optimistic
 
-Try this reparameterized model with the optimistic prior.
+I have some serious reservations about this approach, but I'm inlcuding here because it might work if we could find the right tweaks.
+
+Try this reparameterized model with the optimistic prior. 
 
 ```{r mod03a, error=TRUE, cache=FALSE}
 f <- "mod03a.stan"
