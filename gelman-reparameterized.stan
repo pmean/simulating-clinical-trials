@@ -16,7 +16,7 @@ transformed parameters {
 }
 model {
   hyper_mn ~ beta(1, 1);
-  hyper_tau ~ pareto(1, 1);
+  hyper_tau ~ gamma(2, 1);
   for (j in 1:J) {
     pi[j] ~ beta(alpha, beta);
     x[j] ~ binomial(n[j], pi[j]);
