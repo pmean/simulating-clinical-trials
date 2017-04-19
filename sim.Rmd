@@ -5,46 +5,259 @@ date: "March 22, 2017"
 output: html_document
 ---
 
-```{r preliminaries}
+```{r preliminaries, echo=FALSE}
 library(broom)
+library(cowplot)
 library(dplyr)
 library(ggplot2)
+library(gridExtra)
 library(magrittr)
+library(quantreg)
 library(rstan)
+library(tidyr)
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 ```
+
+# Simulation before, during, and after a clinical trial: A Bayesian approach
+
+## Abstract
+
+Simulation of a clinical trial gives you answers to important economic, logistical, or scientific questions about the trial when some of the features are difficult to characterize with perfect precision. A Bayesian approach with informative priors offers a flexible framework for trial simulation. It provides a seamless transition from simulation prior to the trial to simulation during the trial itself. Although informative priors are controversial, you can avoid perceptions of bias by restricting the informative priors to clinical trial features that are independent of your research hypothesis. You can protect your interim predictions against unrealistic prior beliefs by implementing the hedging hyperprior, a simple hyperdistribution that downweights the strength of the prior when there is a discrepancy between the prior distribution and data observed during the trial itself. The Bayesian approach also gives you a simple post mortem analysis after the trial ends. You can compute percentile values by plugging the point estimates from the actual clinical trial data into the corresponding prior distributions. Over multiple trials, a deviation in these percentiles from a uniform distribution indicates biased specification of the informative priors. The Bayesian approach to trial simulation will be illustrated using various patient accrual models.
+
+## Keywords
+
+hedging hyperprior; informative prior distributions; Markov Chain Monte Carlo; patient accrual.
+
+## Introduction
+
+Consider a clinical trial that plans to run for 3 years (1,095 days). You hope to recruit 350 patients in that time, which would mean `r round(350/1095, 2)` patients per day or `r round(30*350/1095, 1)` patients per month. You suspect, however, that the accrual rate might actually be quite a bit higher or quite a bit lower than this target.
+
+Try setting a distribution on the monthly accrual rate that is gamma(70, 7.3). There's a farily simple justificaiton behind this choice, but for now let's not worry about how we choose this particular distribution, except that it represents a prior strength of 0.2 relative to the target sample size.
+
+```{r gamma_prior_2, echo=FALSE, fig.width=7, fig.height=1}
+df1 <- data.frame(s=0.2, y=rgamma(1000, 0.2*350, 0.2*1095/30))
+
+ggplot(df1, aes(factor(s), y)) +
+  geom_boxplot() +
+  labs(x="", y="Monthly accrual rate") +
+  coord_flip()
+```
+
+That seems a bit too wide, so try a distribution that is gamma(175, 18.25). This represents a prior strength of 0.5 relative to the target sample size.
+
+```{r gamma_prior_5, echo=FALSE, fig.width=7, fig.height=1.33}
+df2 <- rbind(df1, data.frame(s=0.5, y=rgamma(1000, 0.5*350, 0.5*1095/30)))
+
+ggplot(df2, aes(factor(s), y)) +
+  geom_boxplot() +
+  labs(x="", y="Monthly accrual rate") +
+  coord_flip()
+```
+
+The second distribution seems to match your gut feeling about accrual because a monthly accrual rate is unlikely to be smaller than 7.5 patients per month or more than 12.5 patients per month.
+
+Now you are ready to simulate your clinical trial. You can simulate the amount of time that the trial takes to recruit 350 patients.
+
+```{r simulate_time, echo=FALSE}
+# I'm going to cheat here. A proper simulation would use
+#   lambda <- rgamma(1, 0.5*350, 0.5*1095)
+# but to make the plots look a bit cleaner, I'm going to
+# deliberately choose from the left tail, then the middle,
+# and then the right tail of this gamma distribution.
+lambda <- qgamma(runif(1, 0.01, 0.1), 0.5*350, 0.5*1095)
+df <- data.frame(g=1, n=1:350, t=cumsum(rexp(350, lambda)))
+lambda <- qgamma(runif(1, 0.4, 0.6), 0.5*350, 0.5*1095)
+df <- rbind(df, data.frame(g=2, n=1:350, t=cumsum(rexp(350, lambda))))
+lambda <- qgamma(runif(1, 0.9, 0.99), 0.5*350, 0.5*1095)
+df <- rbind(df, data.frame(g=3, n=1:350, t=cumsum(rexp(350, lambda))))
+t_final <- df$t[df$n==350]
+
+ggplot(df, aes(x=n, y=t, group=g)) +
+  geom_line() +
+  geom_vline(xintercept=350) + 
+  scale_x_continuous(breaks=50*(0:7)) +
+  scale_y_continuous(breaks=365*(0:3)) +
+  geom_label(aes(x=350), y=t_final[1], label=round(t_final[1])) +  
+  geom_label(aes(x=350), y=t_final[2], label=round(t_final[2])) +  
+  geom_label(aes(x=350), y=t_final[3], label=round(t_final[3]))
+
+```
+
+or the number of patients that you will get in 3 years.
+
+```{r simulate_n, echo=FALSE}
+lambda <- qgamma(runif(1, 0.01, 0.1), 0.5*350, 0.5*1095)
+df <- data.frame(g=1, t=1:1095, n=cumsum(rpois(1095, lambda)))
+lambda <- qgamma(runif(1, 0.4, 0.6), 0.5*350, 0.5*1095)
+df <- rbind(df, data.frame(g=2, t=1:1095, n=cumsum(rpois(1095, lambda))))
+lambda <- qgamma(runif(1, 0.9, 0.99), 0.5*350, 0.5*1095)
+df <- rbind(df, data.frame(g=3, t=1:1095, n=cumsum(rpois(1095, lambda))))
+n_final <- df$n[df$t==1095]
+
+ggplot(df, aes(x=n, y=t, group=g)) +
+  geom_line() +
+  geom_hline(yintercept=1095) +
+  scale_x_continuous(breaks=50*(0:7)) +
+  scale_y_continuous(breaks=365*(0:3)) +
+  geom_label(aes(x=n_final[1], y=1095, label=n_final[1])) +  
+  geom_label(aes(x=n_final[2], y=1095, label=n_final[2])) +  
+  geom_label(aes(x=n_final[3], y=1095, label=n_final[3]))
+```
+
+Or a trial that ends when you reach 350 patients or 3 years, whichever comes first.
+
+```{r simulate_n_and_time, echo=FALSE}
+lambda <- qgamma(runif(1, 0.01, 0.1), 0.5*350, 0.5*1095)
+df <- data.frame(g=1, t=1:1095, n=cumsum(rpois(1095, lambda)))
+lambda <- qgamma(runif(1, 0.4, 0.6), 0.5*350, 0.5*1095)
+df <- rbind(df, data.frame(g=2, t=1:1095, n=cumsum(rpois(1095, lambda))))
+lambda <- qgamma(runif(1, 0.9, 0.99), 0.5*350, 0.5*1095)
+df <- rbind(df, data.frame(g=3, t=1:1095, n=cumsum(rpois(1095, lambda))))
+df$n[df$n>350] <- 350
+co <- c(FALSE, df$n[-1]==350 & df$n[-3*1095]==350)
+df <- df[!co, ]
+df %>% 
+  group_by(g) %>%
+  slice(n())  %>%
+  mutate(lb=paste(n, t, sep=", ")) -> final
+ggplot(df, aes(x=n, y=t, group=g)) +
+  geom_line() +
+  scale_x_continuous(breaks=50*(0:7)) +
+  scale_y_continuous(breaks=365*(0:3)) +
+  geom_hline(yintercept=1095) +
+  geom_vline(xintercept=350) +
+  geom_label(aes(x=final$n[1], y=final$t[1], label=final$lb[1]), size=2.5) +  
+  geom_label(aes(x=final$n[2], y=final$t[2], label=final$lb[2]), size=2.5) +  
+  geom_label(aes(x=final$n[3], y=final$t[3], label=final$lb[3]), size=2.5)
+```
+
+You could compute some composite measure like the total cost of the trial where each day that the trial is running costs 200 British Pounds and each patient recruited costs 800 British Pounds.
+
+```{r simulate_cost, echo=FALSE}
+df %>% 
+  group_by(g) %>%
+  slice(n())  %>%
+  mutate(lb=paste0("£", format(800*n+200*t, big.mark=","))) -> final
+xa <- 50*(0:7)
+xb <- paste0("£", format(xa*800, big.mark=","))
+ya <- 365*(0:3)
+yb <- paste0("£", format(ya*200, big.mark=","))
+
+ggplot(df, aes(x=n, y=t, group=g)) +
+  geom_line() +
+  labs(x="Cost of patients", y="Cost of time") +
+  scale_x_continuous(breaks=xa, labels=xb) +
+  scale_y_continuous(breaks=ya, labels=yb) +
+  geom_hline(yintercept=1095) +
+  geom_vline(xintercept=350) +
+  geom_label(aes(x=final$n[1], y=final$t[1], label=final$lb[1]), size=2.5) +  
+  geom_label(aes(x=final$n[2], y=final$t[2], label=final$lb[2]), size=2.5) +  
+  geom_label(aes(x=final$n[3], y=final$t[3], label=final$lb[3]), size=2.5)
+```
+
+Let's keep things simple by forecasting the total number of patients for a trial that is planning to end in 3 years. We are going to use a Bayesian modelling program Stan within R to run our simulation. It's overkill for a simple example like this, but Stan allows you to generalize quickly and easily to a more complex setting.
 
 ```{r gamma-poisson-before-trial, error=TRUE}
 f <- "gamma-poisson-before-trial.stan"
 dat_before <- list(N=350, T=3*365, S=0.5)
 fit_gp1 <- stan(file=f,
-  data=dat_before, iter= 1000, chains = 4)
+  data=dat_before, iter= 10000, warmup=1000, chains = 4)
 
 tidy(fit_gp1)
 
 fit_gp1              %>%
   as.data.frame      %>%
   mutate(i="before") -> sim_gp1
+```
 
+```{r boxplot1, fig.width=7, fig.height=2}
 # Boxplot of final sample size
 sim_gp1                                  %>%
   ggplot(aes(i, Nstar))                   +
+# theme(aspect.ratio=0.1)                 +
   expand_limits(y=0)                      +
   ylab("Final sample size")               + 
   xlab(" ")                               +
   ggtitle(f)                              +
   geom_boxplot()                          +
-  coord_flip()
+  expand_limits(y=0)                      +
+  coord_flip()                           -> boxplot_gp1
+print(boxplot_gp1)
+```
 
+```{r scatterplot1, fig.width=7, fig.height=7}
 # Scatterplot of accrual rate versus final sample size
 sim_gp1                                  %>%
-  ggplot(aes(30*lambda, Nstar))           +
-  ylab("Final sample size")               + 
-  xlab("Accrual rate")                    +
-  ggtitle(f)                              +
-  geom_point()
+  mutate(h=(30*lambda>8.45)*(30*lambda<8.55)) %>%
+  mutate(lambda=ifelse(h==0, lambda, 8.5/30)) %>%
+  arrange(h) %>%
+  ggplot(aes(Nstar, 30*lambda)) +
+  xlab("Final sample size")               + 
+  ylab("Accrual rate")                    +
+  expand_limits(x=0)                      +
+  ggtitle(" ")                              +
+  geom_point(aes(color=factor(h))) +    
+   theme(legend.position="none") +
+  scale_color_manual(values=c("gray90", "red")) -> scatter_gp1
+
+print(scatter_gp1)
+
+plot_grid(scatter_gp1, boxplot_gp1, nrow=2, rel_heights=c(5,1), align="v")
 ```
+
+```{r paths-before-trial, error=TRUE}
+f <- "paths-before-trial.stan"
+dat_before <- list(N=350, T=3*365, S=0.5)
+fit_tr1 <- stan(file=f,
+  data=dat_before, iter= 1000, warmup=100, chains = 4)
+
+tidy(fit_tr1)
+
+fit_tr1              %>%
+  as.data.frame                %>%
+  select(starts_with('Nstar')) -> sim_tr1
+sim_tr1$j <- 1:dim(sim_tr1)[1]
+sim_tr1 %<>% gather(x, y, starts_with('Nstar'))
+head(sim_tr1)
+
+sim_tr1$x %<>%
+  sub("Nstar\\[", "", .) %>%
+  sub("\\]", "", .)      %>%
+  as.numeric
+head(sim_tr1)
+
+sim_tr1 %>%
+  group_by(x) %>%
+  summarize(
+    y10=quantile(y, 0.1),
+    y25=quantile(y, 0.25),
+    y50=quantile(y, 0.5),
+    y75=quantile(y, 0.75),
+    y90=quantile(y, 0.9)) %>%
+  ggplot(aes(x, ymin=y10, ymax=y90)) +
+    coord_flip()                         +
+    geom_ribbon(fill="black", alpha=0.5) +
+    geom_ribbon(aes(x, ymin=y25, ymax=y75), fill="black", alpha=0.5) +
+    geom_line(aes(x, y50), color="white")
+
+sim_tr1 %>%
+  filter(x==1095) %>%
+  ggplot(aes(y)) +
+  geom_histogram()
+
+sim_tr1 %>%
+  ggplot(aes(x, y, group=j)) +
+  geom_step(alpha=0.01) 
+
+sim_tr1 %>%
+  filter((x %% 60)==0) %>%
+  mutate(x=x/30) %>%
+  ggplot(aes(x=factor(x), y=y)) +
+  geom_boxplot()
+
+```
+
 
 ```{r gamma-poisson-during-trial, error=TRUE}
 f <- "gamma-poisson-during-trial.stan"

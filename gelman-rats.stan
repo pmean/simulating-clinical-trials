@@ -15,8 +15,8 @@ transformed parameters {
   hyper_tau= alpha+beta;
 }
 model {
-  alpha ~ gamma(1, 1);
-  beta  ~ gamma(1, 1);
+  alpha ~ gamma(0.001, 0.001);
+  beta  ~ gamma(0.001, 0.001);
   for (j in 1:J) {
     pi[j] ~ beta(alpha, beta);
     x[j] ~ binomial(n[j], pi[j]);
