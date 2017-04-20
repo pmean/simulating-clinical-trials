@@ -278,6 +278,30 @@ The key reason that you should run your simulations in Stan is that you can make
 ```{r path-during-trial, error=TRUE}
 pts <- unlist(read.csv("count.csv"))
 plot(1:length(pts), cumsum(pts))
+f <- "paths-during-trial.stan"
+dat_during <- list(N=350, T=3*365, S=0.5, n=pts, t=length(pts))
+fit_tr2 <- stan(file=f,
+  data=dat_during, iter= 1000, warmup=100, chains = 4)
+
+fit_tr2              %>%
+  as.data.frame                %>%
+  select(starts_with('Nstar')) -> sim_tr2
+sim_tr2$j <- 1:dim(sim_tr2)[1]
+sim_tr2 %<>% gather(x, y, starts_with('Nstar'))
+
+sim_tr2$x %<>%
+  sub("Nstar\\[", "", .) %>%
+  sub("\\]", "", .)      %>%
+  as.numeric
+
+sim_tr2 %>%
+  ggplot(aes(x, y, group=j)) +
+  geom_step(alpha=0.01) +
+  scale_y_continuous(breaks=50*(0:7)) +
+  scale_x_continuous(breaks=365*(0:3)) +
+  labs(x="Time", y="Sample size") +
+  coord_flip()
+
 ```
 
 ```{r gamma-poisson-during-trial, error=TRUE}
