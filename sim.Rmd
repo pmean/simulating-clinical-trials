@@ -268,7 +268,16 @@ sim_gp1                                  %>%
 
 print(scatter_gp1)
 
-plot_grid(scatter_gp1, boxplot_gp1, nrow=2, rel_heights=c(5,1), align="v")
+# plot_grid(scatter_gp1, boxplot_gp1, nrow=2, rel_heights=c(5,1), align="v")
+```
+
+With a plot like this, you can run some sensitivity checks, such as "what would happen if the accrual rate were closer to 8.5 patients per month"
+
+The key reason that you should run your simulations in Stan is that you can make a seamless transition to a simulation of a clinical trial during the trial itself.
+
+```{r path-during-trial, error=TRUE}
+pts <- unlist(read.csv("count.csv"))
+plot(1:length(pts), cumsum(pts))
 ```
 
 ```{r gamma-poisson-during-trial, error=TRUE}
@@ -509,4 +518,4 @@ sim_h21                                  %>%
   xlab("Hierarchical spread")             +
   ggtitle(f)                              +
   geom_point()
-```
+```5.1
