@@ -312,3 +312,19 @@ text(22, 66, "22", col="red", cex=1.25, adj=0)
 text(33, 66, "33", col="blue", cex=1.25, adj=0)
 text(x6$pct[2, ], 66, round(x6$pct[2, ]), cex=1.25, adj=0)
 ```
+
+Here's another accrual data set.
+
+```{r alternate}
+pts <- unlist(read.csv("count.csv"))
+# ( qchisq(0.025, 2*x)/2, qchisq(0.975, 2*(x+1))/2 )
+x <- cumsum(pts)
+lo <- (qchisq(0.025, 2*x)    /2) / (1:length(x))
+hi <- (qchisq(0.975, 2*(x+1))/2) / (1:length(x))
+lo <- ((1:length(x)) + (350-x)/ lo) / 365
+hi <- ((1:length(x)) + (350-x)/ hi) / 365
+round(cbind(lo,hi), 2)
+plot(1:length(x),lo, type="l", ylim=c(0, max(lo)))
+lines(1:length(x), hi)
+
+```

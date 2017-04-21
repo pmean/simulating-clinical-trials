@@ -470,7 +470,7 @@ fit_d31 <- stan(file=f,
 fit_d31              %>%
   as.data.frame      %>%
   mutate(i="before") -> sim_d31
-
+```{r boxplot3. fog/height}
 # Boxplot of total sample size
 sim_d31                                  %>%
   ggplot(aes(i, Nstar))                   +
