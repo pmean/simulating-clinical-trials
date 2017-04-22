@@ -61,6 +61,8 @@ ggplot(df2, aes(factor(s), y)) +
   geom_boxplot() +
   labs(x="", y="Monthly accrual rate") +
   coord_flip()
+
+
 ```
 
 The second distribution seems to match your gut feeling about accrual because a monthly accrual rate is unlikely to be smaller than 7.5 patients per month or more than 12.5 patients per month.
@@ -453,7 +455,7 @@ sim_h13                                  %>%
   ggplot(aes(i, lambda*30))               +
   ylab("patients per month")              + 
   xlab(" ")                               +
-  geom_boxplot()                          +
+  geom_boxplot(size=5)                    +
   coord_flip()
 ```
 
