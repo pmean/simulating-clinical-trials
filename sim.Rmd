@@ -271,90 +271,6 @@ From this point onward, we'll summarize the simulations using means and standard
 
 Let's also focus on simulations of the total sample size. In a Bayesian perspective, this is a Gamma Poisson model. The Poisson distribution models patient counts and a Gamma distribution restricts the rate parameter of the Poisson to a reasonable range.
 
-While most Bayesian models use flat, non-informative, or only weakly informative prior distributions, when you are simulating the operational features of a clinical trial, you need to be bold and use strong informative prior distributions. There are three reasons for this.
-
-First, if the best you can do for accrual rates for a clinical trial is a flat prior, what you are really saying is that you think you might see a couple of patients every day, or maybe a couple of patients every year, and you really don't have a strong belief of one of these accrual rates over another. Anyone who can only predict accrual rates across such a wide range is unqualified to run a clinical trial.
-
-Second, if you run a simulation with a flat prior you get results with an unrealisticly wide range.
-
-Third, a strong prior distributiton provides you with stable estimates early in the clinical trial. This is worth an illustration. There is a well known formula for an exact confidence interval for a Poisson rate that works with counts as low as 1. From that confidence interval on the Poisson rate, you can extrapolate to the total amount of time that the trial will take. Let's apply this formula from day 1 of the clinical trial.
-
-
-```{r paths-using-no-prior}
-pts <- unlist(read.csv("count.csv"))
-# ( qchisq(0.025, 2*x)/2, qchisq(0.975, 2*(x+1))/2 )
-x <- cumsum(pts)
-lo <- (qchisq(0.025, 2*x)    /2) / (1:length(x))
-hi <- (qchisq(0.975, 2*(x+1))/2) / (1:length(x))
-lo <- ((1:length(x)) + (350-x)/ lo) / 365
-hi <- ((1:length(x)) + (350-x)/ hi) / 365
-data.frame(t=1:length(x), lo=lo, hi=hi) %>%
-  ggplot(aes(t,hi)) +
-  geom_ribbon(aes(ymin=lo, ymax=hi), alpha=0.2) +
-  geom_line(aes(x=t, y=hi)) +
-  geom_line(aes(x=t, y=lo)) +
-  ylab("Estimated trial duration (years)") +
-  xlab("Date of prediction (days)") -> no_prior
-print(no_prior)
-```
-
-This is possibly an unfair example because the trial had a slow start. But it takes more than 100 days into the trial to get a decent estimate of the upper bound. The first three predictions are a measure of how unstable things are. On the first day, you have recruited one patient, and the upper limit is estimated at `r round(lo[1], 1)` years. On the second day, no one shows up, so your upper limit jumps to `r round(lo[2], 1)` years. On the third day, one patient shows up, so your upper limit plummets to `r round(lo[3], 1)` years.
-
-Compare this to the predictions that use an informative prior. The posterior estimate in a Bayesian model with an informative prior is a weighted average of the prior distribution and the data, and that weighted average leans very heavily on the prior distribution early in the trial.
-
-```{r bayesian-average}
-pts <- unlist(read.csv("count.csv"))
-x <- cumsum(pts)
-f <- "gamma-exponential-during-trial.stan"
-nx <- length(x)
-informative_predictions <- data.frame(t <- 1:nx, lo=rep(0,nx), hi=rep(0,nx))
-for (i in seq(1, nx, by=1)) {
-  dat_during <- list(N=350, T=3*365, S=0.5, n=x[i], t=i)
-  fit_gp0 <- stan(file=f,
-    data=dat_during, iter= 1000, chains = 4)
-  sum_gp0 <- as.data.frame(fit_gp0)
-  qx <- quantile(sum_gp0$Tstar, probs=c(0.025, 0.975))
-  informative_predictions[i, 2:3] <- qx
-  # if (i==1) {informative_predictions <}
-  print(c(i,qx))
-}
-```
-
-```{r plot-both}
-informative_predictions
-
-no_prior +
-  geom_ribbon(aes(x=t, ymin=lo, ymax=hi),
-    data=informative_predictions, alpha=0.2) +
-  geom_line(aes(x=t, y=hi)) +
-  geom_line(aes(x=t, y=lo)) 
-informative_predictions %>%
-  ggplot(aes(x=t, ymin=lo, ymax=hi)) +
-  geom_ribbon(alpha=0.2) +
-  geom_line(aes(x=t, y=hi)) +
-  geom_line(aes(x=t, y=lo)) 
-```
-
-```{r flat-prior-bayesian-average}
-pts <- unlist(read.csv("count.csv"))
-x <- cumsum(pts)
-f <- "gamma-exponential-during-trial.stan"
-nx <- length(x)
-flat_predictions <- data.frame(t <- 1:nx, lo=rep(0,nx), hi=rep(0,nx))
-for (i in seq(1, nx, by=1)) {
-  dat_during <- list(N=350, T=3*365, S=1/350, n=x[i], t=i)
-  fit_gp0 <- stan(file=f,
-    data=dat_during, iter= 1000, chains = 4)
-  sum_gp0 <- as.data.frame(fit_gp0)
-  qx <- quantile(sum_gp0$Tstar, probs=c(0.025, 0.975))
-  flat_predictions[i, 2:3] <- qx
-  # if (i==1) {informative_predictions <}
-  print(c(i,qx))
-}
-```
-
-The commonly cited objection to informative priors is that they can bias the research. Whether that is true or not in a hypothesis testing framework is a matter of open debate. But using informative priors for operational characteristics of a study will not bias any resulting hypothesis tests.
-
 Here is code in Stan (running inside of R) that simulates the results of a clinical trial with a target goal of 350 patients in 3 years (1095 days) and places a range of uncertainty on the accrual rate that is characterized by a gamma(175, 547.5). This is a prior distribution with a strength roughly equal to half the target sample size.
 
 ```{r gamma-poisson-before-trial, fig.height=1}
@@ -472,45 +388,141 @@ Okay, so you were way off. No one is going to hang you.
 
 ## Early predictions
 
-## Hedging priors
+The commonly cited objection to informative priors is that they can bias the research. Whether that is true or not in a hypothesis testing framework is a matter of open debate. But using informative priors for operational characteristics of a study will not bias any resulting hypothesis tests.
 
-```{r hedging-extension-before-trial, echo=FALSE, fig.width=5, fig.height=2}
-f <- "hedging-extension-before-trial.stan"
-dat_before <- list(N=350, T=3*365, S=0.5)
-fit_h11 <- stan(file=f,
-  data=dat_before, iter= 1000, chains = 4)
+While most Bayesian models use flat, non-informative, or only weakly informative prior distributions, when you are simulating the operational features of a clinical trial, you need to be bold and use strong informative prior distributions. There are three reasons for this.
 
-# tidy(fit_h11, conf.int=TRUE)
+First, if the best you can do for accrual rates for a clinical trial is a flat prior, what you are really saying is that you think you might see a couple of patients every day, or maybe a couple of patients every year, and you really don't have a strong belief of one of these accrual rates over another. Anyone who can only predict accrual rates across such a wide range is unqualified to run a clinical trial.
 
-fit_h11              %>%
-  as.data.frame      %>%
-  mutate(i="before") -> sim_h11
+Second, if you run a simulation with a flat prior you get results with an unrealisticly wide range.
 
-# Boxplot of total sample size
-sim_h11                                  %>%
-  ggplot(aes(i, Nstar))                   +
-  expand_limits(y=0)                      +
-  ylab("Estimated total sample size")               + 
-  xlab(" ")                               +
-  geom_boxplot()                          +
-  coord_flip()
+Third, a strong prior distribution provides you with stable estimates early in the clinical trial. This is worth an illustration.
+
+```{r very-flat-prior-bayesian-average}
+# stan is inefficient for these next couple of models, but I'm not
+# sure why. It is easy enough to run a simulation directly.
+n_reps <- 100000
+pts <- unlist(read.csv("count.csv"))
+x <- cumsum(pts)
+T <- 3*365
+N <- 350
+S <- 0.001 / N
+alpha.prior <- N*S
+beta.prior  <- T*S
+nx <- length(x)
+very_flat_predictions <- data.frame(t <- 1:nx, lo=rep(0,nx), hi=rep(0,nx))
+for (i in seq(1, nx, by=1)) {
+  alpha.posterior <- alpha.prior + x[i]
+  beta.posterior  <- beta.prior + i
+  lambda <- rgamma(n_reps, alpha.posterior, beta.posterior)
+  waiting_time <- i + rgamma(n_reps, N-x[i], lambda)
+  qx <- quantile(waiting_time, probs=c(0.025, 0.975))
+  very_flat_predictions[i, 2:3] <- qx
+}
 ```
 
-```{r hedging-extension-during-trial, echo=FALSE, fig.width=5, fig.height=2.5}
+```{r plot-very-flat}
+# split into two pieces to save time during testing
+very_flat_predictions %>%
+  mutate(lo=lo/365) %>%
+  mutate(hi=hi/365) %>%
+  ggplot(aes(x=t, ymin=lo, ymax=hi)) +
+  geom_ribbon(alpha=0.2) +
+  geom_line(aes(x=t, y=hi)) +
+  geom_line(aes(x=t, y=lo)) +
+  ggtitle("Very flat predictions") +
+  ylab("Estimated trial duration (years)") +
+  xlab("Date of prediction (days)")
+```
+
+This is possibly an unfair example because the trial had a slow start. But it takes more than 100 days into the trial to get a decent estimate of the upper bound. The first three predictions are a measure of how unstable things are. On the first day, you have recruited one patient, and the upper limit is estimated at `r round(very_flat_predictions$hi[1], 1)` years. On the second day, no one shows up, so your upper limit jumps to `r round(very_flat_predictions$hi[2], 1)` years. On the third day, one patient shows up, so your upper limit plummets to `r round(very_flat_predictions$hi[3], 1)` years.
+
+Compare this to the predictions that use an informative prior. The posterior estimate in a Bayesian model with an informative prior is a weighted average of the prior distribution and the data, and that weighted average leans very heavily on the prior distribution early in the trial.
+
+```{r bayesian-average}
+n_reps <- 100000
+pts <- unlist(read.csv("count.csv"))
+x <- cumsum(pts)
+T <- 3*365
+N <- 350
+S <- 0.5
+alpha.prior <- N*S
+beta.prior  <- T*S
+nx <- length(x)
+informative_predictions <- data.frame(t <- 1:nx, lo=rep(0,nx), hi=rep(0,nx))
+for (i in seq(1, nx, by=1)) {
+  alpha.posterior <- alpha.prior + x[i]
+  beta.posterior  <- beta.prior + i
+  lambda <- rgamma(n_reps, alpha.posterior, beta.posterior)
+  waiting_time <- i + rgamma(n_reps, N-x[i], lambda)
+  qx <- quantile(waiting_time, probs=c(0.025, 0.975))
+  informative_predictions[i, 2:3] <- qx
+}
+```
+
+```{r plot-informative}
+informative_predictions %>%
+  mutate(lo=lo/365) %>%
+  mutate(hi=hi/365) %>%
+  ggplot(aes(x=t, ymin=lo, ymax=hi)) +
+  geom_ribbon(alpha=0.2) +
+  geom_line(aes(x=t, y=hi)) +
+  geom_line(aes(x=t, y=lo)) +
+  ggtitle("Informative predictions") +
+  ylab("Estimated trial duration (years)") +
+  xlab("Date of prediction (days)")
+```
+
+## Hedging priors
+
+One problem with informative prior distributions is that many researchers get them wrong. They are either too optimistic about the accrual rate, or they think they know the accrual rate with more certainty than they actually do, or sometimes both.
+
+```{r hedging-extension-during-trial, fig.height=3.5}
+# hedging posterior
 f <- "hedging-extension-during-trial.stan"
 dat_during <- list(N=350, T=3*365, S=0.5, n=41, t=239)
 fit_h12 <- stan(file=f,
   data=dat_during, iter= 1000, chains = 4)
-
-# tidy(fit_h12, conf.int=TRUE)
-
 fit_h12              %>%
   as.data.frame      %>%
-  mutate(i="during") %>%
-  bind_rows(sim_h11) -> sim_h12
+  mutate(i="hedging posterior") -> sim_h12
+
+# informative prior
+f <- "gamma-poisson-before-trial.stan"
+dat_during <- list(N=350, T=3*365, S=0.5, n=41, t=239)
+fit_gp1 <- stan(file=f,
+  data=dat_during, iter= 1000, chains = 4)
+fit_gp1              %>%
+  as.data.frame      %>%
+  mutate(i="informative prior") -> sim_gp1
+
+# informative posterior
+f <- "gamma-poisson-during-trial.stan"
+dat_during <- list(N=350, T=3*365, S=0.5, n=41, t=239)
+fit_gp2 <- stan(file=f,
+  data=dat_during, iter= 1000, chains = 4)
+fit_gp2              %>%
+  as.data.frame      %>%
+  mutate(i="informative posterior") -> sim_gp2
+
+# flat posterior
+f <- "gamma-poisson-during-trial.stan"
+dat_during <- list(N=350, T=3*365, S=0.001/N, n=41, t=239)
+fit_fl2 <- stan(file=f,
+  data=dat_during, iter= 1000, chains = 4)
+fit_fl2              %>%
+  as.data.frame      %>%
+  mutate(i="flat posterior") -> sim_fl2
+
+# data
+sim_dat <- data.frame(lambda=41/239, Nstar=41+(1095-239)*(41/239), i="Data")
 
 # Boxplot of total sample size
 sim_h12                                  %>%
+  bind_rows(sim_gp1)                     %>%
+  bind_rows(sim_gp2)                     %>%
+  bind_rows(sim_fl2)                     %>%
+  bind_rows(sim_dat)                     %>%
   ggplot(aes(i, Nstar))                   +
   expand_limits(y=0)                      +
   ylab("Estimated total sample size")     + 
@@ -519,21 +531,87 @@ sim_h12                                  %>%
   coord_flip()
 ```
 
-```{r hedging-extension-after-trial, echo=FALSE, fig.width=5, fig.height=2.5}
-data.frame(
-  i="after",
-  lambda=341/ 1336,
-  stringsAsFactors=FALSE) %>%
-  bind_rows(sim_h11)      -> sim_h13
+The following boxplot shows how much the hedging hyperparameter downweighted the prior distribution
 
-# head(sim_h13)
+```{r downweight, fig.height=1.5, fig.width=7}
+sim_h12 %>%
+  mutate(i=" ")                          %>%
+  ggplot(aes(i, pi))                      +
+  expand_limits(y=c(0,2))                 +
+  ylab("Hedging hyperparameter")          + 
+  xlab(" ")                               +
+  geom_boxplot()                          +
+  coord_flip()
+```
+
+Let's look at the behavior of the hedging hyperprior when it's not needed--when the trial is actually slightly ahead of schedule (41 patients in 129 days).
+
+```{r hedging-extension-during-trial2, fig.height=3.5}
+# hedging posterior
+f <- "hedging-extension-during-trial.stan"
+dat_during <- list(N=350, T=3*365, S=0.5, n=41, t=129)
+fit_h14 <- stan(file=f,
+  data=dat_during, iter= 1000, chains = 4)
+fit_h14              %>%
+  as.data.frame      %>%
+  mutate(i="hedging posterior") -> sim_h14
+
+# informative prior
+f <- "gamma-poisson-before-trial.stan"
+dat_during <- list(N=350, T=3*365, S=0.5, n=41, t=129)
+fit_gp4 <- stan(file=f,
+  data=dat_during, iter= 1000, chains = 4)
+fit_gp4             %>%
+  as.data.frame      %>%
+  mutate(i="informative prior") -> sim_gp4
+
+# informative posterior
+f <- "gamma-poisson-during-trial.stan"
+dat_during <- list(N=350, T=3*365, S=0.5, n=41, t=129)
+fit_gp5 <- stan(file=f,
+  data=dat_during, iter= 1000, chains = 4)
+fit_gp5              %>%
+  as.data.frame      %>%
+  mutate(i="informative posterior") -> sim_gp5
+
+# flat posterior
+f <- "gamma-poisson-during-trial.stan"
+dat_during <- list(N=350, T=3*365, S=0.001/N, n=41, t=129)
+fit_fl3 <- stan(file=f,
+  data=dat_during, iter= 1000, chains = 4)
+fit_fl3              %>%
+  as.data.frame      %>%
+  mutate(i="flat posterior") -> sim_fl3
+
+# data
+sim_dat <- data.frame(lambda=41/239, Nstar=41+(1095-129)*(41/129), i="Data")
 
 # Boxplot of total sample size
-sim_h13                                  %>%
-  ggplot(aes(i, lambda*30))               +
-  ylab("patients per month")              + 
+sim_h14                                  %>%
+  bind_rows(sim_gp4)                     %>%
+  bind_rows(sim_gp5)                     %>%
+  bind_rows(sim_fl3)                     %>%
+  bind_rows(sim_dat)                     %>%
+  ggplot(aes(i, Nstar))                   +
+  expand_limits(y=0)                      +
+  ylab("Estimated total sample size")     + 
   xlab(" ")                               +
-  geom_boxplot(size=5)                    +
+  geom_boxplot()                          +
+  coord_flip()
+```
+
+The following boxplot shows how much the hedging hyperparameter downweighted the prior distribution. In this case, the data actually upweighted the prior slightly on average. Think of it as a reward for choosing your prior distribution so well. 
+
+There's a technical fix that you can make so that the mean of the hyperparameter never exceeds 1, but we won't talk about it here.
+
+```{r downweight2, fig.height=1.5, fig.width=7}
+sim_h14 %>%
+  mutate(i=" ")                          %>%
+  ggplot(aes(i, pi))                      +
+  expand_limits(y=c(0,2))                 +
+  ylab("Hedging hyperparameter")          + 
+  xlab(" ")                               +
+  geom_boxplot()                          +
   coord_flip()
 ```
 
@@ -550,7 +628,6 @@ fit_d31 <- stan(file=f,
 fit_d31              %>%
   as.data.frame      %>%
   mutate(i="before") -> sim_d31
-```{r boxplot3. fog/height}
 # Boxplot of total sample size
 sim_d31                                  %>%
   ggplot(aes(i, Nstar))                   +

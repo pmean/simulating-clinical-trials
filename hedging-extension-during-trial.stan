@@ -7,11 +7,11 @@ data {
 }
 parameters {
   real<lower=0> lambda;
-  real<lower=1/(N*S), upper=1> pi; // hedging hyperprior
+  real<lower=1/(N*S), upper=2> pi; // hedging hyperprior
 }
 model {
-  pi ~ uniform(1/(N*S), 1);
-  lambda ~ gamma(pi*N*S, pi*T*S);
+  pi ~ uniform(0, 2);
+  lambda ~ gamma(1+pi*(N*S-1), T/N+pi*(T*S-T/N));
   n ~ poisson(t*lambda);
 }
 generated quantities {
