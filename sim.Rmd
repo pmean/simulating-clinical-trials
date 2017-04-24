@@ -271,11 +271,87 @@ From this point onward, we'll summarize the simulations using means and standard
 
 Let's also focus on simulations of the total sample size. In a Bayesian perspective, this is a Gamma Poisson model. The Poisson distribution models patient counts and a Gamma distribution restricts the rate parameter of the Poisson to a reasonable range.
 
-While most Bayesian models use flat, non-informative, or only weakly informative prior distributions, when you are simulating the operational features of a clinical trial, you need to be bold and use strong informative prior distributions. There are two reasons for this.
+While most Bayesian models use flat, non-informative, or only weakly informative prior distributions, when you are simulating the operational features of a clinical trial, you need to be bold and use strong informative prior distributions. There are three reasons for this.
 
 First, if the best you can do for accrual rates for a clinical trial is a flat prior, what you are really saying is that you think you might see a couple of patients every day, or maybe a couple of patients every year, and you really don't have a strong belief of one of these accrual rates over another. Anyone who can only predict accrual rates across such a wide range is unqualified to run a clinical trial.
 
 Second, if you run a simulation with a flat prior you get results with an unrealisticly wide range.
+
+Third, a strong prior distributiton provides you with stable estimates early in the clinical trial. This is worth an illustration. There is a well known formula for an exact confidence interval for a Poisson rate that works with counts as low as 1. From that confidence interval on the Poisson rate, you can extrapolate to the total amount of time that the trial will take. Let's apply this formula from day 1 of the clinical trial.
+
+
+```{r paths-using-no-prior}
+pts <- unlist(read.csv("count.csv"))
+# ( qchisq(0.025, 2*x)/2, qchisq(0.975, 2*(x+1))/2 )
+x <- cumsum(pts)
+lo <- (qchisq(0.025, 2*x)    /2) / (1:length(x))
+hi <- (qchisq(0.975, 2*(x+1))/2) / (1:length(x))
+lo <- ((1:length(x)) + (350-x)/ lo) / 365
+hi <- ((1:length(x)) + (350-x)/ hi) / 365
+data.frame(t=1:length(x), lo=lo, hi=hi) %>%
+  ggplot(aes(t,hi)) +
+  geom_ribbon(aes(ymin=lo, ymax=hi), alpha=0.2) +
+  geom_line(aes(x=t, y=hi)) +
+  geom_line(aes(x=t, y=lo)) +
+  ylab("Estimated trial duration (years)") +
+  xlab("Date of prediction (days)") -> no_prior
+print(no_prior)
+```
+
+This is possibly an unfair example because the trial had a slow start. But it takes more than 100 days into the trial to get a decent estimate of the upper bound. The first three predictions are a measure of how unstable things are. On the first day, you have recruited one patient, and the upper limit is estimated at `r round(lo[1], 1)` years. On the second day, no one shows up, so your upper limit jumps to `r round(lo[2], 1)` years. On the third day, one patient shows up, so your upper limit plummets to `r round(lo[3], 1)` years.
+
+Compare this to the predictions that use an informative prior. The posterior estimate in a Bayesian model with an informative prior is a weighted average of the prior distribution and the data, and that weighted average leans very heavily on the prior distribution early in the trial.
+
+```{r bayesian-average}
+pts <- unlist(read.csv("count.csv"))
+x <- cumsum(pts)
+f <- "gamma-exponential-during-trial.stan"
+nx <- length(x)
+informative_predictions <- data.frame(t <- 1:nx, lo=rep(0,nx), hi=rep(0,nx))
+for (i in seq(1, nx, by=1)) {
+  dat_during <- list(N=350, T=3*365, S=0.5, n=x[i], t=i)
+  fit_gp0 <- stan(file=f,
+    data=dat_during, iter= 1000, chains = 4)
+  sum_gp0 <- as.data.frame(fit_gp0)
+  qx <- quantile(sum_gp0$Tstar, probs=c(0.025, 0.975))
+  informative_predictions[i, 2:3] <- qx
+  # if (i==1) {informative_predictions <}
+  print(c(i,qx))
+}
+```
+
+```{r plot-both}
+informative_predictions
+
+no_prior +
+  geom_ribbon(aes(x=t, ymin=lo, ymax=hi),
+    data=informative_predictions, alpha=0.2) +
+  geom_line(aes(x=t, y=hi)) +
+  geom_line(aes(x=t, y=lo)) 
+informative_predictions %>%
+  ggplot(aes(x=t, ymin=lo, ymax=hi)) +
+  geom_ribbon(alpha=0.2) +
+  geom_line(aes(x=t, y=hi)) +
+  geom_line(aes(x=t, y=lo)) 
+```
+
+```{r flat-prior-bayesian-average}
+pts <- unlist(read.csv("count.csv"))
+x <- cumsum(pts)
+f <- "gamma-exponential-during-trial.stan"
+nx <- length(x)
+flat_predictions <- data.frame(t <- 1:nx, lo=rep(0,nx), hi=rep(0,nx))
+for (i in seq(1, nx, by=1)) {
+  dat_during <- list(N=350, T=3*365, S=1/350, n=x[i], t=i)
+  fit_gp0 <- stan(file=f,
+    data=dat_during, iter= 1000, chains = 4)
+  sum_gp0 <- as.data.frame(fit_gp0)
+  qx <- quantile(sum_gp0$Tstar, probs=c(0.025, 0.975))
+  flat_predictions[i, 2:3] <- qx
+  # if (i==1) {informative_predictions <}
+  print(c(i,qx))
+}
+```
 
 The commonly cited objection to informative priors is that they can bias the research. Whether that is true or not in a hypothesis testing framework is a matter of open debate. But using informative priors for operational characteristics of a study will not bias any resulting hypothesis tests.
 
@@ -296,7 +372,7 @@ fit_gp1              %>%
   mutate(i="before") -> sim_gp1
 ```
 
-```{r boxplot1, fig.height=2}
+```{r gamma-poisson-boxplot1, fig.height=2}
 # Boxplot of total sample size
 sim_gp1                                  %>%
   ggplot(aes(i, Nstar))                   +
@@ -314,7 +390,7 @@ You can learn a lot by looking at how the estimated total sample size relates to
 
 Recall that in this simulation, you randomly select an accrual rate, gamma, and then you simulate a path based on that value of lambda. Not too surprisingly, the sample size depends on what lambda is chosen, though there is some variation, even for the same value of lambda.
 
-```{r scatterplot1, fig.height=5}
+```{r gamma-poisson-scatterplot1, fig.height=5}
 # Scatterplot of accrual rate versus total sample size
 sim_gp1                                       %>%
   ggplot(aes(Nstar, 30*lambda))                 +
@@ -327,7 +403,7 @@ sim_gp1                                       %>%
 
 With a plot like this, you can run some sensitivity checks, such as "what would happen if the accrual rate were closer to 8.5 patients per month"
 
-```{r scatterplot2, fig.height=5}
+```{r gamma-poisson-scatterplot2, fig.height=5}
 # Scatterplot of accrual rate versus total sample size
 sim_gp1                                       %>%
   mutate(h=(30*lambda>8.45)*(30*lambda<8.55)) %>%
@@ -345,7 +421,7 @@ sim_gp1                                       %>%
 
 The key reason that you should run your simulations in Stan is that you can make a seamless transition to a simulation of a clinical trial during the trial itself. In this trial, the early accrual rate was much lower than expected. After 239 days, you have only gotten 41 patients. If you were on target, you would have 239/1095*350 = `r round(239/1095*350)` patients by now. HOw much is this shortfall hurting us?
 
-```{r gamma-poisson-during-trial, echo=FALSE, fig.width=5, fig.height=2.5}
+```{r gamma-poisson-during-trial, fig.height=2.5}
 f <- "gamma-poisson-during-trial.stan"
 dat_during <- list(N=350, T=3*365, S=0.5, n=41, t=239)
 fit_gp2 <- stan(file=f,
@@ -393,6 +469,8 @@ sim_gp3                                  %>%
 ```
 
 Okay, so you were way off. No one is going to hang you. 
+
+## Early predictions
 
 ## Hedging priors
 
