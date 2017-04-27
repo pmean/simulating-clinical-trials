@@ -788,6 +788,75 @@ There's a gauntlet that patients must travel through before they are officially 
 
 You can model these two processes using binomial distributions.
 
+Here's some possible prior distributions.
+
+```{r binomial-priors1, fig.height=1.5, fig.width=5}
+P1 <- 0.9
+S1 <- 0.2
+N <- 350
+dp1 <- data.frame(S1=S1, y=rbeta(1000, S1*N*P1, S1*N*(1-P1)))
+
+ggplot(dp1, aes(factor(S1), y)) +
+  geom_boxplot() +
+  labs(x="", y="Proportion meeting inclusion criteria") +
+  coord_flip()
+```
+
+```{r binomial-priors2, fig.height=1.5, fig.width=5}
+P2 <- 0.7
+S2 <- 0.1
+dp2 <- data.frame(S2=S2, y=rbeta(1000, S2*N*P2, S2*N*(1-P2)))
+
+ggplot(dp2, aes(factor(S2), y)) +
+  geom_boxplot() +
+  labs(x="", y="Proportion consenting") +
+  coord_flip()
+```
+
+
+
+```{r binomial, fig.height=1.5, fig.width=5}
+f <- "binomial-extension.stan"
+dat_before <- list(N=350, T=3*365, S=0.5, 
+                   n=0, t=0, 
+                   P1=0.9, S1=0.2, P2=0.7, S2=0.1,
+                   n1=0, n2=0, n3=0)
+fit_bi1 <- stan(file=f,
+  data=dat_before, iter= 1000, chains = 4)
+
+tidy(fit_bi1, conf.int=TRUE)
+
+fit_bi1              %>%
+  as.data.frame      %>%
+  mutate(i="before") -> sim_bi1
+# Boxplot of total sample size
+sim_bi1                                  %>%
+  ggplot(aes(i, N3star))                  +
+  expand_limits(y=0)                      +
+  ylab("Estimated total sample size")     + 
+  xlab(" ")                               +
+  geom_boxplot()                          +
+  coord_flip()
+```
+
+You should consider exploring how sensitive your estimated total sample size is relative to each of the binomial parameters.
+
+```{r binomial-part2, fig.height=5}
+sim_bi1                                  %>%
+  ggplot(aes(pi1, N3star))                 +
+  ylab("Estimated total sample size")     + 
+  xlab("Proportion meeting inclusion") +
+  geom_point()
+
+sim_bi1                                  %>%
+  ggplot(aes(pi2, N3star))                 +
+  ylab("Estimated total sample size")     + 
+  xlab("Proportion consenting") +
+  geom_point()
+
+```
+
+
 ## Modeling multi-center trials.
 
 ```{r hierarchical-one, fig.height=2.5}
