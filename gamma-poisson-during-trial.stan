@@ -10,7 +10,7 @@ parameters {
 }
 model {
   lambda ~ gamma(N*S, T*S);
-  n ~ poisson(t*lambda);
+  if (t>0) n ~ poisson(t*lambda);
 }
 generated quantities {
   real<lower=0> Nstar;

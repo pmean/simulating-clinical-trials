@@ -62,7 +62,6 @@ ggplot(df2, aes(factor(s), y)) +
   labs(x="", y="Monthly accrual rate") +
   coord_flip()
 
-
 ```
 
 The second distribution seems to match your gut feeling about accrual because a monthly accrual rate is unlikely to be smaller than 7.5 patients per month or more than 12.5 patients per month.
@@ -142,9 +141,8 @@ ggplot(df, aes(x=n, y=t, group=g)) +
   scale_y_continuous(breaks=365*(0:3)) +
   geom_hline(yintercept=1095) +
   geom_vline(xintercept=350) +
-  geom_label(aes(x=total$n[1], y=total$t[1], label=total$lb[1]), size=2.5) +  
-  geom_label(aes(x=total$n[2], y=total$t[2], label=total$lb[2]), size=2.5) +  
-  geom_label(aes(x=total$n[3], y=total$t[3], label=total$lb[3]), size=2.5) +
+  expand_limits(y=1200)      +
+  geom_label(aes(n, t, label=lb), data=total, size=2.5) +  
   coord_flip()
 ```
 
@@ -167,9 +165,8 @@ ggplot(df, aes(x=n, y=t, group=g)) +
   scale_y_continuous(breaks=ya, labels=yb) +
   geom_hline(yintercept=1095) +
   geom_vline(xintercept=350) +
-  geom_label(aes(x=total$n[1], y=total$t[1], label=total$lb[1]), size=2.5) +  
-  geom_label(aes(x=total$n[2], y=total$t[2], label=total$lb[2]), size=2.5) +  
-  geom_label(aes(x=total$n[3], y=total$t[3], label=total$lb[3]), size=2.5) +
+  expand_limits(y=1200)      +
+  geom_label(aes(n, t, label=lb[1]), data=total, size=2.5) +  
   coord_flip()
 ```
 
@@ -350,7 +347,7 @@ cat(readLines(f), sep="\n")
 
 fit_gp2              %>%
   as.data.frame      %>%
-  mutate(i="during") %>%
+  mutate(i="updated estimate") %>%
   bind_rows(sim_gp1) -> sim_gp2
 
 # Boxplot of total sample size
@@ -384,7 +381,7 @@ sim_gp3                                  %>%
   coord_flip()
 ```
 
-Okay, so you were way off. No one is going to hang you. 
+Okay, so you were way off. No one is going to hang you. If the same thing occurs over and over again, though, let's talk.
 
 ## Early predictions
 
@@ -430,7 +427,7 @@ very_flat_predictions %>%
   geom_ribbon(alpha=0.2) +
   geom_line(aes(x=t, y=hi)) +
   geom_line(aes(x=t, y=lo)) +
-  ggtitle("Very flat predictions") +
+  ggtitle("Predictions from a flat prior") +
   ylab("Estimated trial duration (years)") +
   xlab("Date of prediction (days)")
 ```
@@ -468,7 +465,7 @@ informative_predictions %>%
   geom_ribbon(alpha=0.2) +
   geom_line(aes(x=t, y=hi)) +
   geom_line(aes(x=t, y=lo)) +
-  ggtitle("Informative predictions") +
+  ggtitle("Predictions from an informative prior") +
   ylab("Estimated trial duration (years)") +
   xlab("Date of prediction (days)")
 ```
@@ -617,9 +614,132 @@ sim_h14 %>%
 
 ## Modeling accrual delays
 
-```{r delay-three, fig.height=2}
+There are several different models for accrual delays. They may or may not include a start-up time before ANY accrual, and they may or may not include a warm-up time early in the trial when accrual is slower. If there is a warm-up time, there are several ways to model the transition from slow accrual to full accrual.
+
+```{r delay-example0, fig.height=1.5, fig.width=5}
+data.frame(x=c(100, 200), y=c(100, 200))             %>%
+  ggplot(aes(x, y))                                   +
+  geom_point(color="white")                           +
+  labs(x=NULL, y=NULL)                                +
+  geom_segment(x   =100, y   =150, 
+               xend=120, yend=150,
+               color="red", size=3)                   +
+  geom_segment(x   =100, y   =150, 
+               xend=120, yend=150,
+               color="gray", size=1)                  +
+  geom_label  (x=110, y=125, fill="red", 
+               label="Waiting\nto start")             +
+  geom_label  (x=135, y=125, fill="yellow",
+               label="Slow\naccrual")                 +
+  geom_segment(x   =150, y   =200,
+               xend=200, yend=200,
+               color="green", size=3,
+               arrow=arrow(length=unit(0.1, "inch"))) +
+  geom_segment(x   =150, y   =200,
+               xend=200, yend=200,
+               color="gray", size=1, alpha=0.5,
+               arrow=arrow(length=unit(0.1, "inch"))) +
+  geom_label  (x=160, y=125, fill="green",
+               label="Full\naccrual")                 + 
+  theme(plot.margin=unit(c(0,0,0,0),"in"))            +
+  theme(axis.line =element_blank())                   +
+  theme(axis.text =element_blank())                   +
+  theme(axis.ticks=element_blank())                   +
+  theme(axis.title=element_blank())                  -> delay_graph
+```
+
+Here's a linear transition from slow to full accrual. It has two parameters, the duration of the waiting to start period and the duration of the transition to full accrual.
+ 
+```{r delay-example1, fig.height=1.5, fig.width=5}
+delay_graph +
+  geom_segment(x   =120, y   =150,
+               xend=150, yend=200,
+               color="yellow", size=3) +
+  geom_segment(x   =120, y   =150,
+               xend=150, yend=200,
+               color="gray", size=1)
+```
+Here's a discontinuous transition from slow to full accrual. It has three parameters, the duration of the waiting to start period, the rate during slow accrual, and the duration of the transition to full accrual.
+ 
+```{r delay-example2, fig.height=1.5, fig.width=5}
+delay_graph +
+  geom_segment(x   =120, y   =180,
+               xend=150, yend=180,
+               color="yellow", size=3) +
+  geom_segment(x   =120, y   =180,
+               xend=150, yend=180,
+               color="gray", size=1)
+  
+```
+
+Here's a partially discontinuous transition from slow to full accrual. It has the same three parameters as the earlier example, but the implementation is slightly different.
+ 
+```{r delay-example3, fig.height=1.5, fig.width=5}
+delay_graph +
+  geom_segment(x   =120, y   =180,
+               xend=150, yend=200,
+               color="yellow", size=3) +
+    geom_segment(x   =120, y   =180,
+               xend=150, yend=200,
+               color="gray", size=1)
+```
+
+Here's a smooth transition using the function 3x^2-2x^3.
+ 
+```{r delay-example4, fig.height=1.5, fig.width=5}
+x_original <- seq(0, 1, length=50)
+y_original <- 3*x_original^2-2*x_original^3
+x_rescaled <- 120 + 30 * x_original
+y_rescaled <- 150 + 50 * y_original
+df2 <- data.frame(x=x_rescaled, y=y_rescaled)
+delay_graph +
+  geom_path(aes(x, y), data=df2, color="yellow", size=3) +
+  geom_path(aes(x, y), data=df2, color="gray",  size=1)
+```
+
+We'll fit the discontinuous model, the second one shown, because it is convenient, but there are probably very few practical differences among these models. The discontinuous model has three parameters. Delta1 represents the duration of time waiting for the trial to start as a fraction of the total time planned. Delta2 represents the ratio of the accrual rate during the slow accrual period and the accrual rate during the full accrual period. Delta3 represents the duration of time for the slow accrual period as a fraction of the total time planned.
+
+Generally, you should use strong priors here to limit delta1 and delta3 to the lower end of the range from 0 to 1. If you really thought that delta1 and/or delta3 would be much closer to 1, then you should rethink what your total time planned should be.
+
+Here's some possible prior distributions.
+
+```{r delay-priors1, fig.height=1.5, fig.width=5}
+S1 <- 0.2
+D1 <- 0.1
+N <- 350
+dp1 <- data.frame(S1=S1, y=rbeta(1000, S1*N*D1, S1*N*(1-D1)))
+
+ggplot(dp1, aes(factor(S1), y)) +
+  geom_boxplot() +
+  labs(x="", y="Proportion of time waiting to start") +
+  coord_flip()
+```
+
+```{r delay-priors2, fig.height=1.5, fig.width=5}
+S2 <- 0.1
+D2 <- 0.4
+dp2 <- data.frame(S2=S2, y=rbeta(1000, S2*N*D2, S2*N*(1-D2)))
+
+ggplot(dp2, aes(factor(S2), y)) +
+  geom_boxplot() +
+  labs(x="", y="Accrual reduction during warm-up") +
+  coord_flip()
+```
+
+```{r delay-priors3, fig.height=1.5, fig.width=5}
+S3 <- 0.2
+D3 <- 0.17
+dp3 <- data.frame(S2=S2, y=rbeta(1000, S3*N*D3, S3*N*(1-D3)))
+
+ggplot(dp3, aes(factor(S3), y)) +
+  geom_boxplot() +
+  labs(x="", y="Proportion of time in slow accrual") +
+  coord_flip()
+```
+
+```{r delay-three, fig.height=1.5, fig.width=5}
 f <- "delay-three-parameter-extension-before-trial.stan"
-dat_before <- list(N=350, T=3*365, S=0.5)
+dat_before <- list(N=350, T=3*365, S=0.5, D1=0.1, S1=0.2, D2=0.4, S2=0.1, D3=0.17, S3=0.2)
 fit_d31 <- stan(file=f,
   data=dat_before, iter= 1000, chains = 4)
 
@@ -636,32 +756,37 @@ sim_d31                                  %>%
   xlab(" ")                               +
   geom_boxplot()                          +
   coord_flip()
+```
 
-# Scatterplot of accrual rate versus total sample size
+You should consider exploring how sensitive your estimated total sample size is relative to each of the delay parameters.
+
+```{r delay-part2, fig.height=5}
 sim_d31                                  %>%
-  ggplot(aes(30*lambda, Nstar))           +
+  ggplot(aes(delta1, Nstar))              +
   ylab("Estimated total sample size")     + 
-  xlab("Accrual rate")                    +
+  xlab("Proportion of time waiting to start") +
   geom_point()
 
 sim_d31                                  %>%
-  ggplot(aes(alpha, Nstar))               +
+  ggplot(aes(delta2, Nstar))              +
   ylab("Estimated total sample size")     + 
-  xlab("Time before first accrual")       +
+  xlab("Accrual reduction during warm-up") +
   geom_point()
 
 sim_d31                                  %>%
-  ggplot(aes(omega, Nstar))               +
+  ggplot(aes(delta3, Nstar))              +
   ylab("Estimated total sample size")     + 
-  xlab("Time until full accrual")         +
-  geom_point()
-
-sim_d31                                  %>%
-  ggplot(aes(delta, Nstar))               +
-  ylab("Estimated total sample size")     + 
-  xlab("Startup accrual penalty")         +
+  xlab("Proportion of time in slow accrual") +
   geom_point()
 ```
+
+It looks like the proportion of time waiting to start has a far greater influence on the total sample size than the other parameters. This would change if you changed your prior distributions, of course, but in general it makes sense. Time lost waiting for the trial to start is time when no subjects enter. Time during slow accrual is important but at least you are getting some subjects in during this time frame. The relative slowness during the warm-up period is also not too critical.
+
+## Modeling exclusions and refusals
+
+There's a gauntlet that patients must travel through before they are officially part of your clinical trial. As you ask them questions, you will find that some of the patients might not meet all of your inclusion criteria. Also, the patients may change their minds, after hearing the details of your clinical trial, and decide that they don't really want to participate after all.
+
+You can model these two processes using binomial distributions.
 
 ## Modeling multi-center trials.
 
