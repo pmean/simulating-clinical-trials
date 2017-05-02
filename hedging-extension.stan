@@ -12,7 +12,7 @@ parameters {
 model {
   pi ~ uniform(0, 2);
   lambda ~ gamma(1+pi*(N*S-1), T/N+pi*(T*S-T/N));
-  n ~ poisson(t*lambda);
+  if (t>0) n ~ poisson(t*lambda);
 }
 generated quantities {
   real<lower=0> Nstar;

@@ -59,3 +59,55 @@ ggplot(df, aes(tst1)) +
   geom_segment(x=0, y=-40, xend=0, yend=0, color="red")
 ```
 
+```{r changepoint}
+library(rjags)
+
+D <- c(4,5,4,1,0,4,3,4,0,6,
+3,3,4,0,2,6,3,3,5,4,5,3,1,4,4,1,5,5,3,4,2,5,2,2,3,4,
+2,1,3,2,1,1,1,1,1,3,0,0,1,0,1,1,0,0,3,1,0,3,2,2,0,1,
+1,1,0,1,0,1,0,0,0,2,1,0,0,0,1,1,0,2,2,3,1,1,2,1,1,1,
+1,2,4,2,0,0,0,1,4,0,0,0,1,0,0,0,0,0,1,0,0,1,0,0)
+yr <- 1851:1962
+N <-length(D)
+data = list(N=N,D=D)
+inits = list(b=c(0,0),chg=40)
+coal.m <- jags.model("coal.jags", data=data, inits=inits,
+n.adapt = 100)
+
+parms <- c("chg","b")
+coal.samp <- coda.samples(coal.m, var=parms, n.iter = 1000)
+hist(coal.samp[[1]][, 3])
+inits = list(b=c(0,0),chg=40)
+```
+
+```{r pts0}
+pts <- unlist(read.csv("count.csv"))
+data=list(N=length(pts), D=pts)
+inits = list(b=c(0, 0), chg=40)
+pts.m <- jags.model("coal.jags", data=data, inits=inits,
+n.adapt = 100)
+
+parms <- c("chg","b")
+pts.samp <- coda.samples(pts.m, var=parms, n.iter = 1000)
+hist(pts.samp[[1]][, 3])
+```
+
+```{r pts1, fig.width=5, fig.height=3}
+pts <- unlist(read.csv("count.csv"))
+data=list(N=350, T=3*365, S=1/N, 
+          D1=0.17, S1=0.2,
+          D2=0.17, S2=0.2,
+          D3=0.17, S3=0.2,
+          t=length(pts), n=pts)
+inits = list(b=c(1, 1), delta3=0.1)
+pts.m <- jags.model("pts.jags", data=data, inits=inits,
+n.adapt = 100)
+
+parms <- c("lambda", "delta2", "delta3")
+pts.samp <- coda.samples(pts.m, var=parms, n.iter = 1000)
+summary(pts.samp)
+hist(pts.samp[[1]][, 1], breaks=50)
+hist(pts.samp[[1]][, 2], breaks=50)
+hist(1095*pts.samp[[1]][, 3], breaks=50)
+```
+

@@ -14,7 +14,7 @@ transformed parameters {
 }
 model {
   beta ~ gamma(N*S, T*S);
-  t ~ gamma(n, beta);
+  if (t>0) t ~ gamma(n, beta);
 }
 generated quantities {
   real<lower=0> Tstar;

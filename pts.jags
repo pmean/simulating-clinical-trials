@@ -1,0 +1,15 @@
+model {
+  for (day in 1:T) {
+    mu[day] <- step(day-T0) * lambda * (delta2 ^  step(day-delta3*T - T0))
+  }
+  for (day in 1:t) {
+    n[day] ~ dpois(mu[day])
+  }
+  for (day in 1:(T-t-T0)) {
+    future_n[day] ~ dpois(mu[day+t])
+  }
+  Nstar <- sum(n)+sum(future_n)
+  lambda ~ dgamma(N*S, T*S)
+  delta2 ~ dbeta(N*S2*D2, N*S2*(1-D2))
+  delta3 ~ dbeta(N*S3*D3, N*S3*(1-D3))
+}
