@@ -2,36 +2,32 @@ data {
   int<lower=1>           N; // planned number of patients total
   int<lower=0>           M; // number of centers
   real<lower=0>          T; // planned duration of trial
-  real<lower=0, upper=1> S; // strength of prior
-  real<lower=0>          B[M]; // number of beds
-  real<lower=0>          n[M];
-  real<lower=0>          t;
-}
-transformed data {
-  real<lower=0> total_beds; 
-  total_beds = sum(B);
+  real<lower=0, upper=1> S; // strength of prior for lambda
+  real<lower=0, upper=1> S1; // strength of prior for sigma_sq
+  real<lower=0>          GSD; // geometric standard deviation of center effect
+  int<lower=0>           n[M]; // observed number of patients at each center
+  real<lower=0>          t;    // observed time--t=0 implies prior to start
 }
 parameters {
-  real<lower=0> lambda[M];  // rate for individual centers
-  real<lower=0> mu;         // hyperprior for overal rate
-  real<lower=0> scale;      // hyperprior for between center variation
-}
-transformed parameters {
-  real<lower=0> alpha;
-  real<lower=0> beta;
-  alpha = scale;
-  beta = scale / mu;
+  real<lower=0> lambda; // overall rate
+  real<lower=0> eta[M]; // multiplier for center effect
+  real<lower=0> sigma_sq; // between center variation
 }
 model {
-  mu ~ gamma(N*S, T*S*total_beds);
-  scale ~ gamma(100, 100);
-  lambda ~ gamma(alpha, beta);
+  lambda ~ gamma(N*S, T*S);
+  eta ~ lognormal(0, sigma_sq);
+  sigma_sq ~ gamma(N*S1, N*S1/log(GSD));
+  if (t>0) {
+    for (i in 1:M) {
+      n[i] ~ poisson(lambda*eta[i]*t/M);
+    }
+  }
 }
 generated quantities {
-  real<lower=0> Nstar;
-  real<lower=0> Mstar[M];
-  for (I in 1:M) {
-    Mstar[I] = poisson_rng(lambda[I]*T*B[I]);
+  int<lower=0> Nstar;
+  int<lower=0> Mstar[M];
+  for (i in 1:M) {
+    Mstar[i] = n[i] + poisson_rng(lambda*eta[i]*(T-t)/M);
   }
   Nstar = sum(Mstar);
 }

@@ -24,6 +24,37 @@ opts_chunk$set(
   warning=FALSE)
 ```
 
+```{r lognormal}
+f <- "lognormal.stan"
+dat <- list(N=350, T=1095, S=0.5, S1=0.5, GSD=2, M=5)
+fit_ln <- stan(file=f,
+  data=dat, iter= 1000, chains = 4)
+tidy(fit_ln)
+
+fit_ln               %>%
+  as.data.frame      %>%
+  mutate(i="before") -> sim_ln
+
+head(sim_ln)
+# Boxplot of total sample size
+sim_ln                                  %>%
+  select(starts_with("eta"))            %>%
+  gather(key, value, starts_with("eta")) %>%
+  ggplot(aes(key, value))                 +
+  expand_limits(y=0)                      +
+  ylab("Estimated total sample size")     + 
+  xlab(" ")                               +
+  geom_boxplot()                          +
+  stat_summary(fun.y="mean", 
+               geom="point", 
+               size=4,
+               pch="+")                   +
+  geom_hline(yintercept=1, color="gray")  +
+  geom_hline(yintercept=exp(0.5*log(dat$GSD)^2), color="gray")  +
+  coord_flip()
+
+```
+
 ```{r combo}
 
 tst1 <- rnorm(100, 10, 1)

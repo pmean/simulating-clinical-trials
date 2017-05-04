@@ -967,7 +967,7 @@ The sample size estimate after refusals and exclusions is around 180 to 200, whi
 
 Here are the accrual data on two multi-center trials. The first, csp546, has accrual at 4 centers. The study ran for 56 weeks and recruited 613 total participants. The second, csp588, has accrual at 4 centers. The study ran for 24 weeks and recruited 127 patients.
 
-```{r read-data}
+```{r read-multicenter-data}
 
 f <- "csp546 enrollment.csv"
 csp546 <- read.csv(file=f, stringsAsFactors=FALSE, header=TRUE)
@@ -990,16 +990,18 @@ csp558b$t <- 1:(dim(csp558b)[1])
 csp558b
 ```
 
-```{r hierarchical-two-parameter-extension-before-trial, echo=FALSE}
-f <- "hierarchical-two-parameter-extension-before-trial.stan"
+```{r hierarchical-extension-before-trial}
+f <- "hierarchical-extension.stan"
 dat_before <- list(N=350, T=3*365, S=0.5, M=10,
-                   t=0, n=rep(0, 10),
-                   B=c(20, 5, 5, 10, 10, 5, 10, 10, 5, 20))
+                   S1=0.5, GSD=2,
+                   t=0, n=rep(0, 10))
 fit_h21 <- stan(file=f,
   data=dat_before, iter= 1000, chains = 4)
 
 tidy(fit_h21, conf.int=TRUE)
+```
 
+```{r more-hierarchical}
 fit_h21              %>%
   as.data.frame      %>%
   mutate(i="before") -> sim_h21
