@@ -991,9 +991,9 @@ csp558b
 ```
 
 ```{r hierarchical-extension-before-trial}
-f <- "hierarchical-extension.stan"
+f <- "lognormal3.stan"
 dat_before <- list(N=350, T=3*365, S=0.5, M=10,
-                   S1=0.5, GSD=2,
+                   S1=0.02, GSD=1.5,
                    t=0, n=rep(0, 10))
 fit_h21 <- stan(file=f,
   data=dat_before, iter= 1000, chains = 4)
