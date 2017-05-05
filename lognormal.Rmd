@@ -24,37 +24,6 @@ opts_chunk$set(
   warning=FALSE)
 ```
 
-```{r lognormal, eval=FALSE}
-f <- "lognormal.stan"
-dat <- list(N=350, T=1095, S=0.5, S1=0.5, GSD=2, M=5)
-fit_ln <- stan(file=f,
-  data=dat, iter= 1000, chains = 4)
-tidy(fit_ln)
-
-fit_ln               %>%
-  as.data.frame      %>%
-  mutate(i="before") -> sim_ln
-
-head(sim_ln)
-# Boxplot of total sample size
-sim_ln                                  %>%
-  select(starts_with("eta"))            %>%
-  gather(key, value, starts_with("eta")) %>%
-  ggplot(aes(key, value))                 +
-  expand_limits(y=0)                      +
-  ylab("Estimated total sample size")     + 
-  xlab(" ")                               +
-  geom_boxplot()                          +
-  stat_summary(fun.y="mean", 
-               geom="point", 
-               size=4,
-               pch="+")                   +
-  geom_hline(yintercept=1, color="gray")  +
-  geom_hline(yintercept=exp(0.5*log(dat$GSD)^2), color="gray")  +
-  coord_flip()
-
-```
-
 I wanted to use the lognormal distribution to simulate a random effect that is multiplicative, but it is a bit tricky to do this in practice. I needed to review some fundamental properties of the lognormal distribution to get it right.
 
 The lognormal distribution is a distribution where the log is normal. More formally, X is lognormally distributed if log(X) is normally distributed. Inverting that function, you can also say that if Y is normally distributed, then exp(Y) is lognormally distributed.
@@ -105,15 +74,33 @@ I mention this because that Jacobian is needed at times with Bayesian models.
 
 Here's what the density function looks like for a lognormal(0, 1) distribution.
 
-```{r density}
+```{r density1}
 x <- seq(0, 10, length=1000)
 y <- dlnorm(x, 0, 1)
 data.frame(x, y) %>%
   ggplot(aes(x, y)) +
   xlab(" ") +
-  ylab("lognormal density") +
+  ylab("lognormal(0,1) density") +
   geom_line()
 ```
+
+The parameter $\mu$ in a lognormal distribution is referred to as a scale parameter, and the parameter $\sigma$ is often called a shape parameter. This seems wrong. In the normal distribution, $sigma$ is the scale parameter and there is no shape parameter for the normal distribution. But things change when you convert the normal distribution to the lognormal distribution through the exponential function. Recall that $\mu$ + N(0, $\sigma$) has the same distribution as N($\mu$, $\sigma$). So it isn't too hard to show that lognormal($\mu$, $\sigma$) has the same distribution as $e^\mu$ lognormal(0, $\sigma$).
+
+Compare the densitiy of the lognormal(0, 1) shown above to the density of the lognormal(2, 1).
+
+```{r density2}
+x <- seq(0, 10, length=1000)
+x <- x*exp(2)
+y <- dlnorm(x, 2, 1)
+data.frame(x, y) %>%
+  ggplot(aes(x, y)) +
+  xlab(" ") +
+  ylab("lognormal(2,1) density") +
+  geom_line()
+```
+
+The two distributions look identical, except for the tick marks on the X axis.
+
 
 So my thought was to generate a single rate based on the gamma distribution,
 
