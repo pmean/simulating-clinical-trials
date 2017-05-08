@@ -7,13 +7,10 @@ output: html_document
 
 ```{r preliminaries, echo=FALSE, message=FALSE, warning=FALSE}
 library(broom)
-library(cowplot)
 library(dplyr)
 library(ggplot2)
-library(gridExtra)
 library(knitr)
 library(magrittr)
-library(quantreg)
 library(rjags)
 library(rstan)
 library(tidyr)
@@ -39,14 +36,23 @@ hedging hyperprior; informative prior distributions; Markov Chain Monte Carlo; p
 
 ## Introduction
 
-Consider a clinical trial that plans to run for 3 years (1,095 days). You hope to recruit 350 patients in that time, which would mean `r round(350/1095, 2)` patients per day or `r round(30*350/1095, 1)` patients per month. You suspect, however, that the accrual rate might actually be quite a bit higher or quite a bit lower than this target.
+```{r}
+N <- 350
+T <- 1095
+s_list <- c(0.1, 0.2, 0.5)
+```
+
+Consider a clinical trial that plans to run for `r T` days (`r T/365` years). You hope to recruit `r N` patients in that time, which would mean `r round(N/T, 2)` patients per day or `r round(30*N/T, 1)` patients per month. You suspect, however, that the accrual rate might actually be quite a bit higher or quite a bit lower than this target.
 
 ## Boxplot of prior distribution
 
-Try setting a distribution on the monthly accrual rate that is gamma(70, 7.3). There's a farily simple justification behind this choice, but for now let's not worry about how we choose this particular distribution, except that it represents a prior strength of 0.2 relative to the target sample size.
+Try setting a distribution on the monthly accrual rate that has a mean equal to the expected accrual rate  but with varying levels of precision equivalent to `r paste0(round(100*s_list), "%")` of the planned sample size. 
 
-```{r gamma_prior_0.2, fig.width=5, fig.height=1}
-pr1 <- tibble(x="S=0.2", y=rgamma(1000, 0.2*350, 0.2*1095/30))
+```{r gamma_prior, fig.width=7, fig.height=1.67}
+n_s <- length(s_list)
+n_reps <- 1000
+S <- rep(s_list, each=n_reps)
+pr1 <- tibble(x=paste("S =", S), y=rgamma(n_s*n_reps, S*N, S*T/30))
 
 pr1                                             %>%
   ggplot(aes(x, y))                              +
@@ -54,148 +60,231 @@ pr1                                             %>%
   xlab(" ")                                      +
   ylab("Prior estimate of monthly accrual rate") +
   coord_flip()
+
+S <- 0.5
 ```
 
-That seems a bit too wide, so try a distribution that is gamma(175, 18.25). This represents a prior strength of 0.5 relative to the target sample size.
-
-```{r gamma_prior_0.5, echo=FALSE, fig.width=5, fig.height=1.33}
-pr2 <- tibble(x="S=0.5", y=rgamma(1000, 0.5*350, 0.5*1095/30))
-
-pr1                                             %>%
-  bind_rows(pr2)                                %>%
-  ggplot(aes(x, y))                              +
-  geom_boxplot()                                 +
-  xlab("")                                       +
-  ylab("Prior estimate of monthly accrual rate") +
-  coord_flip()
-```
-
-The second distribution (S=0.5) seems to match your gut feeling about accrual because a monthly accrual rate is unlikely to be smaller than 7.5 patients per month or more than 12.5 patients per month.
+As a researcher who has done this sort of clinical trial many times, the value of S=`r S` seems reasonable. Smaller values of S produce distributions that are much wider than what you'd expect in a trial like this. With this value of S, you are ready to simulate your clinical trial.
 
 ## Simulating various features of a trial
 
-Now you are ready to simulate your clinical trial. You can simulate the amount of time that the trial takes to recruit 350 patients.
+You can simulate many things. You can simulate the amount of time that the trial takes to recruit 350 patients.
 
-```{r simulate_time, fig.width=5, fig.height=5}
+```{r simulate_time, fig.width=4, fig.height=4}
+N <- 350; T <- 1095; S <- 0.5
+
 # I'm going to cheat here. A proper simulation would use
-#   lambda <- rgamma(1, 0.5*350, 0.5*1095)
+#   lambda <- rgamma(1, N*S, T*S)
 # but to make the plots look a bit cleaner, I'm going to
 # deliberately choose from the left tail, then the middle,
 # and then the right tail of this gamma distribution.
-lambda <- qgamma(runif(1, 0.01, 0.1), 0.5*350, 0.5*1095)
-st <- tibble(g=1, n=1:350, t=cumsum(rexp(350, lambda)))
-lambda <- qgamma(runif(1, 0.4, 0.6), 0.5*350, 0.5*1095)
-st <- rbind(st, tibble(g=2, n=1:350, t=cumsum(rexp(350, lambda))))
-lambda <- qgamma(runif(1, 0.9, 0.99), 0.5*350, 0.5*1095)
-st <- rbind(st, tibble(g=3, n=1:350, t=cumsum(rexp(350, lambda))))
-t_total <- st$t[st$n==350]
 
-ggplot(st, aes(x=n, y=t, group=g))               +
+lambda_list <- c(
+  qgamma(runif(1, 0.01, 0.1),  N*S, T*S),
+  qgamma(runif(1, 0.4,  0.6),  N*S, T*S),
+  qgamma(runif(1, 0.9,  0.99), N*S, T*S))
+
+n_lambda <- length(lambda_list)
+lambda <- rep(lambda_list, each=N)
+n <- rep(1:N, n_lambda)
+t <- rexp(n_lambda*N, lambda)
+g <- rep(1:n_lambda, each=N)
+
+data.frame(n, t, g)                             %>%
+  group_by(g)                                   %>%
+  mutate(t=cumsum(t))                           %>%
+  ungroup                                       -> simulated_paths
+
+simulated_paths                                 %>%
+  group_by(g)                                   %>%
+  summarize(t=max(t))                           %>%
+  mutate(t=round(t))                            %>%
+  mutate(n=N)                                   -> endpoints
+
+x_breaks <- 365*(0:4)
+y_breaks <- 50*(0:8)
+
+simulated_paths                                 %>%
+  ggplot(aes(x=t, y=n, group=g))                 +
+  scale_x_continuous(breaks=x_breaks)            +
+  scale_y_continuous(breaks=y_breaks)            +
+  expand_limits(x=365*3.5, y=375)                +
   geom_line()                                    +
-  geom_vline(xintercept=350)                     + 
-  scale_x_continuous(breaks=50*(0:10))           +
-  scale_y_continuous(breaks=365*(0:3))           +
-  ylab("Time (days)")                            +
-  xlab("Number of patients")                     +
-  geom_label(aes(x=350), y=t_total[1], 
-             label=round(t_total[1]), size=2.5)  +  
-  geom_label(aes(x=350), y=t_total[2], 
-             label=round(t_total[2]), size=2.5)  +  
-  geom_label(aes(x=350), y=t_total[3], 
-             label=round(t_total[3]), size=2.5)  + 
-  coord_flip()
+  geom_hline(yintercept=N)                       + 
+  geom_vline(xintercept=T, color="gray")         + 
+  xlab("Time (days)")                            +
+  ylab("Number of patients")                     +
+  geom_label(data=endpoints,
+             aes(t, n, label=t),
+             size=2.5)
 ```
 
 or the number of patients that you will get in 3 years.
 
-```{r simulate_n, echo=FALSE, fig.width=5, fig.height=5}
-lambda <- qgamma(runif(1, 0.01, 0.1), 0.5*350, 0.5*1095)
-sn <- tibble(g=1, t=1:1095, n=cumsum(rpois(1095, lambda)))
-lambda <- qgamma(runif(1, 0.4, 0.6), 0.5*350, 0.5*1095)
-sn <- rbind(sn, tibble(g=2, t=1:1095, n=cumsum(rpois(1095, lambda))))
-lambda <- qgamma(runif(1, 0.9, 0.99), 0.5*350, 0.5*1095)
-sn <- rbind(sn, tibble(g=3, t=1:1095, n=cumsum(rpois(1095, lambda))))
-n_total <- sn$n[sn$t==1095]
+```{r simulate_n, echo=FALSE, fig.width=4, fig.height=4}
+N <- 350; T <- 1095; S <- 0.5
 
-ggplot(sn, aes(x=n, y=t, group=g))               +
+lambda_list <- c(
+  qgamma(runif(1, 0.01, 0.1),  N*S, T*S),
+  qgamma(runif(1, 0.4,  0.6),  N*S, T*S),
+  qgamma(runif(1, 0.9,  0.99), N*S, T*S))
+
+n_lambda <- length(lambda_list)
+lambda <- rep(lambda_list, each=T)
+t <- rep(1:T, n_lambda)
+n <- rpois(n_lambda*T, lambda)
+g <- rep(1:n_lambda, each=T)
+
+data.frame(n, t, g)                             %>%
+  group_by(g)                                   %>%
+  mutate(n=cumsum(n))                           %>%
+  ungroup                                       -> simulated_paths
+
+simulated_paths                                 %>%
+  group_by(g)                                   %>%
+  summarize(n=max(n))                           %>%
+  mutate(t=T)                                   -> endpoints
+
+x_breaks <- 365*(0:4)
+y_breaks <- 50*(0:8)
+
+simulated_paths                                 %>%
+  ggplot(aes(x=t, y=n, group=g))                 +
+  scale_x_continuous(breaks=x_breaks)            +
+  scale_y_continuous(breaks=y_breaks)            +
+  expand_limits(x=365*3.5, y=375)                +
   geom_line()                                    +
-  geom_hline(yintercept=1095)                    +
-  scale_x_continuous(breaks=50*(0:10))           +
-  scale_y_continuous(breaks=365*(0:3))           +
-  ylab("Time (days)")                            +
-  xlab("Number of patients")                     +
-  geom_label(aes(x=n_total[1], y=1095, 
-                 label=n_total[1]), size=2.5)    +  
-  geom_label(aes(x=n_total[2], y=1095,
-                 label=n_total[2]), size=2.5)    +  
-  geom_label(aes(x=n_total[3], y=1095, 
-                 label=n_total[3]), size=2.5)    +
-  coord_flip()
+  geom_hline(yintercept=N, color="gray")         + 
+  geom_vline(xintercept=T)                       + 
+  xlab("Time (days)")                            +
+  ylab("Number of patients")                     +
+  geom_label(data=endpoints,
+             aes(t, n, label=n),
+             size=2.5)
 ```
+
 
 Or a trial that ends when you reach 350 patients or 3 years, whichever comes first.
 
 ```{r simulate_n_and_time, echo=FALSE, fig.width=5, fig.height=5}
-lambda <- qgamma(runif(1, 0.01, 0.1), 0.5*350, 0.5*1095)
-sb <- tibble(g=1, t=1:1095, n=cumsum(rpois(1095, lambda)))
-lambda <- qgamma(runif(1, 0.4, 0.6), 0.5*350, 0.5*1095)
-sb <- rbind(sb, tibble(g=2, t=1:1095, n=cumsum(rpois(1095, lambda))))
-lambda <- qgamma(runif(1, 0.9, 0.99), 0.5*350, 0.5*1095)
-sb <- rbind(sb, tibble(g=3, t=1:1095, n=cumsum(rpois(1095, lambda))))
-sb$n[sb$n>350] <- 350
-co <- c(FALSE, sb$n[-1]==350 & sb$n[-3*1095]==350)
-sb <- sb[!co, ]
-sb                                              %>% 
-  group_by(g)                                   %>%
-  slice(n())                                    %>%
-  mutate(lb=paste(t, n, sep=", "))              -> total
+N <- 350; T <- 1095; S <- 0.5
 
-ggplot(sb, aes(x=n, y=t, group=g))               +
+lambda_list <- c(
+  qgamma(runif(1, 0.01, 0.1),  N*S, T*S),
+  qgamma(runif(1, 0.4,  0.6),  N*S, T*S),
+  qgamma(runif(1, 0.9,  0.99), N*S, T*S))
+
+n_lambda <- length(lambda_list)
+lambda <- rep(lambda_list, each=N)
+n <- rep(1:N, n_lambda)
+t <- rexp(n_lambda*N, lambda)
+g <- rep(1:n_lambda, each=N)
+
+data.frame(n, t, g)                             %>%
+  group_by(g)                                   %>%
+  mutate(t=cumsum(t))                           %>%
+  mutate(t=trunc(t))                            %>%
+  mutate(t=pmin(t, T))                          %>%
+  distinct(t, .keep_all=TRUE)                   %>%
+  ungroup                                       -> simulated_paths
+
+simulated_paths                                 %>%
+  group_by(g)                                   %>%
+  summarize(t=max(t), n=max(n))                 %>%
+  mutate(lb=paste(t, n, sep=", "))               -> endpoints
+
+x_breaks <- 365*(0:4)
+y_breaks <- 50*(0:8)
+
+simulated_paths                                 %>%
+  ggplot(aes(x=t, y=n, group=g))                 +
+  scale_x_continuous(breaks=x_breaks)            +
+  scale_y_continuous(breaks=y_breaks)            +
+  expand_limits(x=365*3.5, y=375)                +
   geom_line()                                    +
-  scale_x_continuous(breaks=50*(0:10))           +
-  scale_y_continuous(breaks=365*(0:3))           +
-  ylab("Time (days)")                            +
-  xlab("Number of patients")                     +
-  geom_hline(yintercept=1095)                    +
-  geom_vline(xintercept=350)                     +
-  expand_limits(y=1200)                          +
-  geom_label(aes(n, t, label=lb), 
-             data=total, size=2.5)               +  
-  coord_flip()
+  geom_hline(yintercept=N)                       + 
+  geom_vline(xintercept=T)                       + 
+  xlab("Time (days)")                            +
+  ylab("Number of patients")                     +
+  geom_label(data=endpoints,
+             aes(t, n, label=lb),
+             size=2.5)
 ```
 
-You could compute some composite measure like the total cost of the trial where each day that the trial is running costs 200 British Pounds and each patient recruited costs 800 British Pounds.
 
-```{r simulate_cost, echo=FALSE, fig.width=5, fig.height=5}
-sb %>% 
-  group_by(g) %>%
-  slice(n())  %>%
-  mutate(lb=paste0("£", format(800*n+200*t, big.mark=","))) -> total
-xa <- 50*(0:7)
-xb <- paste0("£", format(xa*800, big.mark=","))
-ya <- 365*(0:3)
-yb <- paste0("£", format(ya*200, big.mark=","))
+You could compute some composite measure like the total cost of the trial where each day that the trial is running costs 20 British Pounds and each patient recruited costs 80 British Pounds.
 
-ggplot(sb, aes(x=n, y=t, group=g)) +
-  geom_line() +
-  labs(x="Cost of patients", y="Cost of time")   +
-  scale_x_continuous(breaks=xa, labels=xb)       +
-  scale_y_continuous(breaks=ya, labels=yb)       +
-  ylab("Time (days)")                            +
-  xlab("Number of patients")                     +
-  geom_hline(yintercept=1095)                    +
-  geom_vline(xintercept=350)                     +
-  expand_limits(y=1200)                          +
-  geom_label(aes(n, t, label=lb), 
-             data=total, size=2.5)               +  
-  coord_flip()
+```{r simulate_cost, echo=FALSE, fig.width=4, fig.height=4}
+N <- 350; T <- 1095; S <- 0.5
+
+lambda_list <- c(
+  qgamma(runif(1, 0.01, 0.1),  N*S, T*S),
+  qgamma(runif(1, 0.4,  0.6),  N*S, T*S),
+  qgamma(runif(1, 0.9,  0.99), N*S, T*S))
+
+n_lambda <- length(lambda_list)
+lambda <- rep(lambda_list, each=N)
+n <- rep(1:N, n_lambda)
+t <- rexp(n_lambda*N, lambda)
+g <- rep(1:n_lambda, each=N)
+
+data.frame(n, t, g)                             %>%
+  group_by(g)                                   %>%
+  mutate(t=cumsum(t))                           %>%
+  mutate(t=trunc(t))                            %>%
+  mutate(t=pmin(t, T))                          %>%
+  distinct(t, .keep_all=TRUE)                   %>%
+  ungroup                                       -> simulated_paths
+
+simulated_paths                                 %>%
+  group_by(g)                                   %>%
+  summarize(t=max(t), n=max(n))                 %>%
+  mutate(lb=80*t+20*n)                        %>%
+  mutate(lb=format(lb, big.mark=","))           %>%
+  mutate(lb=paste("£", lb, sep=""))             -> endpoints
+
+
+x_breaks <- 365*(0:4)
+y_breaks <- 50*(0:8)
+
+x_breaks                                        %>%
+  multiply_by(80)                               %>%
+  prettyNum(big.mark=",", width=10)             %>%
+  gsub(" ", "", .)                              %>%
+  paste("£", ., sep="")                         -> x_labels
+
+y_breaks                                        %>%
+  multiply_by(20)                               %>%
+  prettyNum(big.mark=",")                       %>%
+  gsub(" ", "", .)                              %>%
+  paste("£", ., sep="")                         -> y_labels
+
+
+simulated_paths                                 %>%
+  ggplot(aes(x=t, y=n, group=g))                 +
+  geom_line()                                    +
+  scale_x_continuous(
+    breaks=x_breaks,
+    labels=x_labels)                             +
+  scale_y_continuous(
+    breaks=y_breaks,
+    labels=y_labels)                             +
+  expand_limits(x=365*3.5, y=375)                +
+  geom_hline(yintercept=N)                       + 
+  geom_vline(xintercept=T)                       + 
+  xlab("Time cost")                              +
+  ylab("Patient cost")                           +
+  geom_label(
+    data=endpoints,
+    aes(t, n, label=lb),
+    size=2.5)
 ```
 
 ## Paths in a simulation
 
 You won't do this three times. You'll do it several thousand times, because computer cycles are cheap. Here's what a few thousand simulations might look like.
 
-```{r paths-before-trial, echo=FALSE, fig.width=5, fig.height=5}
+```{r paths-before-trial, echo=FALSE, fig.width=4, fig.height=4}
 f <- "paths-before-trial.stan"
 dat_before <- list(N=350, T=3*365, S=0.5)
 fit_tr1 <- stan(file=f,
