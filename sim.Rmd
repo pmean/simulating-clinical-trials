@@ -56,7 +56,7 @@ pr1 <- tibble(x=paste("S =", S), y=rgamma(n_s*n_reps, S*N, S*T/30))
 
 pr1                                             %>%
   ggplot(aes(x, y))                              +
-  geom_boxplot()                                 +
+  geom_boxplot(color=c("gray", "gray", "black")) +
   xlab(" ")                                      +
   ylab("Prior estimate of monthly accrual rate") +
   coord_flip()
@@ -76,12 +76,11 @@ N <- 350; T <- 1095; S <- 0.5
 # I'm going to cheat here. A proper simulation would use
 #   lambda <- rgamma(1, N*S, T*S)
 # but to make the plots look a bit cleaner, I'm going to
-# deliberately choose from the left tail, then the middle,
+# deliberately choose from the left tail
 # and then the right tail of this gamma distribution.
 
 lambda_list <- c(
   qgamma(runif(1, 0.01, 0.1),  N*S, T*S),
-  qgamma(runif(1, 0.4,  0.6),  N*S, T*S),
   qgamma(runif(1, 0.9,  0.99), N*S, T*S))
 
 n_lambda <- length(lambda_list)
@@ -108,7 +107,7 @@ simulated_paths                                 %>%
   ggplot(aes(x=t, y=n, group=g))                 +
   scale_x_continuous(breaks=x_breaks)            +
   scale_y_continuous(breaks=y_breaks)            +
-  expand_limits(x=365*3.5, y=375)                +
+  expand_limits(x=365*3.25, y=375)                +
   geom_line()                                    +
   geom_hline(yintercept=N)                       + 
   geom_vline(xintercept=T, color="gray")         + 
@@ -126,7 +125,6 @@ N <- 350; T <- 1095; S <- 0.5
 
 lambda_list <- c(
   qgamma(runif(1, 0.01, 0.1),  N*S, T*S),
-  qgamma(runif(1, 0.4,  0.6),  N*S, T*S),
   qgamma(runif(1, 0.9,  0.99), N*S, T*S))
 
 n_lambda <- length(lambda_list)
@@ -152,7 +150,7 @@ simulated_paths                                 %>%
   ggplot(aes(x=t, y=n, group=g))                 +
   scale_x_continuous(breaks=x_breaks)            +
   scale_y_continuous(breaks=y_breaks)            +
-  expand_limits(x=365*3.5, y=375)                +
+  expand_limits(x=365*3.25, y=375)               +
   geom_line()                                    +
   geom_hline(yintercept=N, color="gray")         + 
   geom_vline(xintercept=T)                       + 
@@ -166,12 +164,11 @@ simulated_paths                                 %>%
 
 Or a trial that ends when you reach 350 patients or 3 years, whichever comes first.
 
-```{r simulate_n_and_time, echo=FALSE, fig.width=5, fig.height=5}
+```{r simulate_n_and_time, echo=FALSE, fig.width=4, fig.height=4}
 N <- 350; T <- 1095; S <- 0.5
 
 lambda_list <- c(
   qgamma(runif(1, 0.01, 0.1),  N*S, T*S),
-  qgamma(runif(1, 0.4,  0.6),  N*S, T*S),
   qgamma(runif(1, 0.9,  0.99), N*S, T*S))
 
 n_lambda <- length(lambda_list)
@@ -200,7 +197,7 @@ simulated_paths                                 %>%
   ggplot(aes(x=t, y=n, group=g))                 +
   scale_x_continuous(breaks=x_breaks)            +
   scale_y_continuous(breaks=y_breaks)            +
-  expand_limits(x=365*3.5, y=375)                +
+  expand_limits(x=365*3.25, y=375)                +
   geom_line()                                    +
   geom_hline(yintercept=N)                       + 
   geom_vline(xintercept=T)                       + 
@@ -219,7 +216,6 @@ N <- 350; T <- 1095; S <- 0.5
 
 lambda_list <- c(
   qgamma(runif(1, 0.01, 0.1),  N*S, T*S),
-  qgamma(runif(1, 0.4,  0.6),  N*S, T*S),
   qgamma(runif(1, 0.9,  0.99), N*S, T*S))
 
 n_lambda <- length(lambda_list)
@@ -269,7 +265,7 @@ simulated_paths                                 %>%
   scale_y_continuous(
     breaks=y_breaks,
     labels=y_labels)                             +
-  expand_limits(x=365*3.5, y=375)                +
+  expand_limits(x=365*3.25, y=375)                +
   geom_hline(yintercept=N)                       + 
   geom_vline(xintercept=T)                       + 
   xlab("Time cost")                              +
@@ -304,8 +300,8 @@ sim_tr1$x %<>%
 sim_tr1 %>%
   ggplot(aes(x, y, group=j))                     +
   geom_step(alpha=0.01)                          +
-  ylab("Time (days)")                            +
-  xlab("Number of patients")                     +
+  xlab("Time (days)")                            +
+  ylab("Number of patients")                     +
   scale_y_continuous(breaks=50*(0:10))           +
   scale_x_continuous(breaks=365*(0:3))           +
   expand_limits(y=500)
@@ -313,7 +309,7 @@ sim_tr1 %>%
 
 I also want to talk about simulating a clinical trial during the trial. What this means is that you have information sample size up to a certain point in time and you want to simulate how rapidly the sample size might increase for the remainder of time in the trial.
 
-```{r path-during-trial, echo=FALSE, fig.width=5, fig.height=5}
+```{r path-during-trial, echo=FALSE, fig.width=4, fig.height=4}
 pts <- unlist(read.csv("count.csv"))
 f <- "paths-during-trial.stan"
 dat_during <- list(N=350, T=3*365, S=0.5, n=pts, t=length(pts))
@@ -334,24 +330,23 @@ sim_tr2$x %<>%
 sim_tr2 %>%
   ggplot(aes(x, y, group=j))                     +
   geom_step(alpha=0.01)                          +
-  ylab("Time (days)")                            +
-  xlab("Number of patients")                     +
+  xlab("Time (days)")                            +
+  yab("Number of patients")                     +
   scale_y_continuous(breaks=50*(0:10))           +
   scale_x_continuous(breaks=365*(0:3))           +
-  expand_limits(y=500)                           +
-  labs(x="Time", y="Sample size")
+  expand_limits(y=500)                           
 
 ```
 
 ## Gamma Poisson models
 
-From this point onward, we'll summarize the simulations using means and standard errors and boxplots, but it's worth remembering that what we are actually simulating is random paths.
+From this point onward, we'll summarize the simulations using boxplots and scatterplots, but it's worth remembering that what we are actually simulating is random paths.
 
 Let's also focus on simulations of the total sample size. In a Bayesian perspective, this is a Gamma Poisson model. The Poisson distribution models patient counts and a Gamma distribution restricts the rate parameter of the Poisson to a reasonable range.
 
 Here is code in Stan (running inside of R) that simulates the results of a clinical trial with a target goal of 350 patients in 3 years (1095 days) and places a range of uncertainty on the accrual rate that is characterized by a gamma(175, 547.5). This is a prior distribution with a strength roughly equal to half the target sample size.
 
-```{r gamma-poisson-before-trial, fig.width=5, fig.height=1}
+```{r gamma-poisson-before-trial, fig.width=7, fig.height=1}
 f <- "gamma-poisson.stan"
 # set n, t to zero before the trial starts
 dat_before <- list(N=350, T=3*365, S=0.5, n=0, t=0)
@@ -362,10 +357,10 @@ cat(readLines(f), sep="\n")
 
 fit_gp1              %>%
   as.data.frame      %>%
-  mutate(i="before") -> sim_gp1
+  mutate(i="prior estimate") -> sim_gp1
 ```
 
-```{r gamma-poisson-boxplot1, fig.width=5, fig.height=1}
+```{r gamma-poisson-boxplot1, fig.width=7, fig.height=1}
 # Boxplot of total sample size
 sim_gp1                                  %>%
   ggplot(aes(i, Nstar))                   +
@@ -434,12 +429,20 @@ sim_gp2                                  %>%
 
 For this trial, you were able to get 341 patients, but it took a lot longer than you expected, 1336 days instead of 1095 days. Time to get ready for your next clinical trial. NOT SO FAST! You are not done with simulations when the trial is over. After the trial, take a look at how your accrual rate ranks relative to the range of accrual rates associated with your prior distribution.
 
-```{r gamma-poisson-after-trial, echo=FALSE, fig.width=5, fig.height=1.33}
+```{r gamma-poisson-after-trial, echo=FALSE, fig.width=5, fig.height=1.67}
 data.frame(
-  i="after",
-  lambda=341/ 1336,
+  i="final estimate",
+  lambda=341 / 1336,
   stringsAsFactors=FALSE) %>%
   bind_rows(sim_gp1)      -> sim_gp3
+
+sim_gp1$lambda                           %>%
+  is_less_than(341 / 1336)               %>%
+  mean                                   %>%
+  multiply_by(100)                       %>%
+  round(1)                               %>%
+  paste("Final estimate is at the", .)   %>%
+  paste("percentile")                    -> pctl
 
 # Boxplot of total sample size
 sim_gp3                                  %>%
@@ -447,6 +450,7 @@ sim_gp3                                  %>%
   ylab("patients per month")              + 
   xlab(" ")                               +
   geom_boxplot()                          +
+  ggtitle(pctl)                           +
   coord_flip()
 ```
 
@@ -460,7 +464,7 @@ While most Bayesian models use flat, non-informative, or only weakly informative
 
 First, if the best you can do for accrual rates for a clinical trial is a flat prior, what you are really saying is that you think you might see a couple of patients every day, or maybe a couple of patients every year, and you really don't have a strong belief of one of these accrual rates over another. Anyone who can only predict accrual rates across such a wide range is unqualified to run a clinical trial.
 
-Second, if you run a simulation with a flat prior you get results with an unrealisticly wide range.
+Second, if you run a simulation with a flat prior before the trial starts, you get results with an unrealisticly wide range.
 
 Third, a strong prior distribution provides you with stable estimates early in the clinical trial. This is worth an illustration.
 
@@ -482,12 +486,12 @@ for (i in seq(1, nx, by=1)) {
   beta.posterior  <- beta.prior + i
   lambda <- rgamma(n_reps, alpha.posterior, beta.posterior)
   waiting_time <- i + rgamma(n_reps, N-x[i], lambda)
-  qx <- quantile(waiting_time, probs=c(0.025, 0.975))
+  qx <- quantile(waiting_time, probs=c(0.05, 0.95))
   very_flat_predictions[i, 2:3] <- qx
 }
 ```
 
-```{r plot-very-flat}
+```{r plot-very-flat, fig.width=4, fig.height=4}
 # split from the chiunk above to save time during testing
 very_flat_predictions                           %>%
   mutate(lo=lo/365)                             %>%
@@ -501,7 +505,7 @@ very_flat_predictions                           %>%
   xlab("Date of prediction (days)")
 ```
 
-This is possibly an unfair example because the trial had a slow start. But it takes more than 100 days into the trial to get a decent estimate of the upper bound. The first three predictions are a measure of how unstable things are. On the first day, you have recruited one patient, and the upper limit is estimated at `r round(very_flat_predictions$hi[1], 1)` years. On the second day, no one shows up, so your upper limit jumps to `r round(very_flat_predictions$hi[2], 1)` years. On the third day, one patient shows up, so your upper limit plummets to `r round(very_flat_predictions$hi[3], 1)` years.
+This is possibly an unfair example because the trial had a slow start. But it takes more than 100 days into the trial to get a decent estimate of the upper bound. The first three predictions are a measure of how unstable things are. On the first day, you have recruited one patient, and the upper limit is estimated at `r round(very_flat_predictions$hi[1]/365)` years. On the second day, no one shows up, so your upper limit jumps to `r round(very_flat_predictions$hi[2]/365)` years. On the third day, one patient shows up, so your upper limit plummets to `r round(very_flat_predictions$hi[3]/365)` years.
 
 Compare this to the predictions that use an informative prior. The posterior estimate in a Bayesian model with an informative prior is a weighted average of the prior distribution and the data, and that weighted average leans very heavily on the prior distribution early in the trial.
 
@@ -521,7 +525,7 @@ for (i in seq(1, nx, by=1)) {
   beta.posterior  <- beta.prior + i
   lambda <- rgamma(n_reps, alpha.posterior, beta.posterior)
   waiting_time <- i + rgamma(n_reps, N-x[i], lambda)
-  qx <- quantile(waiting_time, probs=c(0.025, 0.975))
+  qx <- quantile(waiting_time, probs=c(0.05, 0.95))
   informative_predictions[i, 2:3] <- qx
 }
 ```
@@ -551,12 +555,14 @@ f <- "hedging-extension.stan"
 # Here's what's hiding in the file 
 cat(readLines(f), sep="\n")
 dat_during <- list(N=350, T=3*365, S=0.5, n=41, t=239)
-fit_h12 <- stan(file=f,
+fit_hd2 <- stan(file=f,
   data=dat_during, iter= 1000, chains = 4)
-fit_h12                                         %>%
+fit_hd2                                         %>%
   as.data.frame                                 %>%
-  mutate(i="hedging posterior")                 -> sim_h12
+  mutate(i="hedging update")                    -> sim_hd2
+```
 
+```{r recalculate-informative-prior}
 # informative prior
 f <- "gamma-poisson.stan"
 dat_during <- list(N=350, T=3*365, S=0.5, n=0, t=0)
@@ -564,8 +570,10 @@ fit_gp1 <- stan(file=f,
   data=dat_during, iter= 1000, chains = 4)
 fit_gp1                                         %>%
   as.data.frame                                 %>%
-  mutate(i="informative prior")                 -> sim_gp1
+  mutate(i="prior estimate")                    -> sim_gp1
+```
 
+```{r recalculate-informative-update}
 # informative posterior
 f <- "gamma-poisson.stan"
 dat_during <- list(N=350, T=3*365, S=0.5, n=41, t=239)
@@ -573,27 +581,29 @@ fit_gp2 <- stan(file=f,
   data=dat_during, iter= 1000, chains = 4)
 fit_gp2                                         %>%
   as.data.frame                                 %>%
-  mutate(i="informative posterior")             -> sim_gp2
+  mutate(i="informative update")             -> sim_gp2
+```
 
+```{r calculate-flat-update}
 # flat posterior
 f <- "gamma-poisson.stan"
-dat_during <- list(N=350, T=3*365, S=0.001/N, n=41, t=239)
+dat_during <- list(N=350, T=3*365, S=0.001/350, n=41, t=239)
 fit_fl2 <- stan(file=f,
   data=dat_during, iter= 1000, chains = 4)
 fit_fl2                                         %>%
   as.data.frame                                 %>%
-  mutate(i="flat posterior") -> sim_fl2
-
-# data
-sim_dat <- data.frame(lambda=41/239, Nstar=41+(1095-239)*(41/239), i="Data")
+  mutate(i="flat update") -> sim_fl2
 ```
 
-```{r hedging-boxplots, fig.width=5, fig.height=2.67}
+```{r calculate-data-projection}
+# data
+sim_dat <- data.frame(lambda=41/239, Nstar=41+(1095-239)*(41/239), i="data projection")
+```
+
+```{r hedging-boxplots, fig.width=5, fig.height=1.67}
 # Boxplot of total sample size
-sim_h12                                         %>%
+sim_hd2                                         %>%
   bind_rows(sim_gp1)                            %>%
-  bind_rows(sim_gp2)                            %>%
-  bind_rows(sim_fl2)                            %>%
   bind_rows(sim_dat)                            %>%
   ggplot(aes(i, Nstar))                          +
   expand_limits(y=0)                             +
@@ -603,10 +613,12 @@ sim_h12                                         %>%
   coord_flip()
 ```
 
+Notice that the large discrepancy with a pure data projection versus the informative prior. When there is a discrepancy, the hedging hyperprior will strongly downweight the informative prior.
+
 The following boxplot shows how much the hedging hyperparameter downweighted the prior distribution
 
 ```{r downweight, fig.height=1, fig.width=5}
-sim_h12 %>%
+sim_hd2 %>%
   mutate(i=" ")                                 %>%
   ggplot(aes(i, pi))                             +
   expand_limits(y=c(0,2))                        +
@@ -616,55 +628,12 @@ sim_h12 %>%
   coord_flip()
 ```
 
-Let's look at the behavior of the hedging hyperprior when it's not needed--when the trial is actually slightly ahead of schedule (41 patients in 129 days).
+If you compared this to a flat prior, you would see that the flat prior would line up perfectly with the data projection.
 
-```{r hedging-extension2, fig.height=2.67}
-# hedging posterior
-f <- "hedging-extension.stan"
-dat_during <- list(N=350, T=3*365, S=0.5, n=41, t=129)
-fit_h14 <- stan(file=f,
-  data=dat_during, iter= 1000, chains = 4)
-fit_h14                                         %>%
-  as.data.frame                                 %>%
-  mutate(i="hedging posterior")                 -> sim_h14
-
-# informative prior
-f <- "gamma-poisson.stan"
-dat_during <- list(N=350, T=3*365, S=0.5, n=41, t=129)
-fit_gp4 <- stan(file=f,
-  data=dat_during, iter= 1000, chains = 4)
-fit_gp4                                         %>%
-  as.data.frame                                 %>%
-  mutate(i="informative prior")                 -> sim_gp4
-
-# informative posterior
-f <- "gamma-poisson.stan"
-dat_during <- list(N=350, T=3*365, S=0.5, n=41, t=129)
-fit_gp5 <- stan(file=f,
-  data=dat_during, iter= 1000, chains = 4)
-fit_gp5                                         %>%
-  as.data.frame                                 %>%
-  mutate(i="informative posterior")             -> sim_gp5
-
-# flat posterior
-f <- "gamma-poisson.stan"
-dat_during <- list(N=350, T=3*365, S=0.001/N, n=41, t=129)
-fit_fl3 <- stan(file=f,
-  data=dat_during, iter= 1000, chains = 4)
-fit_fl3                                         %>%
-  as.data.frame                                 %>%
-  mutate(i="flat posterior")                    -> sim_fl3
-
-# data
-sim_dat <- data.frame(lambda=41/239, Nstar=41+(1095-129)*(41/129), i="Data")
-```
-
-```{r hedging-boxplot2, fig.width=5, fig.height=2.6}
+```{r compare-to-flat, fig.width=7, fig.height=1.67}
 # Boxplot of total sample size
-sim_h14                                         %>%
-  bind_rows(sim_gp4)                            %>%
-  bind_rows(sim_gp5)                            %>%
-  bind_rows(sim_fl3)                            %>%
+sim_fl2                                         %>%
+  bind_rows(sim_gp1)                            %>%
   bind_rows(sim_dat)                            %>%
   ggplot(aes(i, Nstar))                          +
   expand_limits(y=0)                             +
@@ -674,12 +643,115 @@ sim_h14                                         %>%
   coord_flip()
 ```
 
+A non-Bayesian solution would probably also line up perfectly with the data projection.
+
+```{r compare-to-informative, fig.width=7, fig.height=1.67}
+sim_gp2                                         %>%
+  bind_rows(sim_gp1)                            %>%
+  bind_rows(sim_dat)                            %>%
+  ggplot(aes(i, Nstar))                          +
+  expand_limits(y=0)                             +
+  ylab("Estimated total sample size")            + 
+  xlab(" ")                                      +
+  geom_boxplot()                                 +
+  coord_flip()
+```
+
+Let's look at the behavior of the hedging hyperprior when it's not needed--when the trial is actually slightly ahead of schedule (41 patients in 129 days).
+
+```{r hedging-extension2}
+# hedging posterior
+f <- "hedging-extension.stan"
+dat_during <- list(N=350, T=3*365, S=0.5, n=41, t=129)
+fit_hd4 <- stan(file=f,
+  data=dat_during, iter= 1000, chains = 4)
+fit_hd4                                         %>%
+  as.data.frame                                 %>%
+  mutate(i="hedging posterior")                 -> sim_hd4
+```
+
+```{r informative-prior2}
+# informative prior
+f <- "gamma-poisson.stan"
+dat_before <- list(N=350, T=3*365, S=0.5, n=0, t=0)
+fit_gp4 <- stan(file=f,
+  data=dat_during, iter= 1000, chains = 4)
+fit_gp4                                         %>%
+  as.data.frame                                 %>%
+  mutate(i="informative prior")                 -> sim_gp4
+```
+
+```{r informative-update2}
+# informative posterior
+f <- "gamma-poisson.stan"
+dat_during <- list(N=350, T=3*365, S=0.5, n=41, t=129)
+fit_gp5 <- stan(file=f,
+  data=dat_during, iter= 1000, chains = 4)
+fit_gp5                                         %>%
+  as.data.frame                                 %>%
+  mutate(i="informative posterior")             -> sim_gp5
+```
+
+```{r flat-update2}
+# flat posterior
+f <- "gamma-poisson.stan"
+dat_during <- list(N=350, T=3*365, S=0.001/350, n=41, t=129)
+fit_fl3 <- stan(file=f,
+  data=dat_during, iter= 1000, chains = 4)
+fit_fl3                                         %>%
+  as.data.frame                                 %>%
+  mutate(i="flat posterior")                    -> sim_fl3
+```
+
+```{r data-projection2}
+# data
+sim_dat <- data.frame(lambda=41/239, Nstar=41+(1095-129)*(41/129), i="Data")
+```
+
+```{r hedging-boxplot2, fig.width=7, fig.height=1.67}
+# Boxplot of total sample size
+sim_hd4                                         %>%
+  bind_rows(sim_gp4)                            %>%
+  bind_rows(sim_dat)                            %>%
+  ggplot(aes(i, Nstar))                          +
+  expand_limits(y=0)                             +
+  ylab("Estimated total sample size")            + 
+  xlab(" ")                                      +
+  geom_boxplot()                                 +
+  coord_flip()
+```
+
+```{r hedging-boxplot3, fig.width=7, fig.height=1.67}
+# Boxplot of total sample size
+sim_fl3                                         %>%
+  bind_rows(sim_gp4)                            %>%
+  bind_rows(sim_dat)                            %>%
+  ggplot(aes(i, Nstar))                          +
+  expand_limits(y=0)                             +
+  ylab("Estimated total sample size")            + 
+  xlab(" ")                                      +
+  geom_boxplot()                                 +
+  coord_flip()
+```
+
+```{r hedging-boxplot4, fig.width=7, fig.height=1.67}
+# Boxplot of total sample size
+sim_gp5                                         %>%
+  bind_rows(sim_gp4)                            %>%
+  bind_rows(sim_dat)                            %>%
+  ggplot(aes(i, Nstar))                          +
+  expand_limits(y=0)                             +
+  ylab("Estimated total sample size")            + 
+  xlab(" ")                                      +
+  geom_boxplot()                                 +
+  coord_flip()
+```
 The following boxplot shows how much the hedging hyperparameter downweighted the prior distribution. In this case, the data actually upweighted the prior slightly on average. Think of it as a reward for choosing your prior distribution so well. 
 
 There's a technical fix that you can make so that the mean of the hyperparameter never exceeds 1, but we won't talk about it here.
 
-```{r downweight2, fig.height=1, fig.width=5}
-sim_h14 %>%
+```{r downweight2, fig.height=1, fig.width=7}
+sim_hd4 %>%
   mutate(i=" ")                          %>%
   ggplot(aes(i, pi))                      +
   expand_limits(y=c(0,2))                 +
@@ -693,7 +765,7 @@ sim_h14 %>%
 
 There are several different models for accrual delays. They may or may not include a start-up time before ANY accrual, and they may or may not include a warm-up time early in the trial when accrual is slower. If there is a warm-up time, there are several ways to model the transition from slow accrual to full accrual.
 
-```{r delay-example0, fig.height=1.5, fig.width=5}
+```{r delay-example0, fig.height=1.5, fig.width=7}
 data.frame(x=c(100, 200), y=c(100, 200))             %>%
   ggplot(aes(x, y))                                   +
   geom_point(color="white")                           +
@@ -727,7 +799,7 @@ data.frame(x=c(100, 200), y=c(100, 200))             %>%
 
 Here's a linear transition from slow to full accrual. It has two parameters, the duration of the waiting to start period and the duration of the transition to full accrual.
  
-```{r delay-example1, fig.height=1.5, fig.width=5}
+```{r delay-example1, fig.height=1.5, fig.width=7}
 delay_graph                                      +
   geom_segment(x   =120, y   =150,
                xend=150, yend=200,
@@ -736,9 +808,10 @@ delay_graph                                      +
                xend=150, yend=200,
                color="gray", size=1)
 ```
+
 Here's a discontinuous transition from slow to full accrual. It has three parameters, the duration of the waiting to start period, the rate during slow accrual, and the duration of the transition to full accrual.
  
-```{r delay-example2, fig.height=1.5, fig.width=5}
+```{r delay-example2, fig.height=1.5, fig.width=7}
 delay_graph                                      +
   geom_segment(x   =120, y   =180,
                xend=150, yend=180,
@@ -784,57 +857,42 @@ Generally, you should use strong priors here to limit delta1 and delta3 to the l
 
 Here's some possible prior distributions. For delta1, the proportion of the total planned time that you spend waiting for the study to get started, a beta(7, 63) corresponds to an expectation that 10% of the time will be lost on average. The total weight assigned to this prior (70) corresponds to S=0.2.
 
-```{r delay-priors1, fig.height=1, fig.width=5}
+```{r delay-priors1, fig.height=1.67, fig.width=7}
+s_list <- c(0.1, 0.2, 0.5)
+n_s <- length(s_list)
+n_reps <- 1000
+S1 <- rep(s_list, each=n_reps)
 N=350
-T=3*365
-S=0.5
-S1 <- 0.2
 D1 <- 0.1
 N <- 350
-dp1 <- data.frame(S1=S1,
-  delta1=rbeta(1000, S1*N*D1, S1*N*(1-D1)))
-summary(dp1)
-dp1                                             %>%
-  ggplot(aes(factor(S1), delta1))                +
-  geom_boxplot()                                 +
-  xlab(" ")                                      + 
-  ylab("Proportion of time waiting to start")    +
-  coord_flip()
-
+dp1 <- data.frame(S1=paste("S1 =", S1),
+  delta1=rbeta(n_s*n_reps, S1*N*D1, S1*N*(1-D1)))
 # units conversion
 dp1                                             %>%
-  mutate(delta1=T*delta1)                       %>%
+  mutate(delta1=T*delta1/30)                    %>%
   ggplot(aes(factor(S1), delta1))                +
-  geom_boxplot()                                 +
+  geom_boxplot(color=c("gray", "black", "gray")) +
   xlab(" ")                                      + 
-  ylab("Days waiting to start")                  +
+  ylab("Months waiting to start")                +
   coord_flip()
 ```
 
 For delta2, the proportionate reduction in accrual during the warm-up period, a beta(14, 21) corresponds to an expectation that the reductiton during warm-up will be about 40% of the regular accrual rate on average. The total weight assigned to this prior (35) is weaker and corresponds to S=0.1.
 
-```{r delay-priors2, fig.height=1, fig.width=5}
+```{r delay-priors2, fig.height=1.67, fig.width=5}
+s_list <- c(0.1, 0.2, 0.5)
+n_s <- length(s_list)
+n_reps <- 1000
+S2 <- rep(s_list, each=n_reps)
 N <- 350
-T <- 3*365
-S <- 0.5
-S2 <- 0.1
 D2 <- 0.4
 dp2 <- data.frame(S2=S2,
-  delta2=rbeta(1000, S2*N*D2, S2*N*(1-D2)))
-summary(dp2)
-
-dp2                                             %>%
-  ggplot(aes(factor(S2), delta2))                +
-  geom_boxplot()                                 +
-  xlab(" ")                                      +
-  ylab("Accrual reduction during warm-up")       +
-  coord_flip()
-
+  delta2=rbeta(n_s*n_reps, S2*N*D2, S2*N*(1-D2)))
 # units conversion
 dp2                                             %>%
   mutate(delta2=30*N/T*delta2)                  %>%
   ggplot(aes(factor(S2), delta2))                +
-  geom_boxplot()                                 +
+  geom_boxplot(color=c("black", "gray", "gray")) +
   xlab(" ")                                      +
   ylab("Accrual rate per month during warm-up")  +
   coord_flip()
@@ -842,28 +900,21 @@ dp2                                             %>%
 
 For delta3, the proportion of the total planned time that you spend in the warm-up period, a beta(11.9, 58.1) corresponds to an expectation that 17% of the time your trial will be stuck in the warm-up phase. The total weight assigned to this prior (70) corresponds to S=0.2.
 
-```{r delay-priors3, fig.height=1, fig.width=5}
+```{r delay-priors3, fig.height=1.67, fig.width=5}
+s_list <- c(0.1, 0.2, 0.5)
+n_s <- length(s_list)
+n_reps <- 1000
+S3 <- rep(s_list, each=n_reps)
 N <- 350
-T <- 3*365
-S <- 0.5
-S3 <- 0.2
 D3 <- 0.17
-dp3 <- data.frame(S3=S3, delta3=rbeta(1000, S3*N*D3, S3*N*(1-D3)))
-summary(dp3)
-dp3                                             %>%
-  ggplot(aes(factor(S3), delta3))                +
-  geom_boxplot()                                 +
-  xlab(" ")                                      +
-  ylab("Proportion of time in slow accrual")     +
-  coord_flip()
-
+dp3 <- data.frame(S3=S3, delta3=rbeta(n_s*n_reps, S3*N*D3, S3*N*(1-D3)))
 # units conversion
 dp3                                             %>%
-  mutate(delta3=T*delta3)                       %>%
+  mutate(delta3=T*delta3/30)                    %>%
   ggplot(aes(factor(S3), delta3))                +
-  geom_boxplot()                                 +
+  geom_boxplot(color=c("gray", "black", "gray")) +
   xlab(" ")                                      +
-  ylab("Days in slow accrual")                   +
+  ylab("Months in slow accrual")                 +
   coord_flip()
 ```
 
@@ -920,24 +971,26 @@ The actual trial that I have used so far did not have a formal model for delays,
 
 ```{r delay-model, eval=FALSE, error=TRUE}
 
-pts <- c(rep(0, 58), unlist(read.csv("count.csv")))
+pts <- as.numeric(c(rep(0, 58), unlist(read.csv("count.csv"))))
 data=list(N=350, T=3*365, S=0.5, T0=58,
+          D1=0.1,  S1=0.2,
           D2=0.4,  S2=0.1,
           D3=0.17, S3=0.2,
           t=length(pts), n=pts)
 inits = list(lambda=0.3, delta2=0.15, delta3=0.15)
-pts.m <- jags.model("pts.jags", data=data, inits=inits,
+pts.m <- jags.model("delay1-extension.jags", data=data, inits=inits,
   n.adapt = 100)
 
-parms <- c("lambda", "delta2", "delta3", "Nstar")
+parms <- c("lambda", "delta1", "delta2", "delta3", "Nstar")
 pts.samp <- coda.samples(pts.m, var=parms, n.iter = 1000)
 summary(pts.samp)
 pts.matrix <- as.matrix(pts.samp)
 nm <- dimnames(pts.matrix)[[2]]
-hist(pts.matrix[, 1], breaks=50, main=nm[1])
-hist(30*pts.matrix[, 2]*pts.matrix[, 4], breaks=50, main=nm[2])
-hist(1095*pts.matrix[, 3], breaks=50, main=nm[3])
-hist(30*pts.matrix[, 4], breaks=50, main=nm[4])
+hist(pts.matrix[, "Nstar"], breaks=50, main=nm[1])
+hist(1095*pts.matrix[, "delta1"]/30, breaks=50, main=nm[2])
+hist(1095*pts.matrix[, "delta2"], breaks=50, main=nm[3])
+hist(1095*pts.matrix[, "delta3"]/30, breaks=50, main=nm[4])
+hist(pts.matrix[, "lambda"], breaks=50, main=nm[5])
 ```
 
 ## Modeling exclusions and refusals
