@@ -1,0 +1,113 @@
+---
+title: "Simulating clinical trials"
+author: "Steve Simon"
+date: "March 22, 2017"
+output: html_document
+---
+
+```{r preliminaries, echo=FALSE, message=FALSE, warning=FALSE}
+library(broom)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(magrittr)
+library(rjags)
+library(rstan)
+library(tidyr)
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores())
+opts_chunk$set(
+  echo=FALSE,
+  message=FALSE,
+  warning=FALSE,
+  fig.width=5,
+  fig.height=1)
+```
+
+## Early predictions
+
+The commonly cited objection to informative priors is that they can bias the research. Whether that is true or not in a hypothesis testing framework is a matter of open debate. But using informative priors for operational characteristics of a study will not bias any resulting hypothesis tests.
+
+While most Bayesian models use flat, non-informative, or only weakly informative prior distributions, when you are simulating the operational features of a clinical trial, you need to be bold and use strong informative prior distributions. There are three reasons for this.
+
+First, if the best you can do for accrual rates for a clinical trial is a flat prior, what you are really saying is that you think you might see a couple of patients every day, or maybe a couple of patients every year, and you really don't have a strong belief of one of these accrual rates over another. Anyone who can only predict accrual rates across such a wide range is unqualified to run a clinical trial.
+
+Second, if you run a simulation with a flat prior before the trial starts, you get results with an unrealisticly wide range.
+
+Third, a strong prior distribution provides you with stable estimates early in the clinical trial. This is worth an illustration.
+
+```{r very-flat-prior-bayesian-average}
+# stan is inefficient for these next couple of models, but I'm not
+# sure why. It is easy enough to run a simulation directly.
+n_reps <- 100000
+pts <- unlist(read.csv("count.csv"))
+x <- cumsum(pts)
+T <- 3*365
+N <- 350
+S <- 0.001 / N
+alpha.prior <- N*S
+beta.prior  <- T*S
+nx <- length(x)
+very_flat_predictions <- data.frame(t <- 1:nx, lo=rep(0,nx), hi=rep(0,nx))
+for (i in seq(1, nx, by=1)) {
+  alpha.posterior <- alpha.prior + x[i]
+  beta.posterior  <- beta.prior + i
+  lambda <- rgamma(n_reps, alpha.posterior, beta.posterior)
+  waiting_time <- i + rgamma(n_reps, N-x[i], lambda)
+  qx <- quantile(waiting_time, probs=c(0.05, 0.95))
+  very_flat_predictions[i, 2:3] <- qx
+}
+```
+
+```{r plot-very-flat, fig.width=4, fig.height=4}
+# split from the chiunk above to save time during testing
+very_flat_predictions                           %>%
+  mutate(lo=lo/365)                             %>%
+  mutate(hi=hi/365)                             %>%
+  ggplot(aes(x=t, ymin=lo, ymax=hi))             +
+  geom_ribbon(alpha=0.2)                         +
+  geom_line(aes(x=t, y=hi))                      +
+  geom_line(aes(x=t, y=lo))                      +
+  ggtitle("Predictions from flat prior")         +
+  ylab("Estimated trial duration (years)")       +
+  xlab("Date of prediction (days)")
+```
+
+This is possibly an unfair example because the trial had a slow start. But it takes more than 100 days into the trial to get a decent estimate of the upper bound. The first three predictions are a measure of how unstable things are. On the first day, you have recruited one patient, and the upper limit is estimated at `r round(very_flat_predictions$hi[1]/365)` years. On the second day, no one shows up, so your upper limit jumps to `r round(very_flat_predictions$hi[2]/365)` years. On the third day, one patient shows up, so your upper limit plummets to `r round(very_flat_predictions$hi[3]/365)` years.
+
+Compare this to the predictions that use an informative prior. The posterior estimate in a Bayesian model with an informative prior is a weighted average of the prior distribution and the data, and that weighted average leans very heavily on the prior distribution early in the trial.
+
+```{r bayesian-average}
+n_reps <- 100000
+pts <- unlist(read.csv("count.csv"))
+x <- cumsum(pts)
+T <- 3*365
+N <- 350
+S <- 0.5
+alpha.prior <- N*S
+beta.prior  <- T*S
+nx <- length(x)
+informative_predictions <- data.frame(t <- 1:nx, lo=rep(0,nx), hi=rep(0,nx))
+for (i in seq(1, nx, by=1)) {
+  alpha.posterior <- alpha.prior + x[i]
+  beta.posterior  <- beta.prior + i
+  lambda <- rgamma(n_reps, alpha.posterior, beta.posterior)
+  waiting_time <- i + rgamma(n_reps, N-x[i], lambda)
+  qx <- quantile(waiting_time, probs=c(0.05, 0.95))
+  informative_predictions[i, 2:3] <- qx
+}
+```
+
+```{r plot-informative}
+informative_predictions %>%
+  mutate(lo=lo/365)                             %>%
+  mutate(hi=hi/365)                             %>%
+  ggplot(aes(x=t, ymin=lo, ymax=hi))             +
+  geom_ribbon(alpha=0.2)                         +
+  geom_line(aes(x=t, y=hi))                      +
+  geom_line(aes(x=t, y=lo))                      +
+  ggtitle("Predictions from informative prior")  +
+  ylab("Estimated trial duration (years)")       +
+  xlab("Date of prediction (days)")
+```
+

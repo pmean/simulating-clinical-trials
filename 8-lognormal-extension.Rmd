@@ -1,0 +1,193 @@
+---
+title: "Simulating clinical trials"
+author: "Steve Simon"
+date: "March 22, 2017"
+output: html_document
+---
+
+## Modeling multi-center trials.
+
+Here are the accrual data on two multi-center trials. The first, csp546, has accrual at 4 centers. The study ran for 56 weeks and recruited 613 total participants. The second, csp588, has accrual at 4 centers. The study ran for 24 weeks and recruited 127 patients.
+
+```{r read-multicenter-data}
+
+f <- "csp546 enrollment.csv"
+csp546 <- read.csv(file=f, stringsAsFactors=FALSE, header=TRUE)
+
+csp546a <- csp546
+csp546a[is.na(csp546a)] <- 0
+csp546a$Z <- apply(csp546a, 1, sum)
+csp546b <- as.data.frame(sapply(csp546a, cumsum))
+csp546b$t <- 1:(dim(csp546b)[1])
+csp546b
+
+f <- "csp558 enrollment.csv"
+csp558 <- read.csv(file=f, stringsAsFactors=FALSE, header=TRUE)
+
+csp558a <- csp558
+csp558a[is.na(csp558a)] <- 0
+csp558a$Z <- apply(csp558a, 1, sum)
+csp558b <- as.data.frame(sapply(csp558a, cumsum))
+csp558b$t <- 1:(dim(csp558b)[1])
+csp558b
+```
+
+There are several ways to model accrual in a hierarchical setting. A simple and easy to follow approach is to model deviations of each individual center from the overall accrual rate with a lognormal distribution. The lognormal distribution is a bit tricky to work. One definition of a lognormal random variable is a random variable where the logarithm of that random variable is normally distributed. So you can describe the lognormal distribution in terms of the mean, $\mu$, and standard deviation, $\sigma$, of the underlying normal distribution. Or you can describe it in terms of the geometric mean, $e^\mu$, and geometric standard deviation, $e^\sigma$.
+
+Another tricky issue is that the arithmetic mean of a lognormal random variable is going to be larger than the geometric mean. If X is lognormal with parameters $\mu$ and $\sigma$, then the arithmetic mean is larger than the geometric mean by a multiplicative factor, $e^{0.5~\sigma^2}$.
+
+In our setting, we want to make sure that the arithmetic mean of the lognormal center effects is always 1. So our lognormals will use a "fudge factor" of $\mu=-0.5~\sigma^2$.
+
+```{r set_constants}
+n_centers <- 14
+```
+
+It's important to anchor these prior distributions to something concrete and observable. A simple numeric summary is the proportion of patients that are likely to come from your highest accruing center. Let's look at an example with `r n_centers` centers. If the accrual rates were identical across all `r n_centers` centers, then the each center would contribute roughly `r round(100/n_centers)`% of the patients.
+
+```{r examining-hierarchical-priors, fig.width=7, fig.height=2.67}
+n_reps <- 1000
+
+gsd_list <- c(1.1, 1.2, 1.5, 2, 4, 8)
+n_gsd <- length(gsd_list)
+
+lb <- rep(NA, n_gsd*n_reps)
+max_pct <- rep(NA, n_gsd*n_reps)
+
+j <- 0
+for (gsd in gsd_list) {
+  for (i in 1:n_reps) {
+    j <- j+1
+    eta <- rlnorm(n_centers, -0.5*log(gsd)^2, log(gsd))
+    lb[j] <- paste("GSD =", gsd)
+    max_pct[j] <- 100 * max(eta) / sum(eta)
+  }
+}
+data.frame(lb, max_pct)                         %>%
+  ggplot(aes(lb, max_pct))                       +
+  expand_limits(y=c(0, 100))                     +
+  ylab("Percent accrual in best center")         + 
+  xlab(" ")                                      +
+  geom_boxplot()                                 +
+  geom_hline(yintercept=100/n_centers,
+             color="gray")                       +
+  coord_flip()
+```
+
+You decide after looking at these boxpots that a GSD around 1.5 is fairly representative of your experience with accrual in multi-center trials of this particular type and that a GSD of 2 represents the most extreme case you are likely to encounter.
+
+Now you need to specify a prior on the GSD that is centered around 1.5 and where most of the probability is for values below 2.
+
+```{r examining-hierarchical-priors-part2, fig.width=7, fig.height=2.67}
+n_reps <- 1000
+N <- 350
+
+S1_list <- c(0.01, 0.02, 0.05, 0.1, 0.2, 0.5)
+n_S1 <- length(S1_list)
+
+lb <- rep("---", n_S1*n_reps)
+gsd <- rep(NA, n_S1*n_reps)
+
+j <- 0
+for (S1 in S1_list) {
+  for (i in 1:n_reps) {
+    j <- j+1
+    gamma <- rgamma(1, N*S1, N*S1*log(1.5)^2)
+    sigma <- sqrt(1 / gamma)
+    gsd[j] <- exp(sigma)
+    lb[j] <- paste("S1 =", S1)
+  }
+}
+data.frame(lb, gsd)                             %>%
+  ggplot(aes(lb, gsd))                           +
+  ylab("GSD")                                    + 
+  xlab(" ")                                      +
+  geom_boxplot()                                 +
+  coord_flip()
+```
+
+
+```{r hierarchical-extension-before-trial}
+f <- "hierarchical-extension.stan"
+# Here's what's hiding in the file 
+cat(readLines(f), sep="\n")
+dat_before <- list(N=350, T=3*365, S=0.5, M=14,
+                   S1=0.02, GSD=1.5,
+                   t=0, n=rep(0, 14))
+fit_h21 <- stan(file=f,
+  data=dat_before, iter= 1000, chains = 4)
+```
+
+```{r hierarchical-boxplot, fig.width=7, fig.height=1}
+fit_h21              %>%
+  as.data.frame      %>%
+  mutate(i="before") -> sim_h21
+# Boxplot of total sample size
+sim_h21                                  %>%
+  ggplot(aes(i, Nstar))                   +
+  expand_limits(y=0)                      +
+  ylab("Estimated total sample size")     + 
+  xlab(" ")                               +
+  geom_boxplot()                          +
+  coord_flip()
+```
+
+```{r hierarchical-scatterplots}
+sim_h21                                         %>%
+  ggplot(aes(max_pct, Nstar))                    +
+  ylab("Estimated total sample size")            + 
+  xlab("Proportion accrued at best site")        +
+  geom_point()
+
+sim_h21                                         %>%
+  ggplot(aes(gsd, max_pct))                      +
+  xlab("GSD")                                    + 
+  ylab("Proportion accrued at best site")        +
+  geom_point()
+```
+
+```{r}
+tidy(fit_h21, conf.int=TRUE)
+m <- c(14, 9, 17, 0, 11, 28, 22, 1, 12, 25, 41, 0, 27, 0)	
+length(m)
+t <- 14
+csp546b[t, 1:14]
+f <- "hierarchical-extension.stan"
+dat_during <- list(N=350, T=3*365, S=0.5, M=14,
+                   S1=0.02, GSD=1.5,
+                   t=14, n=csp546b[t, 1:14])
+fit_h22 <- stan(file=f,
+  data=dat_during, iter= 1000, chains = 4)
+tidy(fit_h22)
+```
+
+```{r more-hierarchical}
+fit_h21              %>%
+  as.data.frame      %>%
+  mutate(i="before") -> sim_h21
+
+# Boxplot of total sample size
+sim_h21                                  %>%
+  ggplot(aes(i, Nstar))                   +
+  expand_limits(y=0)                      +
+  ylab("Estimated total sample size")     + 
+  xlab(" ")                               +
+  geom_boxplot()                          +
+  coord_flip()
+```
+
+```{r more_stuff, eval=FALSE}
+# Scatterplot of accrual rate versus total sample size
+sim_h21                                  %>%
+  ggplot(aes(30*mu, Nstar))               +
+  ylab("Estimated total sample size")     + 
+  xlab("Accrual rate")                    +
+  geom_point()
+
+sim_h21                                  %>%
+  ggplot(aes(scale, Nstar))               +
+  ylab("Estimated total sample size")     + 
+  xlab("Hierarchical spread")             +
+  geom_point()
+```
+
+Final comments???

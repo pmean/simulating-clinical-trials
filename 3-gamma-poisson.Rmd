@@ -1,0 +1,145 @@
+---
+title: "Simulating clinical trials"
+author: "Steve Simon"
+date: "March 22, 2017"
+output: html_document
+---
+
+```{r preliminaries, echo=FALSE, message=FALSE, warning=FALSE}
+library(broom)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(magrittr)
+library(rjags)
+library(rstan)
+library(tidyr)
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores())
+opts_chunk$set(
+  echo=FALSE,
+  message=FALSE,
+  warning=FALSE,
+  fig.width=5,
+  fig.height=1)
+```
+
+
+## Gamma Poisson models
+
+From this point onward, we'll summarize the simulations using boxplots and scatterplots, but it's worth remembering that what we are actually simulating is random paths.
+
+Let's also focus on simulations of the total sample size. In a Bayesian perspective, this is a Gamma Poisson model. The Poisson distribution models patient counts and a Gamma distribution restricts the rate parameter of the Poisson to a reasonable range.
+
+Here is code in Stan (running inside of R) that simulates the results of a clinical trial with a target goal of 350 patients in 3 years (1095 days) and places a range of uncertainty on the accrual rate that is characterized by a gamma(175, 547.5). This is a prior distribution with a strength roughly equal to half the target sample size.
+
+```{r gamma-poisson-before-trial, fig.width=7, fig.height=1}
+f <- "gamma-poisson.stan"
+# set n, t to zero before the trial starts
+dat_before <- list(N=350, T=3*365, S=0.5, n=0, t=0)
+fit_gp1 <- stan(file=f,
+  data=dat_before, iter= 10000, warmup=1000, chains = 4)
+# Here's what's hiding in the file 
+cat(readLines(f), sep="\n")
+
+fit_gp1              %>%
+  as.data.frame      %>%
+  mutate(i="prior estimate") -> sim_gp1
+```
+
+```{r gamma-poisson-boxplot1, fig.width=7, fig.height=1}
+# Boxplot of total sample size
+sim_gp1                                  %>%
+  ggplot(aes(i, Nstar))                   +
+  expand_limits(y=0)                      +
+  ylab("Estimated total sample size")     + 
+  xlab(" ")                               +
+  geom_boxplot()                          +
+  expand_limits(y=0)                      +
+  coord_flip()                           -> boxplot_gp1
+print(boxplot_gp1)
+```
+
+You can learn a lot by looking at how the estimated total sample size relates to the prior paramter(s). 
+
+Recall that in this simulation, you randomly select an accrual rate, gamma, and then you simulate a path based on that value of lambda. Not too surprisingly, the sample size depends on what lambda is chosen, though there is some variation, even for the same value of lambda.
+
+```{r gamma-poisson-scatterplot1, fig.width=5, fig.height=5}
+# Scatterplot of accrual rate versus total sample size
+sim_gp1                                       %>%
+  ggplot(aes(Nstar, 30*lambda))                 +
+  geom_point()                                  +
+  xlab("Estimated total sample size")           + 
+  ylab("Accrual rate")                          +
+  coord_flip()
+```
+
+With a plot like this, you can run some sensitivity checks, such as "what would happen if the accrual rate were closer to 8.5 patients per month"
+
+```{r gamma-poisson-scatterplot2, fig.width=5, fig.height=5}
+# Scatterplot of accrual rate versus total sample size
+sim_gp1                                       %>%
+  mutate(h=(30*lambda>8.45)*(30*lambda<8.55)) %>%
+  mutate(lambda=ifelse(h==0, lambda, 8.5/30)) %>%
+  arrange(h)                                  %>%
+  ggplot(aes(Nstar, 30*lambda))                 +
+  xlab("Estimated total sample size")           + 
+  ylab("Accrual rate")                          +
+  geom_point(aes(color=factor(h)))              +    
+   theme(legend.position="none")                +
+  coord_flip()                                  +
+  scale_color_manual(values=c("gray90", "red"))
+```
+
+The key reason that you should run your simulations in Stan is that you can make a seamless transition to a simulation of a clinical trial during the trial itself. In this trial, the early accrual rate was much lower than expected. After 239 days, you have only gotten 41 patients. If you were on target, you would have 239/1095*350 = `r round(239/1095*350)` patients by now. HOw much is this shortfall hurting us?
+
+```{r gamma-poisson-during-trial, fig.width=5, fig.height=1.33}
+f <- "gamma-poisson.stan"
+dat_during <- list(N=350, T=3*365, S=0.5, n=41, t=239)
+fit_gp2 <- stan(file=f,
+  data=dat_during, iter= 1000, chains = 4)
+
+fit_gp2              %>%
+  as.data.frame      %>%
+  mutate(i="updated estimate") %>%
+  bind_rows(sim_gp1) -> sim_gp2
+
+# Boxplot of total sample size
+sim_gp2                                  %>%
+  ggplot(aes(i, Nstar))                   +
+  expand_limits(y=0)                      +
+  ylab("Estimated total sample size")     + 
+  xlab(" ")                               +
+  geom_boxplot()                          +
+  coord_flip()
+```
+
+For this trial, you were able to get 341 patients, but it took a lot longer than you expected, 1336 days instead of 1095 days. Time to get ready for your next clinical trial. NOT SO FAST! You are not done with simulations when the trial is over. After the trial, take a look at how your accrual rate ranks relative to the range of accrual rates associated with your prior distribution.
+
+```{r gamma-poisson-after-trial, echo=FALSE, fig.width=5, fig.height=1.67}
+data.frame(
+  i="final estimate",
+  lambda=341 / 1336,
+  stringsAsFactors=FALSE) %>%
+  bind_rows(sim_gp1)      -> sim_gp3
+
+sim_gp1$lambda                           %>%
+  is_less_than(341 / 1336)               %>%
+  mean                                   %>%
+  multiply_by(100)                       %>%
+  round(1)                               %>%
+  paste("Final estimate is at the", .)   %>%
+  paste("percentile")                    -> pctl
+
+# Boxplot of total sample size
+sim_gp3                                  %>%
+  ggplot(aes(i, lambda*30))               +
+  ylab("patients per month")              + 
+  xlab(" ")                               +
+  geom_boxplot()                          +
+  ggtitle(pctl)                           +
+  coord_flip()
+```
+
+Okay, so you were way off. No one is going to hang you. If the same thing occurs over and over again, though, let's talk.
+

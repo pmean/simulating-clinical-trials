@@ -1,0 +1,262 @@
+---
+title: "Simulating clinical trials--various simulations"
+author: "Steve Simon"
+date: "March 22, 2017"
+output: html_document
+---
+
+```{r preliminaries, echo=FALSE, message=FALSE}
+source("0-preliminaries.R", echo=FALSE)
+```
+
+# Simulation before, during, and after a clinical trial: A Bayesian approach
+
+## Abstract
+
+Simulation of a clinical trial gives you answers to important economic, logistical, or scientific questions about the trial when some of the features are difficult to characterize with perfect precision. A Bayesian approach with informative priors offers a flexible framework for trial simulation. It provides a seamless transition from simulation prior to the trial to simulation during the trial itself. Although informative priors are controversial, you can avoid perceptions of bias by restricting the informative priors to clinical trial features that are independent of your research hypothesis. You can protect your interim predictions against unrealistic prior beliefs by implementing the hedging hyperprior, a simple hyperdistribution that downweights the strength of the prior when there is a discrepancy between the prior distribution and data observed during the trial itself. The Bayesian approach also gives you a simple post mortem analysis after the trial ends. You can compute percentile values by plugging the point estimates from the actual clinical trial data into the corresponding prior distributions. Over multiple trials, a deviation in these percentiles from a uniform distribution indicates biased specification of the informative priors. The Bayesian approach to trial simulation will be illustrated using various patient accrual models.
+
+## Keywords
+
+hedging hyperprior; informative prior distributions; Markov Chain Monte Carlo; patient accrual.
+
+## Introduction
+
+```{r}
+N <- 350
+T <- 1095
+s_list <- c(0.1, 0.2, 0.5)
+```
+
+Consider a clinical trial that plans to run for `r T` days (`r T/365` years). You hope to recruit `r N` patients in that time, which would mean `r round(N/T, 2)` patients per day or `r round(30*N/T, 1)` patients per month. You suspect, however, that the accrual rate might actually be quite a bit higher or quite a bit lower than this target.
+
+## Boxplot of prior distribution
+
+Try setting a distribution on the monthly accrual rate that has a mean equal to the expected accrual rate  but with varying levels of precision equivalent to `r paste0(round(100*s_list), "%")` of the planned sample size. 
+
+```{r gamma_prior, fig.width=7, fig.height=1.67}
+n_s <- length(s_list)
+n_reps <- 1000
+S <- rep(s_list, each=n_reps)
+pr1 <- tibble(x=paste("S =", S), y=rgamma(n_s*n_reps, S*N, S*T/30))
+
+pr1                                             %>%
+  ggplot(aes(x, y))                              +
+  geom_boxplot(color=c("gray", "gray", "black")) +
+  xlab(" ")                                      +
+  ylab("Prior estimate of monthly accrual rate") +
+  coord_flip()
+
+S <- 0.5
+```
+
+As a researcher who has done this sort of clinical trial many times, the value of S=`r S` seems reasonable. Smaller values of S produce distributions that are much wider than what you'd expect in a trial like this. With this value of S, you are ready to simulate your clinical trial.
+
+## Simulating various features of a trial
+
+You can simulate many things. You can simulate the amount of time that the trial takes to recruit 350 patients.
+
+```{r simulate_time, fig.width=4, fig.height=4}
+N <- 350; T <- 1095; S <- 0.5
+
+# I'm going to cheat here. A proper simulation would use
+#   lambda <- rgamma(1, N*S, T*S)
+# but to make the plots look a bit cleaner, I'm going to
+# deliberately choose from the left tail
+# and then the right tail of this gamma distribution.
+
+lambda_list <- c(
+  qgamma(runif(1, 0.01, 0.1),  N*S, T*S),
+  qgamma(runif(1, 0.9,  0.99), N*S, T*S))
+
+n_lambda <- length(lambda_list)
+lambda <- rep(lambda_list, each=N)
+n <- rep(1:N, n_lambda)
+t <- rexp(n_lambda*N, lambda)
+g <- rep(1:n_lambda, each=N)
+
+data.frame(n, t, g)                             %>%
+  group_by(g)                                   %>%
+  mutate(t=cumsum(t))                           %>%
+  ungroup                                       -> simulated_paths
+
+simulated_paths                                 %>%
+  group_by(g)                                   %>%
+  summarize(t=max(t))                           %>%
+  mutate(t=round(t))                            %>%
+  mutate(n=N)                                   -> endpoints
+
+x_breaks <- 365*(0:4)
+y_breaks <- 50*(0:8)
+
+simulated_paths                                 %>%
+  ggplot(aes(x=t, y=n, group=g))                 +
+  scale_x_continuous(breaks=x_breaks)            +
+  scale_y_continuous(breaks=y_breaks)            +
+  expand_limits(x=365*3.25, y=375)                +
+  geom_line()                                    +
+  geom_hline(yintercept=N)                       + 
+  geom_vline(xintercept=T, color="gray")         + 
+  xlab("Time (days)")                            +
+  ylab("Number of patients")                     +
+  geom_label(data=endpoints,
+             aes(t, n, label=t),
+             size=2.5)
+```
+
+or the number of patients that you will get in 3 years.
+
+```{r simulate_n, echo=FALSE, fig.width=4, fig.height=4}
+N <- 350; T <- 1095; S <- 0.5
+
+lambda_list <- c(
+  qgamma(runif(1, 0.01, 0.1),  N*S, T*S),
+  qgamma(runif(1, 0.9,  0.99), N*S, T*S))
+
+n_lambda <- length(lambda_list)
+lambda <- rep(lambda_list, each=T)
+t <- rep(1:T, n_lambda)
+n <- rpois(n_lambda*T, lambda)
+g <- rep(1:n_lambda, each=T)
+
+data.frame(n, t, g)                             %>%
+  group_by(g)                                   %>%
+  mutate(n=cumsum(n))                           %>%
+  ungroup                                       -> simulated_paths
+
+simulated_paths                                 %>%
+  group_by(g)                                   %>%
+  summarize(n=max(n))                           %>%
+  mutate(t=T)                                   -> endpoints
+
+x_breaks <- 365*(0:4)
+y_breaks <- 50*(0:8)
+
+simulated_paths                                 %>%
+  ggplot(aes(x=t, y=n, group=g))                 +
+  scale_x_continuous(breaks=x_breaks)            +
+  scale_y_continuous(breaks=y_breaks)            +
+  expand_limits(x=365*3.25, y=375)               +
+  geom_line()                                    +
+  geom_hline(yintercept=N, color="gray")         + 
+  geom_vline(xintercept=T)                       + 
+  xlab("Time (days)")                            +
+  ylab("Number of patients")                     +
+  geom_label(data=endpoints,
+             aes(t, n, label=n),
+             size=2.5)
+```
+
+
+Or a trial that ends when you reach 350 patients or 3 years, whichever comes first.
+
+```{r simulate_n_and_time, echo=FALSE, fig.width=4, fig.height=4}
+N <- 350; T <- 1095; S <- 0.5
+
+lambda_list <- c(
+  qgamma(runif(1, 0.01, 0.1),  N*S, T*S),
+  qgamma(runif(1, 0.9,  0.99), N*S, T*S))
+
+n_lambda <- length(lambda_list)
+lambda <- rep(lambda_list, each=N)
+n <- rep(1:N, n_lambda)
+t <- rexp(n_lambda*N, lambda)
+g <- rep(1:n_lambda, each=N)
+
+data.frame(n, t, g)                             %>%
+  group_by(g)                                   %>%
+  mutate(t=cumsum(t))                           %>%
+  mutate(t=trunc(t))                            %>%
+  mutate(t=pmin(t, T))                          %>%
+  distinct(t, .keep_all=TRUE)                   %>%
+  ungroup                                       -> simulated_paths
+
+simulated_paths                                 %>%
+  group_by(g)                                   %>%
+  summarize(t=max(t), n=max(n))                 %>%
+  mutate(lb=paste(t, n, sep=", "))               -> endpoints
+
+x_breaks <- 365*(0:4)
+y_breaks <- 50*(0:8)
+
+simulated_paths                                 %>%
+  ggplot(aes(x=t, y=n, group=g))                 +
+  scale_x_continuous(breaks=x_breaks)            +
+  scale_y_continuous(breaks=y_breaks)            +
+  expand_limits(x=365*3.25, y=375)                +
+  geom_line()                                    +
+  geom_hline(yintercept=N)                       + 
+  geom_vline(xintercept=T)                       + 
+  xlab("Time (days)")                            +
+  ylab("Number of patients")                     +
+  geom_label(data=endpoints,
+             aes(t, n, label=lb),
+             size=2.5)
+```
+
+
+You could compute some composite measure like the total cost of the trial where each day that the trial is running costs 20 British Pounds and each patient recruited costs 80 British Pounds.
+
+```{r simulate_cost, echo=FALSE, fig.width=4, fig.height=4}
+N <- 350; T <- 1095; S <- 0.5
+
+lambda_list <- c(
+  qgamma(runif(1, 0.01, 0.1),  N*S, T*S),
+  qgamma(runif(1, 0.9,  0.99), N*S, T*S))
+
+n_lambda <- length(lambda_list)
+lambda <- rep(lambda_list, each=N)
+n <- rep(1:N, n_lambda)
+t <- rexp(n_lambda*N, lambda)
+g <- rep(1:n_lambda, each=N)
+
+data.frame(n, t, g)                             %>%
+  group_by(g)                                   %>%
+  mutate(t=cumsum(t))                           %>%
+  mutate(t=trunc(t))                            %>%
+  mutate(t=pmin(t, T))                          %>%
+  distinct(t, .keep_all=TRUE)                   %>%
+  ungroup                                       -> simulated_paths
+
+simulated_paths                                 %>%
+  group_by(g)                                   %>%
+  summarize(t=max(t), n=max(n))                 %>%
+  mutate(lb=80*t+20*n)                        %>%
+  mutate(lb=format(lb, big.mark=","))           %>%
+  mutate(lb=paste("£", lb, sep=""))             -> endpoints
+
+
+x_breaks <- 365*(0:4)
+y_breaks <- 50*(0:8)
+
+x_breaks                                        %>%
+  multiply_by(80)                               %>%
+  prettyNum(big.mark=",", width=10)             %>%
+  gsub(" ", "", .)                              %>%
+  paste("£", ., sep="")                         -> x_labels
+
+y_breaks                                        %>%
+  multiply_by(20)                               %>%
+  prettyNum(big.mark=",")                       %>%
+  gsub(" ", "", .)                              %>%
+  paste("£", ., sep="")                         -> y_labels
+
+
+simulated_paths                                 %>%
+  ggplot(aes(x=t, y=n, group=g))                 +
+  geom_line()                                    +
+  scale_x_continuous(
+    breaks=x_breaks,
+    labels=x_labels)                             +
+  scale_y_continuous(
+    breaks=y_breaks,
+    labels=y_labels)                             +
+  expand_limits(x=365*3.25, y=375)                +
+  geom_hline(yintercept=N)                       + 
+  geom_vline(xintercept=T)                       + 
+  xlab("Time cost")                              +
+  ylab("Patient cost")                           +
+  geom_label(
+    data=endpoints,
+    aes(t, n, label=lb),
+    size=2.5)
+```
