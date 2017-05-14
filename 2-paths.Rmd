@@ -4,24 +4,8 @@ author: "Steve Simon"
 date: "March 22, 2017"
 output: html_document
 ---
-
-```{r preliminaries, echo=FALSE, message=FALSE, warning=FALSE}
-library(broom)
-library(dplyr)
-library(ggplot2)
-library(knitr)
-library(magrittr)
-library(rjags)
-library(rstan)
-library(tidyr)
-rstan_options(auto_write = TRUE)
-options(mc.cores = parallel::detectCores())
-opts_chunk$set(
-  echo=FALSE,
-  message=FALSE,
-  warning=FALSE,
-  fig.width=5,
-  fig.height=1)
+```{r preliminaries, echo=FALSE, message=FALSE}
+source("0-preliminaries.R", echo=FALSE)
 ```
 
 ## Paths in a simulation
@@ -29,7 +13,7 @@ opts_chunk$set(
 You won't do this three times. You'll do it several thousand times, because computer cycles are cheap. Here's what a few thousand simulations might look like.
 
 ```{r paths-before-trial, echo=FALSE, fig.width=4, fig.height=4}
-f <- "paths-before-trial.stan"
+f <- "2-paths-before-trial.stan"
 dat_before <- list(N=350, T=3*365, S=0.5)
 fit_tr1 <- stan(file=f,
   data=dat_before, iter= 1000, warmup=100, chains = 4)
@@ -45,12 +29,15 @@ sim_tr1$x %<>%
   sub("\\]", "", .)      %>%
   as.numeric
 
+y_ticks <- quantile(sim_tr1$y, c(0.01, 0.25, 0.5, 0.75, 0.99))
+y_labels <- round(y_ticks)
 sim_tr1 %>%
   ggplot(aes(x, y, group=j))                     +
   geom_step(alpha=0.01)                          +
-  xlab("Time (days)")                            +
-  ylab("Number of patients")                     +
-  scale_y_continuous(breaks=50*(0:10))           +
+  scale_y_continuous(breaks=y_ticks,
+                     labels=y_labels,
+                     position="right",
+                     minor_breaks=NULL)          +
   scale_x_continuous(breaks=365*(0:3))           +
   expand_limits(y=500)
 ```
@@ -58,8 +45,8 @@ sim_tr1 %>%
 I also want to talk about simulating a clinical trial during the trial. What this means is that you have information sample size up to a certain point in time and you want to simulate how rapidly the sample size might increase for the remainder of time in the trial.
 
 ```{r path-during-trial, echo=FALSE, fig.width=4, fig.height=4}
-pts <- unlist(read.csv("count.csv"))
-f <- "paths-during-trial.stan"
+pts <- unlist(read.csv("2-paths-count.csv"))
+f <- "2-paths-during-trial.stan"
 dat_during <- list(N=350, T=3*365, S=0.5, n=pts, t=length(pts))
 fit_tr2 <- stan(file=f,
   data=dat_during, iter= 1000, warmup=100, chains = 4)
@@ -75,14 +62,24 @@ sim_tr2$x %<>%
   sub("\\]", "", .)      %>%
   as.numeric
 
+y_ticks <- quantile(sim_tr2$y, c(0.01, 0.25, 0.5, 0.75, 0.99))
+y_labels <- round(y_ticks)
 sim_tr2 %>%
   ggplot(aes(x, y, group=j))                     +
   geom_step(alpha=0.01)                          +
   xlab("Time (days)")                            +
-  yab("Number of patients")                     +
-  scale_y_continuous(breaks=50*(0:10))           +
+  ylab("Number of patients")                     +
+  scale_y_continuous(breaks=y_ticks,
+                     labels=y_labels,
+                     position="right",
+                     minor_breaks=NULL)          +
   scale_x_continuous(breaks=365*(0:3))           +
   expand_limits(y=500)                           
 
 ```
 
+```{r save-everything}
+save.image("2-paths.RData")
+```
+
+# end of file

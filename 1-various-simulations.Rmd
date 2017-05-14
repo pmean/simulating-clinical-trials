@@ -250,7 +250,7 @@ simulated_paths                                 %>%
   scale_y_continuous(
     breaks=y_breaks,
     labels=y_labels)                             +
-  expand_limits(x=365*3.25, y=375)                +
+  expand_limits(x=365*3.25, y=375)               +
   geom_hline(yintercept=N)                       + 
   geom_vline(xintercept=T)                       + 
   xlab("Time cost")                              +
@@ -260,3 +260,9 @@ simulated_paths                                 %>%
     aes(t, n, label=lb),
     size=2.5)
 ```
+
+```{r save-everything}
+save.image("1-various-simulations.RData")
+```
+
+# end of file
