@@ -7,6 +7,14 @@ output: html_document
 
 ```{r preliminaries, echo=FALSE, message=FALSE}
 source("0-preliminaries.R", echo=FALSE)
+s_list <- c(0.1, 0.2, 0.5)
+n_s <- length(s_list)
+n_reps <- 1000
+pctl_list <- c(1, 25, 50, 75, 99)
+N <- 350
+T <- 1095
+dat_prior <- list(N=N, T=T, S=0.5, n=0, t=0)
+
 ```
 
 ## Gamma Poisson models
@@ -15,115 +23,168 @@ From this point onward, we'll summarize the simulations using boxplots and scatt
 
 Let's also focus on simulations of the total sample size. In a Bayesian perspective, this is a Gamma Poisson model. The Poisson distribution models patient counts and a Gamma distribution restricts the rate parameter of the Poisson to a reasonable range.
 
+Selecting a prior distribution requires a lot of work. It helps, I believe to express the strength of the prior distribution as a fraction of the planned sample size. A prior with a strength equivalent to 50% of the planned sample size represents a setting you give equal weight to the prior distribution and the data when you have collected half of the planned sample size. That's a pretty strong prior, but not unreasonable if you are working on a clinical trial that is similar to many trials that you have run in the past.
+
+## Boxplot of prior distribution
+
+Try setting a distribution on the monthly accrual rate that has a mean equal to the expected accrual rate  but with varying levels of precision equivalent to `r paste0(round(100*s_list), "%")` of the planned sample size. 
+
+```{r gamma_prior, fig.width=7, fig.height=1}
+S <- 0.1
+y_label1 <- "Monthly accrual rate (prior, S=0.1)"
+sim1 <- data.frame(x=" ", y=rgamma(10000, N*S, T*S)*30)
+S <- 0.2
+y_label2 <- "Monthly accrual rate (prior, S=0.2)"
+sim2 <- data.frame(x=" ", y=rgamma(10000, N*S, T*S)*30)
+S <- 0.5
+y_label3 <- "Monthly accrual rate (prior, S=0.5)"
+sim3 <- data.frame(x=" ", y=rgamma(10000, N*S, T*S)*30)
+
+y_range <- range(sim1$y, sim2$y, sim3$y)
+custom_boxplot(sim1, y_label1, 1, "gray") + expand_limits(y=y_range)
+custom_boxplot(sim2, y_label2, 1, "gray") + expand_limits(y=y_range)
+custom_boxplot(sim3, y_label3, 1)         + expand_limits(y=y_range)
+
+S <- 0.5
+```
+
+As a researcher who has done this sort of clinical trial many times, the value of S=`r S` seems reasonable to you. Smaller values of S produce distributions that are much wider than what you'd expect in a trial like this. With this value of S, you are ready to simulate your clinical trial.
+
+
 Here is code in Stan (running inside of R) that simulates the results of a clinical trial with a target goal of 350 patients in 3 years (1095 days) and places a range of uncertainty on the accrual rate that is characterized by a gamma(175, 547.5). This is a prior distribution with a strength roughly equal to half the target sample size.
 
 ```{r gamma-poisson-before-trial, fig.width=7, fig.height=1}
 f <- "3-gamma-poisson.stan"
 # set n, t to zero before the trial starts
-dat_before <- list(N=350, T=3*365, S=0.5, n=0, t=0)
 fit_gp1 <- stan(file=f,
-  data=dat_before, iter= 10000, warmup=1000, chains = 4)
+  data=dat_prior, iter= 10000, warmup=1000, chains = 4)
 # Here's what's hiding in the file 
 cat(readLines(f), sep="\n")
 
-fit_gp1              %>%
-  as.data.frame      %>%
-  mutate(i="prior estimate") -> sim_gp1
+fit_gp1                                         %>%
+  as.data.frame                                 -> sim_gp1
 ```
 
 ```{r gamma-poisson-boxplot1, fig.width=7, fig.height=1}
 # Boxplot of total sample size
-sim_gp1                                  %>%
-  ggplot(aes(i, Nstar))                   +
-  expand_limits(y=0)                      +
-  ylab("Estimated total sample size")     + 
-  xlab(" ")                               +
-  geom_boxplot()                          +
-  expand_limits(y=0)                      +
-  coord_flip()                           -> boxplot_gp1
-print(boxplot_gp1)
+y_label <- "Estimated total sample size (prior)"
+sim_gp1                                         %>%
+  rename(y=Nstar)                               %>%
+  mutate(x=" ")                                 %>%
+  custom_boxplot(y_label, 1)                    -> prior_estimate
+prior_estimate
 ```
 
 You can learn a lot by looking at how the estimated total sample size relates to the prior paramter(s). 
 
 Recall that in this simulation, you randomly select an accrual rate, gamma, and then you simulate a path based on that value of lambda. Not too surprisingly, the sample size depends on what lambda is chosen, though there is some variation, even for the same value of lambda.
 
-```{r gamma-poisson-scatterplot1, fig.width=5, fig.height=5}
+```{r gamma-poisson-scatterplot1, fig.width=4, fig.height=4}
 # Scatterplot of accrual rate versus total sample size
-sim_gp1                                       %>%
-  ggplot(aes(Nstar, 30*lambda))                 +
-  geom_point()                                  +
-  xlab("Estimated total sample size")           + 
-  ylab("Accrual rate")                          +
-  coord_flip()
+sim_gp1                                         %>%
+  use_series(lambda)                            %>%
+  multiply_by(30)                               %>%
+  quantile(pctl_list/100)                       -> x_ticks
+x_ticks                                         %>%
+  round(1)                                      -> x_labels
+sim_gp1                                         %>%
+  use_series(Nstar)                             %>%
+  quantile(pctl_list/100)                       -> y_ticks
+y_ticks                                         %>%
+  round(1)                                      -> y_labels
+sim_gp1                                         %>%
+  rename(y=Nstar)                               %>%
+  mutate(x=30*lambda)                           %>%
+  ggplot(aes(x, y))                              +
+  geom_point()                                   +
+  ylab("Estimated total sample size (prior)")    + 
+  xlab("Monthly accrual rate (prior)")           +
+  scale_x_continuous(breaks=x_ticks,
+                     minor_breaks=NULL,
+                     labels=x_labels)            +
+  scale_y_continuous(breaks=y_ticks,
+                     minor_breaks=NULL,
+                     labels=y_labels)
 ```
 
 With a plot like this, you can run some sensitivity checks, such as "what would happen if the accrual rate were closer to 8.5 patients per month"
 
-```{r gamma-poisson-scatterplot2, fig.width=5, fig.height=5}
+```{r gamma-poisson-scatterplot2, fig.width=4, fig.height=4}
 # Scatterplot of accrual rate versus total sample size
-sim_gp1                                       %>%
-  mutate(h=(30*lambda>8.45)*(30*lambda<8.55)) %>%
-  mutate(lambda=ifelse(h==0, lambda, 8.5/30)) %>%
-  arrange(h)                                  %>%
-  ggplot(aes(Nstar, 30*lambda))                 +
-  xlab("Estimated total sample size")           + 
-  ylab("Accrual rate")                          +
-  geom_point(aes(color=factor(h)))              +    
-   theme(legend.position="none")                +
-  coord_flip()                                  +
+sim_gp1                                         %>%
+  rename(y=Nstar)                               %>%
+  mutate(x=30*lambda)                           %>%
+  mutate(h=(x>8.45)*(x<8.55))                   %>%
+  mutate(x=ifelse(h==0, x, 8.5))                %>%
+  arrange(h)                                    -> sim_sliced
+sim_sliced                                      %>%
+  filter(h==1)                                  %>%  
+  use_series(y)                                 %>%
+  quantile(pctl_list/100)                       -> y_ticks
+y_ticks                                         %>%
+  round                                         -> y_labels
+sim_sliced                                      %>%
+  ggplot(aes(x, y))                              +
+  ylab("Estimated total sample size (prior)")    + 
+  xlab("Accrual rate (prior)")                   +
+  geom_point(aes(color=factor(h)))               +    
+  theme(legend.position="none")                  +
+  scale_x_continuous(breaks=8.5,
+                     minor_breaks=NULL)          +
+  scale_y_continuous(breaks=y_ticks,
+                     minor_breaks=NULL,
+                     labels=y_labels)            +
   scale_color_manual(values=c("gray90", "red"))
 ```
 
-The key reason that you should run your simulations in Stan is that you can make a seamless transition to a simulation of a clinical trial during the trial itself. In this trial, the early accrual rate was much lower than expected. After 239 days, you have only gotten 41 patients. If you were on target, you would have 239/1095*350 = `r round(239/1095*350)` patients by now. How much is this shortfall hurting us?
+## Update
 
-```{r gamma-poisson-during-trial, fig.width=5, fig.height=1.33}
+The key reason that you should run your simulations in Stan is that you can make a seamless transition to a simulation of a clinical trial during the trial itself. In this trial, the early accrual rate was much lower than expected. After 239 days, you have only gotten 41 patients. If you were on target, you would have 239*(350/1095) = `r round(239/1095*350)` patients by now. How much is this shortfall hurting us?
+
+```{r gamma-poisson-during-trial, fig.width=7, fig.height=1}
 f <- "3-gamma-poisson.stan"
 dat_during <- list(N=350, T=3*365, S=0.5, n=41, t=239)
 fit_gp2 <- stan(file=f,
   data=dat_during, iter= 1000, chains = 4)
 
 fit_gp2              %>%
-  as.data.frame      %>%
-  mutate(i="updated estimate") %>%
-  bind_rows(sim_gp1) -> sim_gp2
+  as.data.frame      -> sim_gp2
+y_range <- range(sim_gp1$Nstar, sim_gp2$Nstar)
 
 # Boxplot of total sample size
-sim_gp2                                  %>%
-  ggplot(aes(i, Nstar))                   +
-  expand_limits(y=0)                      +
-  ylab("Estimated total sample size")     + 
-  xlab(" ")                               +
-  geom_boxplot()                          +
-  coord_flip()
+prior_estimate + expand_limits(y=y_range)
+y_label <- "Estimated total sample size (updated)"
+sim_gp2                                         %>%
+  rename(y=Nstar)                               %>%
+  mutate(x=" ")                                 %>%
+  custom_boxplot(y_label, 1)                     +
+  expand_limits(y=y_range)
 ```
+
+## Post mortem analysis
 
 For this trial, you were able to get 341 patients, but it took a lot longer than you expected, 1336 days instead of 1095 days. Time to get ready for your next clinical trial. NOT SO FAST! You are not done with simulations when the trial is over. After the trial, take a look at how your accrual rate ranks relative to the range of accrual rates associated with your prior distribution.
 
-```{r gamma-poisson-after-trial, echo=FALSE, fig.width=5, fig.height=1.67}
-data.frame(
-  i="final estimate",
-  lambda=341 / 1336,
-  stringsAsFactors=FALSE) %>%
-  bind_rows(sim_gp1)      -> sim_gp3
+```{r gamma-poisson-after-trial, echo=FALSE, fig.width=7, fig.height=1}
+sim4 <- data.frame(x=" ", y=30*341/1336)
 
-sim_gp1$lambda                           %>%
-  is_less_than(341 / 1336)               %>%
+sim3$y                                   %>%
+  is_less_than(sim4$y)                   %>%
   mean                                   %>%
   multiply_by(100)                       %>%
   round(1)                               %>%
-  paste("Final estimate is at the", .)   %>%
-  paste("percentile")                    -> pctl
+  paste0(" percentile")                  -> pctl
+y_label4 <- paste0("Monthly accrual rate (final, ", pctl, ")")
 
-# Boxplot of total sample size
-sim_gp3                                  %>%
-  ggplot(aes(i, lambda*30))               +
-  ylab("patients per month")              + 
-  xlab(" ")                               +
-  geom_boxplot()                          +
-  ggtitle(pctl)                           +
-  coord_flip()
+y_range <- range(sim3$y, sim4$y)
+
+# Boxplot of accrual rate
+custom_boxplot(sim3, y_label3, 1) + expand_limits(y=y_range)
+custom_boxplot(sim4, y_label4, 1) + expand_limits(y=y_range)
 ```
 
 Okay, so you were way off. No one is going to hang you. If the same thing occurs over and over again, though, let's talk.
 
+```{r save-everything}
+save.image("3-gamma-poisson.RData")
+```

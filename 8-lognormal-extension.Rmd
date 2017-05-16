@@ -5,6 +5,10 @@ date: "March 22, 2017"
 output: html_document
 ---
 
+```{r preliminaries, echo=FALSE, message=FALSE}
+source("0-preliminaries.R", echo=FALSE)
+```
+
 ## Modeling multi-center trials.
 
 Here are the accrual data on two multi-center trials. The first, csp546, has accrual at 4 centers. The study ran for 56 weeks and recruited 613 total participants. The second, csp588, has accrual at 4 centers. The study ran for 24 weeks and recruited 127 patients.

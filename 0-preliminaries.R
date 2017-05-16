@@ -1,3 +1,4 @@
+rm(list=ls())
 library(broom)
 library(dplyr)
 library(ggplot2)
@@ -24,10 +25,12 @@ custom_boxplot <- function(df, y_label, rounding_level, co="black") {
   df                                            %>%
     ggplot(aes(x, y))                            +
     geom_boxplot(color=co)                       +
-    scale_y_continuous(breaks=tm, 
+    scale_y_continuous(breaks=tm,
+                       color=co,
                        minor=NULL,
                        labels=lb)                +
-    labs(x="", y=y_label)                        +
+    xlab(x=" ")                                  +
+    ylab(y=y_label, color=co)                    +
     coord_flip()                                %>%
     return
 }

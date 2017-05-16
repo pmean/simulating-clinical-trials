@@ -27,29 +27,7 @@ T <- 1095
 s_list <- c(0.1, 0.2, 0.5)
 ```
 
-Consider a clinical trial that plans to run for `r T` days (`r T/365` years). You hope to recruit `r N` patients in that time, which would mean `r round(N/T, 2)` patients per day or `r round(30*N/T, 1)` patients per month. You suspect, however, that the accrual rate might actually be quite a bit higher or quite a bit lower than this target.
-
-## Boxplot of prior distribution
-
-Try setting a distribution on the monthly accrual rate that has a mean equal to the expected accrual rate  but with varying levels of precision equivalent to `r paste0(round(100*s_list), "%")` of the planned sample size. 
-
-```{r gamma_prior, fig.width=7, fig.height=1.67}
-n_s <- length(s_list)
-n_reps <- 1000
-S <- rep(s_list, each=n_reps)
-pr1 <- tibble(x=paste("S =", S), y=rgamma(n_s*n_reps, S*N, S*T/30))
-
-pr1                                             %>%
-  ggplot(aes(x, y))                              +
-  geom_boxplot(color=c("gray", "gray", "black")) +
-  xlab(" ")                                      +
-  ylab("Prior estimate of monthly accrual rate") +
-  coord_flip()
-
-S <- 0.5
-```
-
-As a researcher who has done this sort of clinical trial many times, the value of S=`r S` seems reasonable. Smaller values of S produce distributions that are much wider than what you'd expect in a trial like this. With this value of S, you are ready to simulate your clinical trial.
+Consider a clinical trial that plans to run for `r T` days (`r T/365` years). You hope to recruit `r N` patients in that time, which would mean `r round(N/T, 2)` patients per day or `r round(30*N/T, 1)` patients per month. You suspect, however, that the accrual rate might actually be quite a bit higher or quite a bit lower than this target. You set a prior distribution on the accrual rate that is Gamma(175, 547.5). You need to wait for an explanation of why this might be a reasonable prior distribution.
 
 ## Simulating various features of a trial
 
