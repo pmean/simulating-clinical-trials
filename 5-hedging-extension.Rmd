@@ -30,7 +30,7 @@ fit_hd2                                         %>%
 
 ```{r recalculate-informative-prior}
 # informative prior
-f <- "gamma-poisson.stan"
+f <- "3-gamma-poisson.stan"
 dat_during <- list(N=350, T=3*365, S=0.5, n=0, t=0)
 fit_gp1 <- stan(file=f,
   data=dat_during, iter= 1000, chains = 4)
@@ -41,7 +41,7 @@ fit_gp1                                         %>%
 
 ```{r recalculate-informative-update}
 # informative posterior
-f <- "gamma-poisson.stan"
+f <- "3-gamma-poisson.stan"
 dat_during <- list(N=350, T=3*365, S=0.5, n=41, t=239)
 fit_gp2 <- stan(file=f,
   data=dat_during, iter= 1000, chains = 4)
@@ -52,7 +52,7 @@ fit_gp2                                         %>%
 
 ```{r calculate-flat-update}
 # flat posterior
-f <- "gamma-poisson.stan"
+f <- "3-gamma-poisson.stan"
 dat_during <- list(N=350, T=3*365, S=0.001/350, n=41, t=239)
 fit_fl2 <- stan(file=f,
   data=dat_during, iter= 1000, chains = 4)
@@ -127,7 +127,7 @@ Let's look at the behavior of the hedging hyperprior when it's not needed--when 
 
 ```{r hedging-extension2}
 # hedging posterior
-f <- "hedging-extension.stan"
+f <- "5-hedging-extension.stan"
 dat_during <- list(N=350, T=3*365, S=0.5, n=41, t=129)
 fit_hd4 <- stan(file=f,
   data=dat_during, iter= 1000, chains = 4)
@@ -138,7 +138,7 @@ fit_hd4                                         %>%
 
 ```{r informative-prior2}
 # informative prior
-f <- "gamma-poisson.stan"
+f <- "3-gamma-poisson.stan"
 dat_before <- list(N=350, T=3*365, S=0.5, n=0, t=0)
 fit_gp4 <- stan(file=f,
   data=dat_during, iter= 1000, chains = 4)
@@ -149,7 +149,7 @@ fit_gp4                                         %>%
 
 ```{r informative-update2}
 # informative posterior
-f <- "gamma-poisson.stan"
+f <- "3-gamma-poisson.stan"
 dat_during <- list(N=350, T=3*365, S=0.5, n=41, t=129)
 fit_gp5 <- stan(file=f,
   data=dat_during, iter= 1000, chains = 4)
@@ -160,7 +160,7 @@ fit_gp5                                         %>%
 
 ```{r flat-update2}
 # flat posterior
-f <- "gamma-poisson.stan"
+f <- "3-gamma-poisson.stan"
 dat_during <- list(N=350, T=3*365, S=0.001/350, n=41, t=129)
 fit_fl3 <- stan(file=f,
   data=dat_during, iter= 1000, chains = 4)

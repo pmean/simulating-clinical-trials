@@ -25,7 +25,7 @@ Third, a strong prior distribution provides you with stable estimates early in t
 # stan is inefficient for these next couple of models, but I'm not
 # sure why. It is easy enough to run a simulation directly.
 n_reps <- 100000
-pts <- unlist(read.csv("count.csv"))
+pts <- unlist(read.csv("2-paths-count.csv"))
 x <- cumsum(pts)
 T <- 3*365
 N <- 350
@@ -64,7 +64,7 @@ Compare this to the predictions that use an informative prior. The posterior est
 
 ```{r bayesian-average}
 n_reps <- 100000
-pts <- unlist(read.csv("count.csv"))
+pts <- unlist(read.csv("2-paths-count.csv"))
 x <- cumsum(pts)
 T <- 3*365
 N <- 350
@@ -83,7 +83,7 @@ for (i in seq(1, nx, by=1)) {
 }
 ```
 
-```{r plot-informative}
+```{r plot-informative, fig.width=4, fig.height=4}
 informative_predictions %>%
   mutate(lo=lo/365)                             %>%
   mutate(hi=hi/365)                             %>%
