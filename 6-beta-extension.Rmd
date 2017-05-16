@@ -217,15 +217,15 @@ It looks like the proportion of time waiting to start has a far greater influenc
 
 The actual trial that I have used so far did not have a formal model for delays, but it is easy enough to modify the data to fit this example. You need to prepend the data with a string of zeros corresponding to the days when the trial was waiting to get started. The day with the first non-zero entry is considered to be the end of the waiting and the beginning of the warm-up period. The end of the warm-up period is unknown, even after the trial is over, but can be estimated by the daily accrual pattern.
 
-```{r delay-during}
-pts <- as.numeric(c(rep(0, 58), unlist(read.csv("count.csv"))))
+```{r delay-during, fig.width=4, fig.height=4}
+pts <- as.numeric(c(rep(0, 58), unlist(read.csv("2-paths-count.csv"))))
 data=list(N=350, T=3*365, S=0.5, T0=58,
           D1=0.1,  S1=0.2,
           D2=0.4,  S2=0.1,
           D3=0.17, S3=0.2,
           t=length(pts), n=pts)
 inits = list(lambda=0.3, delta2=0.15, delta3=0.15)
-pts.m <- jags.model("delay1-extension.jags", data=data, inits=inits,
+pts.m <- jags.model("6-beta-extension.jags", data=data, inits=inits,
   n.adapt = 100)
 
 parms <- c("lambda", "delta1", "delta2", "delta3", "Nstar")
