@@ -170,25 +170,41 @@ dp3                                             %>%
 
 First look at what these priors do to the total sample size.
 
-```{r delay-after, fig.height=1, fig.width=5, eval=FALSE}
-f <- "beta-extension.stan"
+```{r delay0, fig.height=4, fig.width=4}
+f <- "6-beta-test1.jags"
 # Here's what's hiding in the file 
 cat(readLines(f), sep="\n")
-dat_before <- list(N=350, T=3*365, S=0.5, D1=0.1, S1=0.2, D2=0.4, S2=0.1, D3=0.17, S3=0.2)
-fit_d31 <- stan(file=f,
-  data=dat_before, iter= 1000, chains = 4)
+dat_before <- list(N=350, T=3*365, S=0.5, D1=0.1, S1=0.2, t=0, n=0)
 
-fit_d31              %>%
-  as.data.frame      %>%
-  mutate(i="before") -> sim_d31
-# Boxplot of total sample size
-sim_d31                                  %>%
-  ggplot(aes(i, Nstar))                   +
-  expand_limits(y=0)                      +
-  ylab("Estimated total sample size")     + 
-  xlab(" ")                               +
-  geom_boxplot()                          +
-  coord_flip()
+pts.m <- jags.model(f, data=dat_before, 
+  n.adapt = 100)
+
+parms <- c("lambda", "delta1", "delta2", "delta3", "Nstar")
+pts.samp <- coda.samples(pts.m, var=parms, n.iter = 1000)
+summary(pts.samp)
+pts.matrix <- as.matrix(pts.samp)
+nm <- dimnames(pts.matrix)[[2]]
+hist(pts.matrix[, "Nstar"], breaks=50, main=nm[1])
+hist(pts.matrix[, "delta1"]*1095, breaks=50, main=nm[2])
+hist(pts.matrix[, "lambda"]*30, breaks=50, main=nm[3])
+```
+
+```{r delay1, fig.height=4, fig.width=4}
+f <- "6-beta-test1.jags"
+pts <- as.numeric(c(rep(0, 58), unlist(read.csv("2-paths-count.csv"))))
+dat_during <- list(N=350, T=3*365, S=0.5, D1=0.1, S1=0.2, t=2, n=pts[1:2])
+
+pts.x <- jags.model(f, data=dat_during, 
+  n.adapt = 100)
+
+parms <- c("lambda", "delta1", "Nstar")
+pts.t <- coda.samples(pts.x, var=parms, n.iter = 1000)
+summary(pts.t)
+pts.matrix <- as.matrix(pts.t)
+nm <- dimnames(pts.matrix)[[2]]
+hist(pts.matrix[, "Nstar"], breaks=50, main=nm[1])
+hist(pts.matrix[, "delta1"]*1095, breaks=50, main=nm[2])
+hist(pts.matrix[, "lambda"]*30, breaks=50, main=nm[3])
 ```
 
 You should consider exploring how sensitive your estimated total sample size is relative to each of the delay parameters.
@@ -217,7 +233,7 @@ It looks like the proportion of time waiting to start has a far greater influenc
 
 The actual trial that I have used so far did not have a formal model for delays, but it is easy enough to modify the data to fit this example. You need to prepend the data with a string of zeros corresponding to the days when the trial was waiting to get started. The day with the first non-zero entry is considered to be the end of the waiting and the beginning of the warm-up period. The end of the warm-up period is unknown, even after the trial is over, but can be estimated by the daily accrual pattern.
 
-```{r delay-during, fig.width=4, fig.height=4}
+```{r delay-during, fig.width=4, fig.height=4, eval=FALSE}
 pts <- as.numeric(c(rep(0, 58), unlist(read.csv("2-paths-count.csv"))))
 data=list(N=350, T=3*365, S=0.5, T0=58,
           D1=0.1,  S1=0.2,
