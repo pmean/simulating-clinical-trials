@@ -13,8 +13,8 @@ source("0-preliminaries.R", echo=FALSE)
 
 There are several different models for accrual delays. They may or may not include a start-up time before ANY accrual, and they may or may not include a warm-up time early in the trial when accrual is slower. If there is a warm-up time, there are several ways to model the transition from slow accrual to full accrual.
 
-```{r delay-example0, fig.height=1.5, fig.width=7}
-data.frame(x=c(100, 200), y=c(100, 200))             %>%
+```{r delay-example0, fig.height=2, fig.width=7}
+data.frame(x=c(100, 200), y=c(100, 250))             %>%
   ggplot(aes(x, y))                                   +
   geom_point(color="white")                           +
   labs(x=NULL, y=NULL)                                +
@@ -27,7 +27,7 @@ data.frame(x=c(100, 200), y=c(100, 200))             %>%
   geom_label  (x=110, y=125, fill="red", 
                label="Waiting\nto start")             +
   geom_label  (x=135, y=125, fill="yellow",
-               label="Slow\naccrual")                 +
+               label="Early\naccrual")                 +
   geom_segment(x   =150, y   =200,
                xend=200, yend=200,
                color="green", size=3,
@@ -37,7 +37,7 @@ data.frame(x=c(100, 200), y=c(100, 200))             %>%
                color="gray", size=1, alpha=0.5,
                arrow=arrow(length=unit(0.1, "inch"))) +
   geom_label  (x=160, y=125, fill="green",
-               label="Full\naccrual")                 + 
+               label="Late\naccrual")                 + 
   theme(plot.margin=unit(c(0,0,0,0),"in"))            +
   theme(axis.line =element_blank())                   +
   theme(axis.text =element_blank())                   +
@@ -47,7 +47,7 @@ data.frame(x=c(100, 200), y=c(100, 200))             %>%
 
 Here's a linear transition from slow to full accrual. It has two parameters, the duration of the waiting to start period and the duration of the transition to full accrual.
  
-```{r delay-example1, fig.height=1.5, fig.width=7}
+```{r delay-example1, fig.height=2, fig.width=7}
 delay_graph                                      +
   geom_segment(x   =120, y   =150,
                xend=150, yend=200,
@@ -59,7 +59,7 @@ delay_graph                                      +
 
 Here's a discontinuous transition from slow to full accrual. It has three parameters, the duration of the waiting to start period, the rate during slow accrual, and the duration of the transition to full accrual.
  
-```{r delay-example2, fig.height=1.5, fig.width=7}
+```{r delay-example2, fig.height=2, fig.width=7}
 delay_graph                                      +
   geom_segment(x   =120, y   =180,
                xend=150, yend=180,
@@ -70,21 +70,21 @@ delay_graph                                      +
   
 ```
 
-Here's a partially discontinuous transition from slow to full accrual. It has the same three parameters as the earlier example, but the implementation is slightly different.
+Here's an example of a partially discontinuous transition where the early accrual is fast, perhaps because there were a large number of patients waiting for the trial to start.
  
-```{r delay-example3, fig.height=1.5, fig.width=5}
+```{r delay-example3, fig.height=2, fig.width=5}
 delay_graph                                      +
-  geom_segment(x   =120, y   =180,
+  geom_segment(x   =120, y   =250,
                xend=150, yend=200,
                color="yellow", size=3)           +
-    geom_segment(x   =120, y   =180,
+    geom_segment(x   =120, y   =250,
                xend=150, yend=200,
                color="gray", size=1)
 ```
 
-Here's a smooth transition using the function 3x^2-2x^3.
+Here's a smooth transition using the function $3x^2-2x^3$.
  
-```{r delay-example4, fig.height=1.5, fig.width=5}
+```{r delay-example4, fig.height=2, fig.width=5}
 x_original <- seq(0, 1, length=50)
 y_original <- 3*x_original^2-2*x_original^3
 x_rescaled <- 120 + 30 * x_original
@@ -170,6 +170,53 @@ dp3                                             %>%
 
 First look at what these priors do to the total sample size.
 
+```{r delay3, fig.height=4, fig.width=4}
+f <- "6-beta-test2.jags"
+# Here's what's hiding in the file 
+cat(readLines(f), sep="\n")
+dat_before <- list(
+  N=350, T=3*365, S=0.5, 
+  D2=0.4,  S2=0.1,
+  D3=0.17, S3=0.2,
+  t=0, n=0)
+
+pts.m <- jags.model(f, data=dat_before, 
+  n.adapt = 100)
+
+parms <- c("lambda", "delta2", "delta3", "Nstar")
+pts.t <- coda.samples(pts.m, var=parms, n.iter = 1000)
+summary(pts.t)
+pts.matrix <- as.matrix(pts.t)
+nm <- dimnames(pts.matrix)[[2]]
+hist(pts.matrix[, "Nstar"], breaks=50, main=nm[1])
+hist(pts.matrix[, "delta2"], breaks=50, main=nm[2])
+hist(pts.matrix[, "delta3"]*1095, breaks=50, main=nm[2])
+hist(pts.matrix[, "lambda"]*30, breaks=50, main=nm[3])
+```
+
+```{r delay4, fig.height=4, fig.width=4}
+f <- "6-beta-test2.jags"
+pts <- as.numeric(unlist(read.csv("2-paths-count.csv")))
+dat_during <- list(
+  N=350, T=3*365, S=0.5, 
+  D2=0.4,  S2=0.1,
+  D3=0.17, S3=0.2,
+  t=length(pts), n=pts)
+
+pts.x <- jags.model(f, data=dat_during, 
+  n.adapt = 100)
+
+parms <- c("lambda", "delta2", "delta3", "Nstar")
+pts.t <- coda.samples(pts.x, var=parms, n.iter = 1000)
+summary(pts.t)
+pts.matrix <- as.matrix(pts.t)
+nm <- dimnames(pts.matrix)[[2]]
+hist(pts.matrix[, "Nstar"], breaks=50, main=nm[1])
+hist(pts.matrix[, "delta2"], breaks=50, main=nm[2])
+hist(pts.matrix[, "delta3"]*1095, breaks=50, main=nm[2])
+hist(pts.matrix[, "lambda"]*30, breaks=50, main=nm[3])
+```
+
 ```{r delay0, fig.height=4, fig.width=4}
 f <- "6-beta-test1.jags"
 # Here's what's hiding in the file 
@@ -191,8 +238,8 @@ hist(pts.matrix[, "lambda"]*30, breaks=50, main=nm[3])
 
 ```{r delay1, fig.height=4, fig.width=4}
 f <- "6-beta-test1.jags"
-pts <- as.numeric(c(rep(0, 58), unlist(read.csv("2-paths-count.csv"))))
-dat_during <- list(N=350, T=3*365, S=0.5, D1=0.1, S1=0.2, t=2, n=pts[1:2])
+pts <- rep(0, 150)
+dat_during <- list(N=350, T=3*365, S=0.5, D1=0.1, S1=0.2, t=150, n=pts)
 
 pts.x <- jags.model(f, data=dat_during, 
   n.adapt = 100)
@@ -206,6 +253,25 @@ hist(pts.matrix[, "Nstar"], breaks=50, main=nm[1])
 hist(pts.matrix[, "delta1"]*1095, breaks=50, main=nm[2])
 hist(pts.matrix[, "lambda"]*30, breaks=50, main=nm[3])
 ```
+
+```{r delay2, fig.height=4, fig.width=4}
+f <- "6-beta-test1.jags"
+pts <- as.numeric(c(rep(0, 150), unlist(read.csv("2-paths-count.csv"))))
+dat_during <- list(N=350, T=3*365, S=0.5, D1=0.1, S1=0.2, t=length(pts), n=pts)
+
+pts.x <- jags.model(f, data=dat_during, 
+  n.adapt = 100)
+
+parms <- c("lambda", "delta1", "Nstar")
+pts.t <- coda.samples(pts.x, var=parms, n.iter = 1000)
+summary(pts.t)
+pts.matrix <- as.matrix(pts.t)
+nm <- dimnames(pts.matrix)[[2]]
+hist(pts.matrix[, "Nstar"], breaks=50, main=nm[1])
+hist(pts.matrix[, "delta1"]*1095, breaks=50, main=nm[2])
+hist(pts.matrix[, "lambda"]*30, breaks=50, main=nm[3])
+```
+
 
 You should consider exploring how sensitive your estimated total sample size is relative to each of the delay parameters.
 
