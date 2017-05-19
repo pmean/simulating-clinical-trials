@@ -26,11 +26,13 @@ custom_boxplot <- function(df, y_label, rounding_level, co="black") {
     ggplot(aes(x, y))                            +
     geom_boxplot(color=co)                       +
     scale_y_continuous(breaks=tm,
-                       color=co,
                        minor=NULL,
                        labels=lb)                +
-    xlab(x=" ")                                  +
-    ylab(y=y_label, color=co)                    +
+    theme(axis.title = element_text(color=co))   +
+    theme(axis.text = element_text(color=co))    +
+    theme(axis.ticks = element_line(color=co))   +
+    xlab(" ")                                    +
+    ylab(y_label)                                +
     coord_flip()                                %>%
     return
 }
