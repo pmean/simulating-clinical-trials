@@ -7,16 +7,48 @@ output: html_document
 
 ```{r preliminaries, echo=FALSE, message=FALSE}
 source("0-preliminaries.R", echo=FALSE)
-s_list <- c(0.1, 0.2, 0.5)
-n_s <- length(s_list)
 n_reps <- 1000
 pctl_list <- c(1, 25, 50, 75, 99)
 N <- 350
 T <- 1095
-D1 <- 0.1
+S  <- 0.5
+S1 <- 0.2
+S2 <- 0.1
+S3 <- 0.2
+D1 <- 0.12
 D2 <- 0.4
-D3 <- 0.17
-dat_prior <- list(N=N, T=T, S=0.5, n=0, t=0)
+D3 <- 0.06
+dat_prior <- list(
+  N=N, T=T, S=S, 
+  D1=D1, S1=S1,
+  D2=D2, S2=S2,
+  D3=D3, S3=S3,
+  t=0, n=0)
+
+dat_update1 <- dat_prior
+dat_update1$t <- 150
+dat_update1$n <- rep(0, 150)
+
+pts <- unlist(read.csv("2-paths-count.csv"))
+dat_update2 <- dat_update1
+dat_update2$t <- 192 + length(pts)
+dat_update2$n <- c(rep(0, 192), pts)
+
+N_label0 <- "Estimated total sample size (prior)"
+N_label1 <- sub("prior", "update 1", N_label0)
+N_label2 <- sub("prior", "update 2", N_label0)
+
+g1_label0 <- "Days before start (prior)"
+g1_label1 <- sub("prior", "update 1", g1_label0)
+g1_label2 <- sub("prior", "update 2", g1_label0)
+
+g2_label0 <- "Monthly accrual rate during warm-up phase (prior)"
+g2_label1 <- sub("prior", "update 1", g2_label0)
+g2_label2 <- sub("prior", "update 2", g2_label0)
+
+g3_label0 <- "Days during warm-up phase (prior)"
+g3_label1 <- sub("prior", "update 1", g3_label0)
+g3_label2 <- sub("prior", "update 2", g3_label0)
 ```
 
 ## Formulas for accrual delays
@@ -113,62 +145,58 @@ We'll fit the discontinuous model, the first one shown, because it is convenient
 
 Generally, you should use strong priors here to limit delta1 and delta3 to the lower end of the range from 0 to 1. If you really thought that delta1 and/or delta3 would be much closer to 1, then you should rethink what your total time planned should be.
 
-Here's some possible prior distributions. For delta1, the proportion of the total planned time that you spend waiting for the study to get started, a beta(7, 63) corresponds to an expectation that 10% of the time will be lost on average. The total weight assigned to this prior (70) corresponds to S=0.2.
+Here's some possible prior distributions. For delta1, the proportion of the total planned time that you spend waiting for the study to get started, a beta(`r N*D1*S1`, `r N*S1*(1-D1)`) corresponds to an expectation that `r D1*100`% of the time (`r D1*T` days) will be lost on average before the trial even begins. The total weight assigned to this prior corresponds to `r S1*100`% of the total sample size.
 
 ```{r delay-priors1, fig.height=1, fig.width=7}
-S1 <- 0.1
-y_label1 <- "Days before start (prior, S1=0.1)"
-sim1 <- data.frame(x=" ", y=rbeta(n_reps, S1*N*D1, S1*N*(1-D1))*T)
-S1 <- 0.2
-y_label2 <- "Days before start (prior, S1=0.2)"
-sim2 <- data.frame(x=" ", y=rbeta(n_reps, S1*N*D1, S1*N*(1-D1))*T)
-S1 <- 0.5
-y_label3 <- "Days before start (prior, S1=0.5)"
-sim3 <- data.frame(x=" ", y=rbeta(n_reps, S1*N*D1, S1*N*(1-D1))*T)
+g1_label0a <- sub("prior", paste("prior, S1", S1/2, sep="="), g1_label0)
+g1_label0b <- sub("prior", paste("prior, S1", S1,   sep="="), g1_label0)
+g1_label0c <- sub("prior", paste("prior, S1", S1*2, sep="="), g1_label0)
+
+sim1 <- data.frame(x=" ", y=rbeta(n_reps, S1/2*N*D1, S1/2*N*(1-D1))*T)
+sim2 <- data.frame(x=" ", y=rbeta(n_reps, S1  *N*D1, S1  *N*(1-D1))*T)
+sim3 <- data.frame(x=" ", y=rbeta(n_reps, S1*2*N*D1, S1*2*N*(1-D1))*T)
 
 y_range <- range(sim1$y, sim2$y, sim3$y)
-custom_boxplot(sim1, y_label1, 0, "gray") + expand_limits(y=y_range)
-custom_boxplot(sim2, y_label2, 0)         + expand_limits(y=y_range)
-custom_boxplot(sim3, y_label3, 0, "gray") + expand_limits(y=y_range)
 
-S1 <- 0.2
+custom_boxplot(sim1, g1_label0a, 0, "gray") + expand_limits(y=y_range)
+custom_boxplot(sim2, g1_label0b, 0)         + expand_limits(y=y_range)
+custom_boxplot(sim3, g1_label0c, 0, "gray") + expand_limits(y=y_range)
 ```
 
-For delta2, the proportionate reduction in accrual during the warm-up period, a beta(14, 21) corresponds to an expectation that the reductiton during warm-up will be about 40% of the regular accrual rate on average. The total weight assigned to this prior (35) is weaker and corresponds to S=0.1.
+For delta2, the proportionate reduction in accrual during the warm-up period, a beta(`r S2*N*D2`, `r S2*N*(1-D2)` corresponds to an expectation that the reductiton during warm-up will be about `r 100*D2`% of the regular accrual rate on average, or roughly `r round(D2*30*N/T)` patients per month. The total weight assigned to this prior corresponds to `r S2*100`% of the total sample size.
 
 ```{r delay-priors2, fig.height=1, fig.width=7}
-S2 <- 0.1
-y_label1 <- "Monthly accrual rate during early phase (prior, S2=0.1)"
-sim1 <- data.frame(x=" ", y=rbeta(n_reps, S2*N*D2, S2*N*(1-D2))*N/T*30)
-S2 <- 0.2
-y_label2 <- "Monthly accrual rate during early phase (prior, S2=0.2)"
-sim2 <- data.frame(x=" ", y=rbeta(n_reps, S2*N*D2, S2*N*(1-D2))*N/T*30)
-S2 <- 0.5
-y_label3 <- "Monthly accrual rate during early phase (prior, S2=0.5)"
-sim3 <- data.frame(x=" ", y=rbeta(n_reps, S2*N*D2, S2*N*(1-D2))*N/T*30)
+g2_label0a <- sub("prior", paste("prior, S2", S2/2, sep="="), g2_label0)
+g2_label0b <- sub("prior", paste("prior, S2", S2,   sep="="), g2_label0)
+g2_label0c <- sub("prior", paste("prior, S2", S2*2, sep="="), g2_label0)
+
+sim1 <- data.frame(x=" ", y=rbeta(n_reps, S2/2*N*D2, S2/2*N*(1-D2))*30*N/T)
+sim2 <- data.frame(x=" ", y=rbeta(n_reps, S2  *N*D2, S2  *N*(1-D2))*30*N/T)
+sim3 <- data.frame(x=" ", y=rbeta(n_reps, S2*2*N*D2, S2*2*N*(1-D2))*30*N/T)
 
 y_range <- range(sim1$y, sim2$y, sim3$y)
-custom_boxplot(sim1, y_label1, 0)         + expand_limits(y=y_range)
-custom_boxplot(sim2, y_label2, 0, "gray") + expand_limits(y=y_range)
-custom_boxplot(sim3, y_label3, 0, "gray") + expand_limits(y=y_range)
+
+custom_boxplot(sim1, g2_label0a, 1, "gray") + expand_limits(y=y_range)
+custom_boxplot(sim2, g2_label0b, 1)         + expand_limits(y=y_range)
+custom_boxplot(sim3, g2_label0c, 1, "gray") + expand_limits(y=y_range)
 ```
 
-For delta3, the proportion of the total planned time that you spend in the warm-up period, a beta(11.9, 58.1) corresponds to an expectation that 17% of the time your trial will be stuck in the warm-up phase. The total weight assigned to this prior (70) corresponds to S=0.2.
+For delta3, the proportion of the total planned time that you spend in the warm-up period, a beta(`r S3*N*D3`, `r S3*N*(1-D3)`) corresponds to an expectation that `r 100*D3`% of the time your trial will be stuck in the warm-up phase. The total weight assigned to this prior corresponds to `r S3*100`% of the total sample size.
 
 ```{r delay-priors3, fig.height=1, fig.width=7}
-S3 <- 0.1
-y_label1 <- "Days in warmup (prior, S3=0.1)"
-sim1 <- data.frame(x=" ", y=rbeta(n_reps, S3*N*D3, S3*N*(1-D3))*T)
-S3 <- 0.2
-y_label2 <- "Days in warmup (prior, S3=0.2)"
-sim2 <- data.frame(x=" ", y=rbeta(n_reps, S3*N*D3, S3*N*(1-D3))*T)
-S3 <- 0.5
-y_label3 <- "Days in warmup (prior, S3=0.5)"
-sim3 <- data.frame(x=" ", y=rbeta(n_reps, S3*N*D3, S3*N*(1-D3))*T)
+g3_label0a <- sub("prior", paste("prior, S3", S3/2, sep="="), g3_label0)
+g3_label0b <- sub("prior", paste("prior, S3", S3,   sep="="), g3_label0)
+g3_label0c <- sub("prior", paste("prior, S3", S3*2, sep="="), g3_label0)
+
+sim1 <- data.frame(x=" ", y=rbeta(n_reps, S3/2*N*D3, S3/2*N*(1-D3))*T)
+sim2 <- data.frame(x=" ", y=rbeta(n_reps, S3  *N*D3, S3  *N*(1-D3))*T)
+sim3 <- data.frame(x=" ", y=rbeta(n_reps, S3*2*N*D3, S3*2*N*(1-D3))*T)
+
 y_range <- range(sim1$y, sim2$y, sim3$y)
-custom_boxplot(sim1, y_label1, 0, "gray") + expand_limits(y=y_range)
-custom_boxplot(sim2, y_label2, 0)         + expand_limits(y=y_range)
-custom_boxplot(sim3, y_label3, 0, "gray") + expand_limits(y=y_range)
+
+custom_boxplot(sim1, g3_label0a, 0, "gray") + expand_limits(y=y_range)
+custom_boxplot(sim2, g3_label0b, 0)         + expand_limits(y=y_range)
+custom_boxplot(sim3, g3_label0c, 0, "gray") + expand_limits(y=y_range)
 ```
 
 ## Fitting a delay model
@@ -176,21 +204,14 @@ custom_boxplot(sim3, y_label3, 0, "gray") + expand_limits(y=y_range)
 First look at what these priors do to the total sample size.
 
 ```{r delay_fit0, fig.height=1, fig.width=7}
-y_label <- "Estimated total sample size (prior)"
 f <- "6-beta-test3.jags"
 # Here's what's hiding in the file 
 cat(readLines(f), sep="\n")
-dat_before <- list(
-  N=350, T=3*365, S=0.5, 
-  D1=0.1,  S1=0.2,
-  D2=0.4,  S2=0.1,
-  D3=0.17, S3=0.2,
-  t=0, n=0)
 
-mod_dm0 <- jags.model(f, data=dat_before, 
+mod_dm0 <- jags.model(f, data=dat_prior, 
   n.adapt = 100)
 
-parms <- c("delta2", "delta3", "lambda", "Nstar")
+parms <- c("delta1", "delta2", "delta3", "lambda", "Nstar")
 fit_dm0 <- coda.samples(mod_dm0, var=parms, n.iter = 1000)
 summary(fit_dm0)
 fit_dm0                                         %>%
@@ -199,14 +220,177 @@ fit_dm0                                         %>%
 sim_dm0                                         %>%
   rename(y=Nstar)                               %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(y_label, 1)                    -> prior_estimate
+  custom_boxplot(N_label0, 0)                   -> prior_estimate
 prior_estimate
 ```
 
+You are taking a big hit here. But you should be thankful that you're accounting for these sorts of things before the trial starts.
+
 You should consider exploring how sensitive your estimated total sample size is relative to each of the delay parameters.
+
+```{r scaterplots, fig.width=4, fig.height=4}
+sim_dm0                                         %>%
+  mutate(x=delta1*T)                            %>%
+  mutate(y=Nstar)                               %>%
+  custom_scatterplot(g1_label0, N_label0, round_x=0)
+sim_dm0                                         %>%
+  mutate(x=30*delta2*N/T)                       %>%
+  mutate(y=Nstar)                               %>%
+  custom_scatterplot(g2_label0, N_label0)
+sim_dm0                                         %>%
+  mutate(x=delta3*T)                            %>%
+  mutate(y=Nstar)                               %>%
+  custom_scatterplot(g3_label0, N_label0, round_x=0)
+```
 
 
 It looks like the proportion of time waiting to start has a far greater influence on the total sample size than the other parameters. This would change if you changed your prior distributions, of course, but in general it makes sense. Time lost waiting for the trial to start is time when no subjects enter. Time during slow accrual is important but at least you are getting some subjects in during this time frame. The relative slowness during the warm-up period is also not too critical.
 
-The actual trial that I have used so far did not have a formal model for delays, but it is easy enough to modify the data to fit this example. You need to prepend the data with a string of zeros corresponding to the days when the trial was waiting to get started. The day with the first non-zero entry is considered to be the end of the waiting and the beginning of the warm-up period. The end of the warm-up period is unknown, even after the trial is over, but can be estimated by the daily accrual pattern.
+The actual trial that I have used so far did not have a formal model for delays, but it is easy enough to modify the data to fit this example. You need to prepend the data with a string of zeros corresponding to the days when the trial was waiting to get started.
 
+Suppose that you are on day `r dat_update1$t`, and not a single patient has shown up. You were expecting the time to the first patient to be around `r D1*T`, but it looks like things might be far worse. What does above average delay to the start of your study do to your estimate of the total sample size?
+
+```{r delay_fit1, fig.height=1, fig.width=7}
+y_label <- "Estimated total sample size (update 1)"
+f <- "6-beta-test3.jags"
+# Here's what's hiding in the file 
+cat(readLines(f), sep="\n")
+
+mod_dm1 <- jags.model(f, data=dat_update1, 
+  n.adapt = 100)
+
+parms <- c("delta1", "delta2", "delta3", "lambda", "Nstar")
+fit_dm1 <- coda.samples(mod_dm1, var=parms, n.iter = 1000)
+summary(fit_dm1)
+fit_dm1                                         %>%
+  as.matrix                                     %>%
+  as.data.frame                                 -> sim_dm1
+sim_dm1                                         %>%
+  rename(y=Nstar)                               %>%
+  mutate(x=" ")                                 %>%
+  custom_boxplot(N_label1, 0)                    -> update1
+sim_dm0                                         %>%
+  rename(y=Nstar)                               %>%
+  mutate(x=" ")                                 %>%
+  custom_boxplot(N_label0, 0, co="gray")        -> prior_estimate
+r <- range(sim_dm0$Nstar, sim_dm1$Nstar)
+prior_estimate + expand_limits(y=r)
+update1 + expand_limits(y=r)
+```
+
+Okay, tell me when you think the trial will start, now that we know that the delay is at least `r dat_update1$t` days.
+
+```{r updated_start, fig.width=7, fig.height=1}
+sim_dm0                                         %>%
+  mutate(y=delta1*T)                            %>%
+  mutate(x=" ")                                 %>%
+  custom_boxplot(g1_label0, 0, co="gray") -> delta10
+sim_dm1                                         %>%
+  mutate(y=delta1*T)                            %>%
+  mutate(x=" ")                                 %>%
+  custom_boxplot(g1_label1, 0) -> delta11
+r <- T*range(sim_dm0$delta1, sim_dm1$delta1)
+delta10 + expand_limits(y=r)
+delta11 + expand_limits(y=r)
+```
+
+The remaining parameters remain unchanged, of course.
+
+```{r remaining_parameters, fig.width=7, fig.height=1}
+sim_dm0                                         %>%
+  mutate(y=delta2*30*N/T)                       %>%
+  mutate(x=" ")                                 %>%
+  custom_boxplot(g2_label0, 1, co="gray") -> delta20
+sim_dm1                                         %>%
+  mutate(y=delta2*30*N/T)                       %>%
+  mutate(x=" ")                                 %>%
+  custom_boxplot(g2_label1, 1) -> delta21
+r <- range(sim_dm0$delta2, sim_dm1$delta2)*30*N/T
+delta20 + expand_limits(y=r)
+delta21 + expand_limits(y=r)
+
+sim_dm0                                         %>%
+  mutate(y=delta3*T)                            %>%
+  mutate(x=" ")                                 %>%
+  custom_boxplot(g3_label0, 0, co="gray")       -> delta30
+sim_dm1                                         %>%
+  mutate(y=delta3*T)                            %>%
+  mutate(x=" ")                                 %>%
+  custom_boxplot(g3_label1, 0)                  -> delta31
+r <- T*range(sim_dm0$delta3, sim_dm1$delta3)
+delta30 + expand_limits(y=r)
+delta31 + expand_limits(y=r)
+```
+
+On day 192 (finally!) the trial starts accruing patients. That sounds good, but even after 240 days of active accrual, it looks like you're stuck in the warm-up phase. Let's see what our estimated total sample size is now.
+
+```{r delay_fit2, fig.height=1, fig.width=7}
+y_label <- "Estimated total sample size (update 2)"
+f <- "6-beta-test3.jags"
+# Here's what's hiding in the file 
+cat(readLines(f), sep="\n")
+
+mod_dm2 <- jags.model(f, data=dat_update2, 
+  n.adapt = 100)
+
+parms <- c("delta1", "delta2", "delta3", "lambda", "Nstar")
+fit_dm2 <- coda.samples(mod_dm2, var=parms, n.iter = 1000)
+summary(fit_dm2)
+fit_dm2                                         %>%
+  as.matrix                                     %>%
+  as.data.frame                                 -> sim_dm2
+sim_dm2                                         %>%
+  rename(y=Nstar)                               %>%
+  mutate(x=" ")                                 %>%
+  custom_boxplot(y_label, 0)                    -> update2
+sim_dm1                                         %>%
+  rename(y=Nstar)                               %>%
+  mutate(x=" ")                                 %>%
+  custom_boxplot(y_label, 0, co="gray")         -> update1
+sim_dm0                                         %>%
+  rename(y=Nstar)                               %>%
+  mutate(x=" ")                                 %>%
+  custom_boxplot(y_label, 0, co="gray")         -> prior_estimate
+r <- range(sim_dm0$Nstar, sim_dm1$Nstar, sim_dm2$Nstar)
+prior_estimate + expand_limits(y=r)
+update1 + expand_limits(y=r)
+update2 + expand_limits(y=r)
+```
+
+What's accounting for most of this shortfall?
+
+```{r shortfall_cause, fig.width=7, fig.height=1}
+sim_dm0                                         %>%
+  mutate(y=delta2*30*N/T)                       %>%
+  mutate(x=" ")                                 %>%
+  custom_boxplot(g2_label0, 1, co="gray")       -> delta20
+sim_dm1                                         %>%
+  mutate(y=delta2*30*N/T)                       %>%
+  mutate(x=" ")                                 %>%
+  custom_boxplot(g2_label1, 1, co="gray")       -> delta21
+sim_dm2                                         %>%
+  mutate(y=delta2*30*N/T)                       %>%
+  mutate(x=" ")                                 %>%
+  custom_boxplot(g2_label2, 1)                  -> delta22
+r <- range(sim_dm0$delta2, sim_dm1$delta2, sim_dm2$delta2)*30*N/T
+delta20 + expand_limits(y=r)
+delta21 + expand_limits(y=r)
+delta22 + expand_limits(y=r)
+
+sim_dm0                                         %>%
+  mutate(y=delta3*T)                            %>%
+  mutate(x=" ")                                 %>%
+  custom_boxplot(g3_label0, 0, co="gray")       -> delta30
+sim_dm1                                         %>%
+  mutate(y=delta3*T)                            %>%
+  mutate(x=" ")                                 %>%
+  custom_boxplot(g3_label1, 0, co="gray")       -> delta31
+sim_dm2                                         %>%
+  mutate(y=delta3*T)                            %>%
+  mutate(x=" ")                                 %>%
+  custom_boxplot(g3_label2, 0)                  -> delta32
+r <- T*range(sim_dm0$delta3, sim_dm1$delta3, sim_dm2$delta3)
+delta30 + expand_limits(y=r)
+delta31 + expand_limits(y=r)
+delta32 + expand_limits(y=r)
+```
