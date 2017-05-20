@@ -20,7 +20,12 @@ dat_updated <- list(N=350, T=3*365, S=0.5, n=pts, t=length(pts))
 
 When you simulate a clinical trial, you won't do this two times. You'll do it several thousand times, because computer cycles are cheap. Here's what a few thousand simulations might look like.
 
-```{r paths-before-trial, echo=FALSE, fig.width=4, fig.height=4}
+### Figure 2.1. 1000 simulations run prior to start of a clinical trial.
+
+```{r paths-before-trial, echo=FALSE, fig.width=7, fig.height=4}
+# For some reason, Stan is very slow for this simulation. I still want to
+# use Stan though because it serves as a good springboard for many of the
+# later simulations.
 f <- "2-paths-before-trial.stan"
 fit_tr1 <- stan(file=f,
   data=dat_prior, iter= 1000, warmup=100, chains = 4)
@@ -59,7 +64,9 @@ sim_tr1 %>%
 
 I also want to talk about simulating a clinical trial during the trial. What this means is that you have information sample size up to a certain point in time and you want to simulate how rapidly the sample size might increase for the remainder of time in the trial.
 
-```{r path-during-trial, echo=FALSE, fig.width=4, fig.height=4}
+### Figure 2.2. 1000 simulations run during a clinical trial.
+
+```{r path-during-trial, echo=FALSE, fig.width=7, fig.height=4}
 f <- "2-paths-during-trial.stan"
 fit_tr2 <- stan(file=f,
   data=dat_updated, iter= 1000, warmup=100, chains = 4)
@@ -87,7 +94,7 @@ sim_tr2 %>%
   ggplot(aes(x, y, group=j))                     +
   geom_step(alpha=0.01)                          +
   xlab("Time (days)")                            +
-  ylab("Estimated number of patients (Updated)")   +
+  ylab("Estimated number of patients (Updated)") +
   scale_y_continuous(breaks=y_ticks,
                      labels=y_labels,
                      position="right",
@@ -100,5 +107,3 @@ sim_tr2 %>%
 ```{r save-everything}
 save.image("2-paths.RData")
 ```
-
-# end of file

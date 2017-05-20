@@ -7,9 +7,22 @@ output: html_document
 
 ```{r preliminaries, echo=FALSE, message=FALSE}
 source("0-preliminaries.R", echo=FALSE)
+n_reps <- 1000
+pctl_list <- c(1, 25, 50, 75, 99)
+N <- 350
+T <- 1095
+S <- 0.5
+P1 <- 0.1
+S1 <- 0.1
+P2 <- 0.3
+S2 <- 0.2
+b1_label0 <- "Proportion excluded (prior)"
+b1_label1 <- sub("prior", "update", b1_label0)
+b2_label0 <- "Proportion refusing (prior)"
+b2_label1 <- sub("prior", "update", b1_label0)
 ```
 
-## Modeling exclusions and refusals
+### Part 7. Modeling exclusions and refusals
 
 There's a gauntlet that patients must travel through before they are officially part of your clinical trial. As you ask them questions, you will find that some of the patients might not meet all of your inclusion criteria. Also, the patients may change their minds, after hearing the details of your clinical trial, and decide that they don't really want to participate after all.
 
@@ -17,47 +30,51 @@ You can model these two processes using binomial distributions.
 
 Here's some possible prior distributions for the proportion excluded and the proportion refusing consent.
 
+### Figure 7.1. Prior distribution for pi1, proportion excluded.
+
 ```{r binomial-priors1, fig.height=1, fig.width=7}
-y_label <- "Proportion excluded"
-N <- 350
-P1 <- 0.1
-S1 <- 0.1
-sim1 <- data.frame(x=paste("S1 =", S1), y=rbeta(1000, S1*N*P1, S1*N*(1-P1)))
-S1 <- 0.2
-sim2 <- data.frame(x=paste("S1 =", S1), y=rbeta(1000, S1*N*P1, S1*N*(1-P1)))
-S1 <- 0.5
-sim3 <- data.frame(x=paste("S1 =", S1), y=rbeta(1000, S1*N*P1, S1*N*(1-P1)))
+b1_label0a <- sub("prior", paste("prior, S1", S1/2, sep="="), b1_label0)
+b1_label0b <- sub("prior", paste("prior, S1", S1,   sep="="), b1_label0)
+b1_label0c <- sub("prior", paste("prior, S1", S1*2, sep="="), b1_label0)
+
+sim1 <- data.frame(x=" ", y=rbeta(n_reps, S1/2*N*P1, S1/2*N*(1-P1)))
+sim2 <- data.frame(x=" ", y=rbeta(n_reps, S1  *N*P1, S1  *N*(1-P1)))
+sim3 <- data.frame(x=" ", y=rbeta(n_reps, S1*2*N*P1, S1*2*N*(1-P1)))
 
 y_range <- range(sim1$y, sim2$y, sim3$y)
-custom_boxplot(sim1, y_label, 2, "gray") + expand_limits(y=y_range)
-custom_boxplot(sim2, y_label, 2)         + expand_limits(y=y_range)
-custom_boxplot(sim3, y_label, 2, "gray") + expand_limits(y=y_range)
+
+custom_boxplot(sim1, b1_label0a, 2, "gray") + expand_limits(y=y_range)
+custom_boxplot(sim2, b1_label0b, 2)         + expand_limits(y=y_range)
+custom_boxplot(sim3, b1_label0c, 2, "gray") + expand_limits(y=y_range)
 ```
 
 A prior strength of 0.2 looks reasonable for the proportion excluded.
 
+### Figure 7.2. Prior distribution for pi2, proportion refusing.
+
 ```{r binomial-priors2, fig.height=1, fig.width=7}
-y_label="Proportion refusing"
-N <- 350
-P2 <- 0.3
-S2 <- 0.1
-sim1 <- data.frame(x=paste("S2 =", S2), y=rbeta(1000, S2*N*P2, S2*N*(1-P2)))
-S2 <- 0.2
-sim2 <- data.frame(x=paste("S2 =", S2), y=rbeta(1000, S2*N*P2, S2*N*(1-P2)))
-S2 <- 0.5
-sim3 <- data.frame(x=paste("S2 =", S2), y=rbeta(1000, S2*N*P2, S2*N*(1-P2)))
+b2_label0a <- sub("prior", paste("prior, S2", S2/2, sep="="), b2_label0)
+b2_label0b <- sub("prior", paste("prior, S2", S2,   sep="="), b2_label0)
+b2_label0c <- sub("prior", paste("prior, S2", S2*2, sep="="), b2_label0)
+
+sim1 <- data.frame(x=" ", y=rbeta(n_reps, S2/2*N*P2, S2/2*N*(1-P2)))
+sim2 <- data.frame(x=" ", y=rbeta(n_reps, S2  *N*P2, S2  *N*(1-P2)))
+sim3 <- data.frame(x=" ", y=rbeta(n_reps, S2*2*N*P2, S2*2*N*(1-P2)))
 
 y_range <- range(sim1$y, sim2$y, sim3$y)
-custom_boxplot(sim1, y_label, 2)         + expand_limits(y=y_range)
-custom_boxplot(sim2, y_label, 2, "gray") + expand_limits(y=y_range)
-custom_boxplot(sim3, y_label, 2, "gray") + expand_limits(y=y_range)
+
+custom_boxplot(sim1, b1_label0a, 2, "gray") + expand_limits(y=y_range)
+custom_boxplot(sim2, b1_label0b, 2)         + expand_limits(y=y_range)
+custom_boxplot(sim3, b1_label0c, 2, "gray") + expand_limits(y=y_range)
 ```
 
 A prior strength of 0.1 looks reasonable for proportion refusing.
 
 If you do a simple extrapolation, the total sample size after exclusions and refusals should be about `r 100*P1*P2`% of the 350 planned patients or `r N*P1*P2` patients.
 
-```{r binomial, fig.height=1, fig.width=7}
+### Here's what the code would look like for this model.
+
+```{r binomial-code}
 f <- "7-binomial-extension.stan"
 # Here's what's hiding in the file 
 cat(readLines(f), sep="\n")
@@ -67,7 +84,11 @@ dat_before <- list(N=350, T=3*365, S=0.5,
                    n1=0, n2=0, n3=0)
 fit_bi0 <- stan(file=f,
   data=dat_before, iter= 1000, chains = 4)
+```
 
+### Figure 7.3. Prior estimate of sample size, accounting for exclusions and refusals.
+
+```{r binomial, fig.height=1, fig.width=7}
 fit_bi0                                         %>%
   as.data.frame                                 %>%
   mutate(x="prior estimate") -> sim_bi0
@@ -86,7 +107,9 @@ custom_boxplot(sim_bi3, y_label3, 0) + expand_limits(y=y_range)
 
 You should consider exploring how sensitive your estimated total sample size is relative to each of the binomial parameters.
 
-```{r binomial-part2, fig.width=5, fig.height=5}
+### Figure 7.4. How the prior distributions affect the estimated total sample size.
+
+```{r binomial-part2, fig.width=4, fig.height=4}
 sim_bi1                                         %>%
   ggplot(aes(pi1, N3star))                       +
   ylab("Estimated total sample size")            + 
@@ -103,10 +126,14 @@ sim_bi1                                         %>%
 
 The estimated total sample size is more sensitive to the proportion consenting, mostly because your prior beliefs gave this proportion a broader range of possibilities.
 
+### Update. `r t` days, `r n1` patients, `r n1-n2` excluded, `r n2-n3` refusals.
+
 The trial that you have seen illustrated thus far did not track exclusions and refusals, but let's suppose that there were 41 patients who ended up in your trial, 40 who refused consent, and 9 who had to be excluded.
 
-```{r binomial-extension-during, fig.width=7, fig.height=1.33}
-f <- "binomial-extension.stan"
+### Figure 7.5. Updated total sample size.
+
+```{r binomial-extension-during, fig.width=7, fig.height=1}
+f <- "7-binomial-extension.stan"
 dat_before <- list(N=350, T=3*365, S=0.5, 
                    P1=0.9, S1=0.2, P2=0.7, S2=0.1,
                    t=239, n1=90, n2=81, n3=41)

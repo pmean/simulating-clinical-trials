@@ -44,7 +44,9 @@ for (i in seq(1, nx, by=1)) {
 }
 ```
 
-```{r plot-very-flat, fig.width=4, fig.height=4}
+### Figure 4.1. Early predictions from a very flat prior distribution.
+
+```{r plot-very-flat, fig.width=7, fig.height=4}
 # split from the chiunk above to save time during testing
 very_flat_predictions                           %>%
   mutate(lo=lo/365)                             %>%
@@ -83,7 +85,9 @@ for (i in seq(1, nx, by=1)) {
 }
 ```
 
-```{r plot-informative, fig.width=4, fig.height=4}
+### Figure 4.2. Early predictions from a strong prior distribution.
+
+```{r plot-informative, fig.width=7, fig.height=4}
 informative_predictions %>%
   mutate(lo=lo/365)                             %>%
   mutate(hi=hi/365)                             %>%
@@ -91,7 +95,6 @@ informative_predictions %>%
   geom_ribbon(alpha=0.2)                         +
   geom_line(aes(x=t, y=hi))                      +
   geom_line(aes(x=t, y=lo))                      +
-  ggtitle("Predictions from informative prior")  +
   ylab("Estimated trial duration (years)")       +
   xlab("Date of prediction (days)")
 ```

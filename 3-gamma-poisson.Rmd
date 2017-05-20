@@ -29,6 +29,8 @@ Selecting a prior distribution requires a lot of work. It helps, I believe to ex
 
 Try setting a distribution on the monthly accrual rate that has a mean equal to the expected accrual rate  but with varying levels of precision equivalent to `r paste0(round(100*s_list), "%")` of the planned sample size. 
 
+### Figure 3.1. Boxplot of prior distribution for accrual rate.
+
 ```{r gamma_prior, fig.width=7, fig.height=1}
 S <- 0.1
 y_label1 <- "Monthly accrual rate (prior, S=0.1)"
@@ -65,6 +67,8 @@ fit_gp1                                         %>%
   as.data.frame                                 -> sim_gp1
 ```
 
+### Figure 3.2. Simulated total sample size prior to start of clinical trial.
+
 ```{r gamma-poisson-boxplot1, fig.width=7, fig.height=1}
 # Boxplot of total sample size
 y_label <- "Estimated total sample size (prior)"
@@ -79,7 +83,9 @@ You can learn a lot by looking at how the estimated total sample size relates to
 
 Recall that in this simulation, you randomly select an accrual rate, gamma, and then you simulate a path based on that value of lambda. Not too surprisingly, the sample size depends on what lambda is chosen, though there is some variation, even for the same value of lambda.
 
-```{r gamma-poisson-scatterplot1, fig.width=4, fig.height=4}
+### Figure 3.3. Relationship of prior estimate of accrual rate and estimated total sample size.
+
+```{r gamma-poisson-scatterplot1, fig.width=7, fig.height=4}
 # Scatterplot of accrual rate versus total sample size
 sim_gp1                                         %>%
   use_series(lambda)                            %>%
@@ -109,7 +115,9 @@ sim_gp1                                         %>%
 
 With a plot like this, you can run some sensitivity checks, such as "what would happen if the accrual rate were closer to 8.5 patients per month"
 
-```{r gamma-poisson-scatterplot2, fig.width=4, fig.height=4}
+### Figure 3.4. Relationship of fixed accrual estimate and estimated total sample size.
+
+```{r gamma-poisson-scatterplot2, fig.width=7, fig.height=4}
 # Scatterplot of accrual rate versus total sample size
 sim_gp1                                         %>%
   rename(y=Nstar)                               %>%
@@ -141,6 +149,8 @@ sim_sliced                                      %>%
 
 The key reason that you should run your simulations in Stan is that you can make a seamless transition to a simulation of a clinical trial during the trial itself. In this trial, the early accrual rate was much lower than expected. After 239 days, you have only gotten 41 patients. If you were on target, you would have 239*(350/1095) = `r round(239/1095*350)` patients by now. How much is this shortfall hurting us?
 
+### Figure 3.5. Simulated total sample size during the clinical trial.
+
 ```{r gamma-poisson-during-trial, fig.width=7, fig.height=1}
 f <- "3-gamma-poisson.stan"
 dat_during <- list(N=350, T=3*365, S=0.5, n=41, t=239)
@@ -164,6 +174,8 @@ sim_gp2                                         %>%
 ## Post mortem analysis
 
 For this trial, you were able to get 341 patients, but it took a lot longer than you expected, 1336 days instead of 1095 days. Time to get ready for your next clinical trial. NOT SO FAST! You are not done with simulations when the trial is over. After the trial, take a look at how your accrual rate ranks relative to the range of accrual rates associated with your prior distribution.
+
+### Figure 3.6. Comparison of final accrual rate to prior distribution.
 
 ```{r gamma-poisson-after-trial, echo=FALSE, fig.width=7, fig.height=1}
 sim4 <- data.frame(x=" ", y=30*341/1336)

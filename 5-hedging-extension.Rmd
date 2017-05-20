@@ -66,7 +66,9 @@ fit_fl2                                         %>%
 sim_dat <- data.frame(lambda=41/239, Nstar=41+(1095-239)*(41/239), i="data projection")
 ```
 
-```{r hedging-boxplots, fig.width=5, fig.height=1.67}
+Figure 5.1.
+
+```{r hedging-boxplots, fig.width=7, fig.height=1.67}
 # Boxplot of total sample size
 sim_hd2                                         %>%
   bind_rows(sim_gp1)                            %>%
@@ -83,7 +85,9 @@ Notice that the large discrepancy with a pure data projection versus the informa
 
 The following boxplot shows how much the hedging hyperparameter downweighted the prior distribution
 
-```{r downweight, fig.height=1, fig.width=5}
+### Figure 5.2. Updated hedging hyperprior.
+
+```{r downweight, fig.height=1, fig.width=7}
 sim_hd2 %>%
   mutate(i=" ")                                 %>%
   ggplot(aes(i, pi))                             +
@@ -95,6 +99,8 @@ sim_hd2 %>%
 ```
 
 If you compared this to a flat prior, you would see that the flat prior would line up perfectly with the data projection.
+
+### Figure 5.3. Comparison to flat prior.
 
 ```{r compare-to-flat, fig.width=7, fig.height=1.67}
 # Boxplot of total sample size
@@ -174,6 +180,8 @@ fit_fl3                                         %>%
 sim_dat <- data.frame(lambda=41/239, Nstar=41+(1095-129)*(41/129), i="Data")
 ```
 
+### Figure 5.4. Performance of hedging hyperprior under better circumstances.
+
 ```{r hedging-boxplot2, fig.width=7, fig.height=1.67}
 # Boxplot of total sample size
 sim_hd4                                         %>%
@@ -186,6 +194,8 @@ sim_hd4                                         %>%
   geom_boxplot()                                 +
   coord_flip()
 ```
+
+### Figure 5.5. Comparison to flat prior under better circumstances.
 
 ```{r hedging-boxplot3, fig.width=7, fig.height=1.67}
 # Boxplot of total sample size
@@ -216,6 +226,8 @@ The following boxplot shows how much the hedging hyperparameter downweighted the
 
 There's a technical fix that you can make so that the mean of the hyperparameter never exceeds 1, but we won't talk about it here.
 
+### Figure 5.6. Updated hedging hyperprior under better circumstances.
+
 ```{r downweight2, fig.height=1, fig.width=7}
 sim_hd4 %>%
   mutate(i=" ")                          %>%
@@ -227,3 +239,6 @@ sim_hd4 %>%
   coord_flip()
 ```
 
+```{r save-everything}
+save.image("5-hedging-extension.RData")
+```
