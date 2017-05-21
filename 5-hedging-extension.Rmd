@@ -91,6 +91,17 @@ dat_update                                      %>%
   mutate(x=" ")                                 -> sim_lp1
 ```
 
+```{r calculate-common-range}
+sim_hp0                                         %>%
+  bind_rows(sim_gp0)                            %>%
+  bind_rows(sim_hp1)                            %>%
+  bind_rows(sim_gp1)                            %>%
+  bind_rows(sim_fl1)                            %>%
+  bind_rows(sim_lp1)                            %>%
+  use_series(Nstar)                             %>%
+  range                                         -> y_range
+```
+
 ```{r save-halfway}
 # It was a lot of work to get here, so let's save everything
 # to protect against a later crash.
@@ -100,8 +111,6 @@ save.image("5-hedging-extension.RData")
 ### Figure 5.1. Comparison of simple and hedged predictions prior to data collection.
 
 ```{r plot-priors, fig.width=7, fig.height=1}
-y_range <- range(sim_hp0$Nstar, sim_gp0$Nstar)
-
 sim_hp0                                   %>%
   rename(y=Nstar)                         %>%
   custom_boxplot(N_label0a, 0)            -> hedged_prior_plot
@@ -116,33 +125,109 @@ simple_prior_plot + expand_limits(y=y_range)
 
 The hedging hyperprior creates a mixture of gamma priors from weak to strong. So it is going to produce more variable predictions than a simple gamma prior.
 
-### Figure 5.2. Posterior prediction with a hedged prior.
+### Figure 5.2. Updated prediction with a hedged prior.
 
-```{r plot-update1, fig.width=7, fig.height=1}
-y_range <- range(sim_hp1$Nstar, sim_gp1$Nstar, sim_lp1$Nstar)
-
+```{r plot-hedged-update1, fig.width=7, fig.height=1}
 sim_hp1                                   %>%
   rename(y=Nstar)                         %>%
   custom_boxplot(N_label1a, 0)            -> hedged_update1_plot
-
-sim_gp1                                   %>%
-  rename(y=Nstar)                         %>%
-  custom_boxplot(N_label1b, 0)            -> simple_update1_plot
 
 sim_lp1                                   %>%
   rename(y=Nstar)                         %>%
   custom_boxplot(N_label1c, 0)            -> linear_update1_plot
 
+hedged_prior_plot   + expand_limits(y=y_range)
 hedged_update1_plot + expand_limits(y=y_range)
+linear_update1_plot + expand_limits(y=y_range)
+```
+
+### Figure 5.3. Updated prediction with a simple prior.
+
+```{r plot-simple-update1, fig.width=7, fig.height=1}
+sim_gp1                                   %>%
+  rename(y=Nstar)                         %>%
+  custom_boxplot(N_label1b, 0)            -> simple_update1_plot
+
+simple_prior_plot   + expand_limits(y=y_range)
 simple_update1_plot + expand_limits(y=y_range)
 linear_update1_plot + expand_limits(y=y_range)
 ```
+
+### Figure 5.4. Updated prediction with a flat prior.
+
+```{r plot-flat-update1, fig.width=7, fig.height=1}
+sim_fl1                                   %>%
+  rename(y=Nstar)                         %>%
+  custom_boxplot(N_label1c, 0)            -> flat_update1_plot
+
+flat_update1_plot   + expand_limits(y=y_range)
+linear_update1_plot + expand_limits(y=y_range)
+```
+
+### Figure 5.5. Updated distribution of hedging hyperparameter.
+
+```{r hyperparameter-plot1, fig.width=7, fig.height=1}
+sim_hp1                                   %>%
+  rename(y=pi)                            %>%
+  custom_boxplus("Updated hyperparameter", 2) +
+  expand_limits(y=0)
+```
+
+### Figure 5.6. Alternative update with a hedged prior.
+
+```{r plot-hedged-update2, fig.width=7, fig.height=1}
+sim_hp2                                   %>%
+  rename(y=Nstar)                         %>%
+  custom_boxplot(N_label1a, 0)            -> hedged_update2_plot
+
+sim_lp2                                   %>%
+  rename(y=Nstar)                         %>%
+  custom_boxplot(N_label1c, 0)            -> linear_update2_plot
+
+hedged_prior_plot   + expand_limits(y=y_range)
+hedged_update2_plot + expand_limits(y=y_range)
+linear_update2_plot + expand_limits(y=y_range)
+```
+
+### Figure 5.7. Alternative update prediction with a simple prior.
+
+```{r plot-simple-update2, fig.width=7, fig.height=1}
+sim_gp2                                   %>%
+  rename(y=Nstar)                         %>%
+  custom_boxplot(N_label1b, 0)            -> simple_update1_plot
+
+simple_prior_plot   + expand_limits(y=y_range)
+simple_update2_plot + expand_limits(y=y_range)
+linear_update2_plot + expand_limits(y=y_range)
+```
+
+### Figure 5.8. Alternative update with a flat prior.
+
+```{r plot-flat-update2, fig.width=7, fig.height=1}
+sim_fl2                                   %>%
+  rename(y=Nstar)                         %>%
+  custom_boxplot(N_label1c, 0)            -> flat_update2_plot
+
+flat_update2_plot   + expand_limits(y=y_range)
+linear_update2_plot + expand_limits(y=y_range)
+```
+
+### Figure 5.9. Alternative update of hedging hyperparameter.
+
+```{r hyperparameter-plot2, fig.width=7, fig.height=1}
+sim_hp2                                   %>%
+  rename(y=pi)                            %>%
+  custom_boxplus("Updated hyperparameter", 2) +
+  expand_limits(y=0)
+```
+
+
 
 Notice that the large discrepancy with a pure data projection versus the informative prior. When there is a discrepancy, the hedging hyperprior will strongly downweight the informative prior.
 
 The following boxplot shows how much the hedging hyperparameter downweighted the prior distribution
 
-### Figure 5.2. Updated hedging hyperprior.
+### Figure 5.5. Updated hedging hyperprior.
 
 
 If you compared this to a flat prior, you would see that the flat prior would line up perfectly with the data projection.

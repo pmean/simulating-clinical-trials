@@ -14,7 +14,7 @@ opts_chunk$set(
   message=FALSE,
   warning=FALSE)
 
-pctl_list <- c(1, 25, 50, 75, 99)
+pctl_list <- c(1, 25, 75, 99)
 
 
 custom_boxplot <- function(df, y_label, rounding_level, co="black") {
@@ -34,10 +34,13 @@ custom_boxplot <- function(df, y_label, rounding_level, co="black") {
     theme(axis.ticks = element_line(color=co))   +
     xlab(" ")                                    +
     ylab(y_label)                                +
-    stat_summary(fun.y="mean", geom="point", 
-                 size=4, color=co, pch="+")      +
     coord_flip()                                %>%
     return
+}
+
+custom_boxplus <- function(df, y_label, rounding_level, co="black") {
+  custom_boxplot(df, y_label, rounding_level, co="black") +
+  stat_summary(fun.y="mean", geom="point", size=4, color=co, pch="+")
 }
 
 custom_scatterplot <- function(df, x_name, y_name, round_x=1, round_y=0) {
