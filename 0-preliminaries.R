@@ -34,6 +34,8 @@ custom_boxplot <- function(df, y_label, rounding_level, co="black") {
     theme(axis.ticks = element_line(color=co))   +
     xlab(" ")                                    +
     ylab(y_label)                                +
+    stat_summary(fun.y="mean", geom="point", 
+                 size=4, color=co, pch="+")      +
     coord_flip()                                %>%
     return
 }

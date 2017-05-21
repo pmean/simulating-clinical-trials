@@ -194,32 +194,29 @@ custom_boxplot(sim3, N_label0, 1) + expand_limits(y=y_range)
 custom_boxplot(sim4, y_label4, 1) + expand_limits(y=y_range)
 ```
 
-Okay, so you were way off. No one is going to hang you. If the same thing occurs over and over again, though, let's talk.
+Okay, so you were way off. No one is going to hang you. But let's look at your other clinical trials.
 
-```{r percentile-plot, fig.width=7, fig.height=1}
-rgamma(12, N*S, T*S)                            %>%
-  pgamma(N*S, T*S)                              -> pctl1
-rgamma(12, N*S, T*S)                            %>%
-  pgamma(N*S*9, T*S*9)                          -> pctl2
-rgamma(12, N*S, T*S)                            %>%
-  pgamma(N*S, T*S/1.2)                          -> pctl3
+### Figure 3.7. Percentile plot showing bias to low end.
 
+```{r percentile-plot1, fig.width=7, fig.height=1}
+rgamma(12, N*S, T*S)                            %>%
+  pgamma(N*S, T*S/1.2)                          -> pctl1
 data.frame(x=pctl1, ymin=0.5, ymax=1.5)         %>%
-  ggplot(aes(x, ymin=ymin, ymax=ymax))           +
-  geom_linerange()                               +
-  scale_y_continuous(breaks=NULL)                +
-  xlab("Percentiles evenly spread")              +
-  ylab(" ")                                      +
-  expand_limits(y=c(0,2), x=c(0,1))
-
-data.frame(x=pctl3, ymin=0.5, ymax=1.5)         %>%
   ggplot(aes(x, ymin=ymin, ymax=ymax))           +
   geom_linerange()                               +
   scale_y_continuous(breaks=NULL)                +
   xlab("Percentiles skewed low")                 +
   ylab(" ")                                      +
   expand_limits(y=c(0,2), x=c(0,1))
+```
 
+When you are estimating accrual, a low percentile means that the final data from all of your clinical trials is in the lower tail of your prior distribution. So a plot where most or all of the percentiles fall below 50% means that you have a overly optimistic assessment of accrual before most of your trials.
+
+### Figure 3.8. Percentile plot showing bias to extremes.
+
+```{r percentile-plot2, fig.width=7, fig.height=1}
+rgamma(12, N*S, T*S)                            %>%
+  pgamma(N*S*9, T*S*9)                          -> pctl2
 data.frame(x=pctl2, ymin=0.5, ymax=1.5)         %>%
   ggplot(aes(x, ymin=ymin, ymax=ymax))           +
   geom_linerange()                               +
@@ -227,8 +224,25 @@ data.frame(x=pctl2, ymin=0.5, ymax=1.5)         %>%
   xlab("Percentiles skewed to the extremes")     +
   ylab(" ")                                      +
   expand_limits(y=c(0,2), x=c(0,1))
-
 ```
+
+Another pattern to look for is a tendency to fall at either extreme. This means that your prior distributions are too narrow and you have too much confidence in your ability to assess accrual rates. Maybe in the future, you should choose wider prior distributions (smaller values of S).
+
+### Figure 3.9. Percentile plot showing relatively even spread.
+
+```{r percentile-plot3, fig.width=7, fig.height=1}
+rgamma(12, N*S, T*S)                            %>%
+  pgamma(N*S, T*S)                              -> pctl3
+data.frame(x=pctl3, ymin=0.5, ymax=1.5)         %>%
+  ggplot(aes(x, ymin=ymin, ymax=ymax))           +
+  geom_linerange()                               +
+  scale_y_continuous(breaks=NULL)                +
+  xlab("Percentiles evenly spread")              +
+  ylab(" ")                                      +
+  expand_limits(y=c(0,2), x=c(0,1))
+```
+
+Just for perspective, here is a what a percentile plot might look like if your prior distributions were reasonably accurate. You tend to see (albeit very roughly) about as many percentiles above  and below 50% and about as many in the middle (between 25% and 75%) as you do outside the middle.
 
 ```{r save-everything}
 save.image("3-gamma-poisson.RData")

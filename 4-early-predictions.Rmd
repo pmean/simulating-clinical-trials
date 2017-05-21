@@ -7,6 +7,11 @@ output: html_document
 
 ```{r preliminaries, echo=FALSE, message=FALSE}
 source("0-preliminaries.R", echo=FALSE)
+p_list <- c(0.25, 0.75)
+p_list                                          %>%
+  multiply_by(100)                              %>%
+  paste(collapse=" and ")                       %>%
+  paste("The", ., "percentile predictions")     -> p_label
 ```
 
 ## Early predictions
@@ -21,7 +26,7 @@ Second, if you run a simulation with a flat prior before the trial starts, you g
 
 Third, a strong prior distribution provides you with stable estimates early in the clinical trial. This is worth an illustration.
 
-```{r very-flat-prior-bayesian-average}
+```{r very-flat-prior}
 # stan is inefficient for these next couple of models, but I'm not
 # sure why. It is easy enough to run a simulation directly.
 n_reps <- 100000
@@ -29,42 +34,21 @@ pts <- unlist(read.csv("2-paths-count.csv"))
 x <- cumsum(pts)
 T <- 3*365
 N <- 350
-S <- 0.001 / N
-alpha.prior <- N*S
-beta.prior  <- T*S
+alpha.prior <- 0.001
+beta.prior  <- 0.001
 nx <- length(x)
-very_flat_predictions <- data.frame(t <- 1:nx, lo=rep(0,nx), hi=rep(0,nx))
+flat_predictions <- data.frame(t <- 1:nx, lo=rep(0,nx), hi=rep(0,nx))
 for (i in seq(1, nx, by=1)) {
   alpha.posterior <- alpha.prior + x[i]
   beta.posterior  <- beta.prior + i
   lambda <- rgamma(n_reps, alpha.posterior, beta.posterior)
   waiting_time <- i + rgamma(n_reps, N-x[i], lambda)
-  qx <- quantile(waiting_time, probs=c(0.05, 0.95))
-  very_flat_predictions[i, 2:3] <- qx
+  qx <- quantile(waiting_time, probs=p_list)
+  flat_predictions[i, 2:3] <- qx
 }
 ```
 
-### Figure 4.1. Early predictions from a very flat prior distribution.
-
-```{r plot-very-flat, fig.width=7, fig.height=4}
-# split from the chiunk above to save time during testing
-very_flat_predictions                           %>%
-  mutate(lo=lo/365)                             %>%
-  mutate(hi=hi/365)                             %>%
-  ggplot(aes(x=t, ymin=lo, ymax=hi))             +
-  geom_ribbon(alpha=0.2)                         +
-  geom_line(aes(x=t, y=hi))                      +
-  geom_line(aes(x=t, y=lo))                      +
-  ggtitle("Predictions from flat prior")         +
-  ylab("Estimated trial duration (years)")       +
-  xlab("Date of prediction (days)")
-```
-
-This is possibly an unfair example because the trial had a slow start. But it takes more than 100 days into the trial to get a decent estimate of the upper bound. The first three predictions are a measure of how unstable things are. On the first day, you have recruited one patient, and the upper limit is estimated at `r round(very_flat_predictions$hi[1]/365)` years. On the second day, no one shows up, so your upper limit jumps to `r round(very_flat_predictions$hi[2]/365)` years. On the third day, one patient shows up, so your upper limit plummets to `r round(very_flat_predictions$hi[3]/365)` years.
-
-Compare this to the predictions that use an informative prior. The posterior estimate in a Bayesian model with an informative prior is a weighted average of the prior distribution and the data, and that weighted average leans very heavily on the prior distribution early in the trial.
-
-```{r bayesian-average}
+```{r strong-prior}
 n_reps <- 100000
 pts <- unlist(read.csv("2-paths-count.csv"))
 x <- cumsum(pts)
@@ -80,22 +64,92 @@ for (i in seq(1, nx, by=1)) {
   beta.posterior  <- beta.prior + i
   lambda <- rgamma(n_reps, alpha.posterior, beta.posterior)
   waiting_time <- i + rgamma(n_reps, N-x[i], lambda)
-  qx <- quantile(waiting_time, probs=c(0.05, 0.95))
+  qx <- quantile(waiting_time, probs=p_list)
   informative_predictions[i, 2:3] <- qx
 }
 ```
 
-### Figure 4.2. Early predictions from a strong prior distribution.
+```{r weak-prior}
+n_reps <- 100000
+pts <- unlist(read.csv("2-paths-count.csv"))
+x <- cumsum(pts)
+T <- 3*365
+N <- 350
+S <- 0.02
+alpha.prior <- N*S
+beta.prior  <- T*S
+nx <- length(x)
+weak_predictions <- data.frame(t <- 1:nx, lo=rep(0,nx), hi=rep(0,nx))
+for (i in seq(1, nx, by=1)) {
+  alpha.posterior <- alpha.prior + x[i]
+  beta.posterior  <- beta.prior + i
+  lambda <- rgamma(n_reps, alpha.posterior, beta.posterior)
+  waiting_time <- i + rgamma(n_reps, N-x[i], lambda)
+  qx <- quantile(waiting_time, probs=p_list)
+  weak_predictions[i, 2:3] <- qx
+}
+```
 
-```{r plot-informative, fig.width=7, fig.height=4}
-informative_predictions %>%
+### Figure 4.1. `r p_label` from flat prior.
+
+```{r plot-very-flat, fig.width=7, fig.height=4}
+# split from the chiunk above to save time during testing
+flat_predictions                                %>%
+  bind_rows(informative_predictions)            %>%
+  bind_rows(weak_predictions)                   %>%
+  summarize(hi=max(hi), lo=min(lo))             %>%
+  unlist                                        %>%
+  divide_by(365)                                -> overall_range
+flat_predictions                                %>%
   mutate(lo=lo/365)                             %>%
   mutate(hi=hi/365)                             %>%
-  ggplot(aes(x=t, ymin=lo, ymax=hi))             +
+  ggplot(aes(x=t, ymin=lo, ymax=hi))             + 
+  expand_limits(y=overall_range)                 +
+  scale_y_log10(breaks=c(1:6,10*1:6), minor=NULL)+
   geom_ribbon(alpha=0.2)                         +
   geom_line(aes(x=t, y=hi))                      +
   geom_line(aes(x=t, y=lo))                      +
   ylab("Estimated trial duration (years)")       +
   xlab("Date of prediction (days)")
 ```
+
+The concept of a flat prior is a bit tricky when you have an infinite range, like a gamma distribution has, but in this case it is a gamma(0.001, 0.001), a common choice for a non-informative gamma prior.
+
+This is possibly an unfair example because the trial had a slow start. But it takes more than 100 days into the trial to get a decent estimate of the upper bound. The first three predictions are a measure of how unstable things are. On the first day, you have recruited one patient, and the `r p_list[2]*100`th percentile is estimated at `r round(flat_predictions$hi[1]/365)` years. On the second day, no one shows up, so your upper limit jumps to `r round(flat_predictions$hi[2]/365)` years. On the third day, one patient shows up, so your upper limit plummets to `r round(flat_predictions$hi[3]/365)` years.
+
+Compare this to the predictions that use an informative prior. The posterior estimate in a Bayesian model with an informative prior is a weighted average of the prior distribution and the data, and that weighted average leans very heavily on the prior distribution early in the trial.
+
+### Figure 4.2. `r p_label` from a strong prior.
+
+```{r plot-informative, fig.width=7, fig.height=4}
+informative_predictions %>%
+  mutate(lo=lo/365)                             %>%
+  mutate(hi=hi/365)                             %>%
+  ggplot(aes(x=t, ymin=lo, ymax=hi))             +
+  expand_limits(y=overall_range)                 +
+  scale_y_log10(breaks=c(1:6,10*1:6), minor=NULL)+
+  geom_ribbon(alpha=0.2)                         +
+  geom_line(aes(x=t, y=hi))                      +
+  geom_line(aes(x=t, y=lo))                      +
+  ylab("Estimated trial duration (years)")       +
+  xlab("Date of prediction (days)")
+```
+
+### Figure 4.3. `r p_label` from a weak prior.
+
+```{r plot-weak, fig.width=7, fig.height=4}
+weak_predictions %>%
+  mutate(lo=lo/365)                             %>%
+  mutate(hi=hi/365)                             %>%
+  ggplot(aes(x=t, ymin=lo, ymax=hi))             +
+  geom_ribbon(alpha=0.2)                         +
+  expand_limits(y=overall_range)                 +
+  scale_y_log10(breaks=c(1:6,10*1:6), minor=NULL)+
+  geom_line(aes(x=t, y=hi))                      +
+  geom_line(aes(x=t, y=lo))                      +
+  ylab("Estimated trial duration (years)")       +
+  xlab("Date of prediction (days)")
+```
+
+
 
