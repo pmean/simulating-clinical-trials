@@ -385,7 +385,7 @@ lambda1 + expand_limits(y=r)
 
 ### Update 2. We have 240 days of accrual data after 192 days of waiting.
 
-On day 192 (finally!) the trial starts accruing patients. The early phase, as expected, was slow, but now you have `r n` patients after `r t` days of active accrual. So how are we doing now?
+On day 192 (finally!) the trial starts accruing patients. The early phase, as expected, was slow, but now you have `r sum(dat_update2$n)` patients after `r t` days of active accrual. So how are we doing now?
 
 ### Figure 6.13. Second update of total sample size.
 

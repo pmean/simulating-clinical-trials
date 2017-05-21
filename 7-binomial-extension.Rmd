@@ -126,9 +126,9 @@ sim_bi1                                         %>%
 
 The estimated total sample size is more sensitive to the proportion consenting, mostly because your prior beliefs gave this proportion a broader range of possibilities.
 
-### Update. `r t` days, `r n1` patients, `r n1-n2` excluded, `r n2-n3` refusals.
+### Update. 
 
-The trial that you have seen illustrated thus far did not track exclusions and refusals, but let's suppose that there were 41 patients who ended up in your trial, 40 who refused consent, and 9 who had to be excluded.
+The trial that you have seen illustrated thus far did not track exclusions and refusals, but let's suppose that there were `r n1` patients who showed up, but `r n1-n2` were excluded and `r n2-n3` who refused consent, leaving `r n3` available for randomization.
 
 ### Figure 7.5. Updated total sample size.
 
@@ -158,3 +158,6 @@ custom_boxplot(sim_bi7, y_label3, 0) + expand_limits(y=y_range)
 
 The sample size estimate after refusals and exclusions is around 180 to 200, which is lower than what you were expecting prior to data collection, mostly because the proportion of refusals is a lot worse.
 
+```{r save-everything}
+save.image("7-binomial-extension.RData")
+```

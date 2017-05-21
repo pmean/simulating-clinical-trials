@@ -15,7 +15,7 @@ Here are the accrual data on two multi-center trials. The first, csp546, has acc
 
 ```{r read-multicenter-data}
 
-f <- "csp546 enrollment.csv"
+f <- "8-lognormal-extension-csp546-enrollment.csv"
 csp546 <- read.csv(file=f, stringsAsFactors=FALSE, header=TRUE)
 
 csp546a <- csp546
@@ -25,7 +25,7 @@ csp546b <- as.data.frame(sapply(csp546a, cumsum))
 csp546b$t <- 1:(dim(csp546b)[1])
 csp546b
 
-f <- "csp558 enrollment.csv"
+f <- "8-lognormal-extension-csp558-enrollment.csv"
 csp558 <- read.csv(file=f, stringsAsFactors=FALSE, header=TRUE)
 
 csp558a <- csp558
@@ -81,8 +81,6 @@ data.frame(lb, max_pct)                         %>%
 
 You decide after looking at these boxpots that a GSD around 1.5 is fairly representative of your experience with accrual in multi-center trials of this particular type and that a GSD of 2 represents the most extreme case you are likely to encounter.
 
-Now you need to specify a prior on the GSD that is centered around 1.5 and where most of the probability is for values below 2.
-
 ### Figure 8.2. Prior distribution on the gsd.
 
 ```{r examining-hierarchical-priors-part2, fig.width=7, fig.height=2.67}
@@ -113,10 +111,12 @@ data.frame(lb, gsd)                             %>%
   coord_flip()
 ```
 
+Now you need to specify a prior on the GSD that is centered around 1.5 and where most of the probability is for values below 2.
+
 ### Here's what the code looks like for a hierarchical model.
 
 ```{r hierarchical-code}
-f <- "hierarchical-extension.stan"
+f <- "8-lognormal-extension.stan"
 # Here's what's hiding in the file 
 cat(readLines(f), sep="\n")
 dat_before <- list(N=350, T=3*365, S=0.5, M=14,
@@ -164,7 +164,7 @@ m <- c(14, 9, 17, 0, 11, 28, 22, 1, 12, 25, 41, 0, 27, 0)
 length(m)
 t <- 14
 csp546b[t, 1:14]
-f <- "hierarchical-extension.stan"
+f <- "8-lognormal-extension.stan"
 dat_during <- list(N=350, T=3*365, S=0.5, M=14,
                    S1=0.02, GSD=1.5,
                    t=14, n=csp546b[t, 1:14])

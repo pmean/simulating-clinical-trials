@@ -1,5 +1,5 @@
 ---
-title: "Simulating clinical trials--various simulations"
+title: "Simulating clinical trials, various simulations"
 author: "Steve Simon"
 date: "March 22, 2017"
 output: html_document
@@ -11,27 +11,22 @@ source("0-preliminaries.R", echo=FALSE)
 
 # Simulation before, during, and after a clinical trial: A Bayesian approach
 
-## Abstract
+### Abstract
 
 Simulation of a clinical trial gives you answers to important economic, logistical, or scientific questions about the trial when some of the features are difficult to characterize with perfect precision. A Bayesian approach with informative priors offers a flexible framework for trial simulation. It provides a seamless transition from simulation prior to the trial to simulation during the trial itself. Although informative priors are controversial, you can avoid perceptions of bias by restricting the informative priors to clinical trial features that are independent of your research hypothesis. You can protect your interim predictions against unrealistic prior beliefs by implementing the hedging hyperprior, a simple hyperdistribution that downweights the strength of the prior when there is a discrepancy between the prior distribution and data observed during the trial itself. The Bayesian approach also gives you a simple post mortem analysis after the trial ends. You can compute percentile values by plugging the point estimates from the actual clinical trial data into the corresponding prior distributions. Over multiple trials, a deviation in these percentiles from a uniform distribution indicates biased specification of the informative priors. The Bayesian approach to trial simulation will be illustrated using various patient accrual models.
 
-## Keywords
+Keywords: hedging hyperprior; informative prior distributions; Markov Chain Monte Carlo; patient accrual.
 
-hedging hyperprior; informative prior distributions; Markov Chain Monte Carlo; patient accrual.
-
-## Introduction
+### Part 1. An illustration of various simulations
 
 ```{r}
 N <- 350
 T <- 1095
+S <- 0.4
 s_list <- c(0.1, 0.2, 0.5)
 ```
 
-Consider a clinical trial that plans to run for `r T` days (`r T/365` years). You hope to recruit `r N` patients in that time, which would mean `r round(N/T, 2)` patients per day or `r round(30*N/T, 1)` patients per month. You suspect, however, that the accrual rate might actually be quite a bit higher or quite a bit lower than this target. You set a prior distribution on the accrual rate that is Gamma(175, 547.5). You need to wait for an explanation of why this might be a reasonable prior distribution.
-
-## Simulating various features of a trial
-
-You can simulate many things. You can simulate the amount of time that the trial takes to recruit 350 patients.
+Consider a clinical trial that plans to run for `r T` days (`r T/365` years). You hope to recruit `r N` patients in that time, which would mean `r round(N/T, 2)` patients per day or `r round(30*N/T, 1)` patients per month. You suspect, however, that the accrual rate might actually be quite a bit higher or quite a bit lower than this target. You set a prior distribution on the accrual rate that is Gamma(`r N*S`, `r T*S`). You need to wait for an explanation of why this might be a reasonable prior distribution. With this prior distribution, you can simulate many things.
 
 ### Figure 1.1. Simulation of a clinical trial with a fixed sample size.
 
@@ -83,7 +78,7 @@ simulated_paths                                 %>%
              size=2.5)
 ```
 
-or the number of patients that you will get in 3 years.
+This is simulation of the amount of time it would take to recruit `r N` patients. The target is `r T` days, but some simulations take less time and others take more time.
 
 ### Figure 1.2. Simulation of a clinical trial with a fixed time frame.
 
@@ -128,7 +123,7 @@ simulated_paths                                 %>%
              size=2.5)
 ```
 
-Or a trial that ends when you reach 350 patients or 3 years, whichever comes first.
+This is simulation of the number of patients you can recruit if you restrict the amount of time spentt to exactly `r T` days. The target is `r N` patients, but some simulations estimate a larger or a smaller number of patients.
 
 ### Figure 1.3. Simulation of a trial with a conditional endpoint.
 
@@ -176,12 +171,11 @@ simulated_paths                                 %>%
              size=2.5)
 ```
 
-
-You could compute some composite measure like the total cost of the trial where each day that the trial is running costs 20 British Pounds and each patient recruited costs 80 British Pounds.
+This is a trial with a conditional endpoint. You will end the trial when you get `r N` patients or your trial takes `r T` days, whichever comes first.
 
 ### Figure 1.4. Simulation of the cost of a clinical trial. 
 
-```{r simulate_cost, echo=FALSE, fig.width=4, fig.height=4}
+```{r simulate_cost, echo=FALSE, fig.width=7, fig.height=4}
 N <- 350; T <- 1095; S <- 0.5
 
 lambda_list <- c(
@@ -246,8 +240,8 @@ simulated_paths                                 %>%
     size=2.5)
 ```
 
+This is the same conditional endpoint, but you are measuring the cost of the trial rather than the number of patients or the amount of time. The cost is 80 British Pounds for each day of the trial and 20 British Poundns for each patient in the trial.
+
 ```{r save-everything}
 save.image("1-various-simulations.RData")
 ```
-
-# end of file

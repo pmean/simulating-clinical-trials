@@ -1,5 +1,5 @@
 ---
-title: "Simulating clinical trials"
+title: "Simulating clinical trials, paths in a simulation"
 author: "Steve Simon"
 date: "March 22, 2017"
 output: html_document
@@ -10,13 +10,13 @@ source("0-preliminaries.R", echo=FALSE)
 pctl_list <- c(1, 25, 50, 75, 99)
 N <- 350
 T <- 1095
-S <- 0.5
+S <- 0.4
 dat_prior <- list(N=N, T=T, S=S)
 pts <- unlist(read.csv("2-paths-count.csv"))
 dat_updated <- list(N=350, T=3*365, S=0.5, n=pts, t=length(pts))
 ```
 
-## Paths in a simulation
+### Part 2.  Paths in a simulation
 
 When you simulate a clinical trial, you won't do this two times. You'll do it several thousand times, because computer cycles are cheap. Here's what a few thousand simulations might look like.
 
@@ -59,7 +59,8 @@ sim_tr1 %>%
   scale_x_continuous(breaks=365*(0:3))           +
   xlab("Time (days)")                            +
   ylab("Estimated number of patients (Prior)")   +
-  expand_limits(y=500)
+  expand_limits(y=500)                          -> path_plot
+print(path_plot)
 ```
 
 I also want to talk about simulating a clinical trial during the trial. What this means is that you have information sample size up to a certain point in time and you want to simulate how rapidly the sample size might increase for the remainder of time in the trial.
@@ -103,6 +104,32 @@ sim_tr2 %>%
   expand_limits(y=500)                           
 
 ```
+
+### Figure 2.3. Post mortem examination of actual trial results.
+
+```{r simulate-path}
+# I do not have the exact path to the final result, but I do know that
+# this trial ended on day 1336 with 341 patients. So it is easy to make
+# a realistic looking path from day 239 with 41 patients.
+x1 <- rpois(2000, 350/1095)
+x2 <- x1[x1>0]
+x3 <- cumsum(x2)
+x4 <- min(which(x3>=(341-41)))
+x5 <- x2[1:x4]
+x5[x4] <- x5[x4] - (x3[x4]-(341-41))
+x6 <- c(rep(0, (1336-239-1-length(x5))), x5)
+x7 <- sample(x6)
+x8 <- cumsum(c(pts,x7))
+df <- data.frame(x=1:1336, y=x8, j=0)
+```
+
+```{r post-mortem, fig.width=7, fig.height=4}
+path_plot                                        +
+  expand_limits(x=1336)                          +
+  geom_line(data=df, aes(x, y, group=j), col="red")
+```
+
+When the trial ends, you can compare the actual accrual results to what you thought you knew before the trial started. In this particular trial, some of the interim values are made up, but it reflects a trial that ended up short of the target sample size (341 instead of 350 patients) in spite of the fact that it needed 1336 days instead of 1095. Your prior distribution was overly optimistic.
 
 ```{r save-everything}
 save.image("2-paths.RData")
