@@ -18,7 +18,7 @@ dat_updated <- list(N=350, T=3*365, S=0.5, n=pts, t=length(pts))
 
 ### Part 2.  Paths in a simulation
 
-When you simulate a clinical trial, you won't do this two times. You'll do it several thousand times, because computer cycles are cheap. Here's what a few thousand simulations might look like.
+When you simulate a clinical trial, you won't do this two times. You'll do it several thousand times, because computer cycles are cheap. You can run these simulations before the trial starts, but you can continue to run them during the trial itself. You should even run a simulation after the trial ends, comparing the actual trial results with what you thought they might be prior to the start of the trial. Consider this a sort of "post mortem" analysis.
 
 ### Figure 2.1. 1000 simulations run prior to start of a clinical trial.
 

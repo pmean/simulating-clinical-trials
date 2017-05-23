@@ -31,7 +31,7 @@ N_label2c <- N_label1c
 N_label2d <- N_label1d
 ```
 
-## Hedging priors
+## Part 5. Hedging priors
 
 One problem with informative prior distributions is that many researchers get them wrong. They are either too optimistic about the accrual rate, or they think they know the accrual rate with more certainty than they actually do, or sometimes both.
 

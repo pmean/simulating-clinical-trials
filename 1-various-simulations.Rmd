@@ -26,7 +26,7 @@ S <- 0.4
 s_list <- c(0.1, 0.2, 0.5)
 ```
 
-Consider a clinical trial that plans to run for `r T` days (`r T/365` years). You hope to recruit `r N` patients in that time, which would mean `r round(N/T, 2)` patients per day or `r round(30*N/T, 1)` patients per month. You suspect, however, that the accrual rate might actually be quite a bit higher or quite a bit lower than this target. You set a prior distribution on the accrual rate that is Gamma(`r N*S`, `r T*S`). You need to wait for an explanation of why this might be a reasonable prior distribution. With this prior distribution, you can simulate many things.
+Consider a clinical trial that plans to run for T = `r T` days (`r T/365` years). You hope to recruit N = `r N` patients in that time, which would mean `r round(N/T, 2)` patients per day or `r round(30*N/T, 1)` patients per month. You suspect, however, that the accrual rate might actually be quite a bit higher or quite a bit lower than this target. You set a prior distribution on the accrual rate that is Gamma(`r N*S`, `r T*S`). You need to wait for an explanation of why this might be a reasonable prior distribution. With this prior distribution, you can simulate many things.
 
 ### Figure 1.1. Simulation of a clinical trial with a fixed sample size.
 

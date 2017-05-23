@@ -14,7 +14,7 @@ p_list                                          %>%
   paste("The", ., "percentile predictions")     -> p_label
 ```
 
-## Early predictions
+## Part 4. Early predictions
 
 The commonly cited objection to informative priors is that they can bias the research. Whether that is true or not in a hypothesis testing framework is a matter of open debate. But using informative priors for operational characteristics of a study will not bias any resulting hypothesis tests.
 
