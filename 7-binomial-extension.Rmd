@@ -16,10 +16,26 @@ P1 <- 0.1
 S1 <- 0.1
 P2 <- 0.3
 S2 <- 0.2
+n1 <- 90
+n2 <- 81
+n3 <- 41
+dat_prior <- list(N=N, T=T, S=S, 
+                   n=0, t=0, 
+                   P1=P1, S1=S1, P2=P2, S2=S2,
+                   n1=0, n2=0, n3=0)
+dat_update <- list(N=N, T=T, S=S, 
+                   P1=P1, S1=S1, P2=P2, S2=S2,
+                   t=239, n1=90, n2=81, n3=41)
 b1_label0 <- "Proportion excluded (prior)"
 b1_label1 <- sub("prior", "update", b1_label0)
 b2_label0 <- "Proportion refusing (prior)"
 b2_label1 <- sub("prior", "update", b1_label0)
+N_label1a <- "Estimated sample size before exclusions and refusals (prior)"
+N_label2a <- "Estimated sample size after exclusions, before refusals (prior)"
+N_label3a <- "Estimated sample size after exclusions and refusals (prior)"
+N_label1b <- sub("prior", "update", N_label1a)
+N_label2b <- sub("prior", "update", N_label2a)
+N_label3b <- sub("prior", "update", N_label3a)
 ```
 
 ### Part 7. Modeling exclusions and refusals
@@ -43,9 +59,9 @@ sim3 <- data.frame(x=" ", y=rbeta(n_reps, S1*2*N*P1, S1*2*N*(1-P1)))
 
 y_range <- range(sim1$y, sim2$y, sim3$y)
 
-custom_boxplot(sim1, b1_label0a, 2, "gray") + expand_limits(y=y_range)
-custom_boxplot(sim2, b1_label0b, 2)         + expand_limits(y=y_range)
-custom_boxplot(sim3, b1_label0c, 2, "gray") + expand_limits(y=y_range)
+custom_boxplus(sim1, b1_label0a, 2, "gray") + expand_limits(y=y_range)
+custom_boxplus(sim2, b1_label0b, 2)         + expand_limits(y=y_range)
+custom_boxplus(sim3, b1_label0c, 2, "gray") + expand_limits(y=y_range)
 ```
 
 A prior strength of 0.2 looks reasonable for the proportion excluded.
@@ -63,14 +79,14 @@ sim3 <- data.frame(x=" ", y=rbeta(n_reps, S2*2*N*P2, S2*2*N*(1-P2)))
 
 y_range <- range(sim1$y, sim2$y, sim3$y)
 
-custom_boxplot(sim1, b1_label0a, 2, "gray") + expand_limits(y=y_range)
-custom_boxplot(sim2, b1_label0b, 2)         + expand_limits(y=y_range)
-custom_boxplot(sim3, b1_label0c, 2, "gray") + expand_limits(y=y_range)
+custom_boxplus(sim1, b1_label0a, 2, "gray") + expand_limits(y=y_range)
+custom_boxplus(sim2, b1_label0b, 2)         + expand_limits(y=y_range)
+custom_boxplus(sim3, b1_label0c, 2, "gray") + expand_limits(y=y_range)
 ```
 
 A prior strength of 0.1 looks reasonable for proportion refusing.
 
-If you do a simple extrapolation, the total sample size after exclusions and refusals should be about `r 100*P1*P2`% of the 350 planned patients or `r N*P1*P2` patients.
+If you do a simple extrapolation, the total sample size after exclusions and refusals should be about `r 100*(1-P1)*(1-P2)`% of the `r N` planned patients or `r N*(1-P1)*(1-P2)` patients.
 
 ### Here's what the code would look like for this model.
 
@@ -78,12 +94,8 @@ If you do a simple extrapolation, the total sample size after exclusions and ref
 f <- "7-binomial-extension.stan"
 # Here's what's hiding in the file 
 cat(readLines(f), sep="\n")
-dat_before <- list(N=350, T=3*365, S=0.5, 
-                   n=0, t=0, 
-                   P1=0.9, S1=0.2, P2=0.7, S2=0.1,
-                   n1=0, n2=0, n3=0)
 fit_bi0 <- stan(file=f,
-  data=dat_before, iter= 1000, chains = 4)
+  data=dat_prior, iter= 1000, chains = 4)
 ```
 
 ### Figure 7.3. Prior estimate of sample size, accounting for exclusions and refusals.
@@ -91,18 +103,18 @@ fit_bi0 <- stan(file=f,
 ```{r binomial, fig.height=1, fig.width=7}
 fit_bi0                                         %>%
   as.data.frame                                 %>%
-  mutate(x="prior estimate") -> sim_bi0
+  mutate(x=" ")                                 -> sim_bi0
 
-y_label1 <- "Estimated total sample size"
-y_label2 <- "Estimated sample size after exclusions"
-y_label3 <- "Estimated sample size after exclusions and refusals"
 sim_bi0 %>% rename(y=N1star) -> sim_bi1
 sim_bi0 %>% rename(y=N2star) -> sim_bi2
 sim_bi0 %>% rename(y=N3star) -> sim_bi3
 y_range <- range(sim_bi1$y, sim_bi2$y, sim_bi3$y)
-custom_boxplot(sim_bi1, y_label1, 0) + expand_limits(y=y_range)
-custom_boxplot(sim_bi2, y_label2, 0) + expand_limits(y=y_range)
-custom_boxplot(sim_bi3, y_label3, 0) + expand_limits(y=y_range)
+prior1_plot <- custom_boxplus(sim_bi1, N_label1a, 0)
+prior2_plot <- custom_boxplus(sim_bi2, N_label2a, 0)
+prior3_plot <- custom_boxplus(sim_bi3, N_label3a, 0)
+prior1_plot + expand_limits(y=y_range)
+prior2_plot + expand_limits(y=y_range)
+prior3_plot + expand_limits(y=y_range)
 ```
 
 You should consider exploring how sensitive your estimated total sample size is relative to each of the binomial parameters.
@@ -134,29 +146,41 @@ The trial that you have seen illustrated thus far did not track exclusions and r
 
 ```{r binomial-extension-during, fig.width=7, fig.height=1}
 f <- "7-binomial-extension.stan"
-dat_before <- list(N=350, T=3*365, S=0.5, 
-                   P1=0.9, S1=0.2, P2=0.7, S2=0.1,
-                   t=239, n1=90, n2=81, n3=41)
 fit_bi4 <- stan(file=f,
-  data=dat_before, iter= 1000, chains = 4)
+  data=dat_update, iter= 1000, chains = 4)
 
 fit_bi4                                         %>%
   as.data.frame                                 %>%
-  mutate(x="updated estimate")                  -> sim_bi4
+  mutate(x=" ")                                 -> sim_bi4
 
-y_label1 <- "Estimated total sample size"
-y_label2 <- "Estimated sample size after exclusions"
-y_label3 <- "Estimated sample size after exclusions and refusals"
 sim_bi4 %>% rename(y=N1star) -> sim_bi5
 sim_bi4 %>% rename(y=N2star) -> sim_bi6
 sim_bi4 %>% rename(y=N3star) -> sim_bi7
-y_range <- range(sim_bi1$y, sim_bi2$y, sim_bi3$y)
-custom_boxplot(sim_bi5, y_label1, 0) + expand_limits(y=y_range)
-custom_boxplot(sim_bi6, y_label2, 0) + expand_limits(y=y_range)
-custom_boxplot(sim_bi7, y_label3, 0) + expand_limits(y=y_range)
+update1_plot <- custom_boxplus(sim_bi5, N_label1b, 0)
+update2_plot <- custom_boxplus(sim_bi6, N_label2b, 0)
+update3_plot <- custom_boxplus(sim_bi7, N_label3b, 0)
+y_range <- range(sim_bi1$y, sim_bi5$y)
+prior1_plot  + expand_limits(y=y_range)
+update1_plot + expand_limits(y=y_range)
 ```
 
-The sample size estimate after refusals and exclusions is around 180 to 200, which is lower than what you were expecting prior to data collection, mostly because the proportion of refusals is a lot worse.
+### Figure 7.6.
+
+```{r tm2, fig.width=7, fig.height=1}
+y_range <- range(sim_bi2$y, sim_bi6$y)
+prior2_plot  + expand_limits(y=y_range)
+update2_plot + expand_limits(y=y_range)
+```
+
+### Figure 7.7. Updated estimates after exclusions and refusals
+
+```{r tm3, fig.width=7, fig.height=1}
+y_range <- range(sim_bi3$y, sim_bi7$y)
+prior3_plot  + expand_limits(y=y_range)
+update3_plot + expand_limits(y=y_range)
+```
+
+The sample size estimate after refusals and exclusions is lower than what you were expecting prior to data collection, mostly because the proportion of refusals is a lot worse.
 
 ```{r save-everything}
 save.image("7-binomial-extension.RData")

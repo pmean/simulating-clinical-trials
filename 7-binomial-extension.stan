@@ -23,8 +23,8 @@ model {
   pi2 ~ beta(N*S2*P2, N*S2*(1-P2));
   if (t>0) {
     n1 ~ poisson(t*lambda);
-    n2 ~ binomial(n1, pi1);
-    n3 ~ binomial(n2, pi2);
+    n2 ~ binomial(n1, 1-pi1);
+    n3 ~ binomial(n2, 1-pi2);
   }
 }
 generated quantities {
@@ -32,6 +32,6 @@ generated quantities {
   int<lower=0> N2star;
   int<lower=0> N3star;
   N1star = n1 + poisson_rng((T-t)*lambda);
-  N2star = n2 + binomial_rng(N1star-n1, pi1);
-  N3star = n3 + binomial_rng(N2star-n2, pi2);
+  N2star = n2 + binomial_rng(N1star-n1, 1-pi1);
+  N3star = n3 + binomial_rng(N2star-n2, 1-pi2);
 }

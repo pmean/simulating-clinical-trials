@@ -17,10 +17,10 @@ opts_chunk$set(
 pctl_list <- c(1, 25, 75, 99)
 
 
-custom_boxplot <- function(df, y_label, rounding_level, co="black") {
+custom_boxplot <- function(df, y_label, rounding_level, co="black", yp=c(1, 25, 50, 75, 99)) {
   df                                            %>%
     use_series(y)                               %>%
-    quantile(pctl_list/100)                     -> tm
+    quantile(yp/100)                            -> tm
   tm                                            %>%
     round(rounding_level)                       -> lb
   df                                            %>%
@@ -38,8 +38,8 @@ custom_boxplot <- function(df, y_label, rounding_level, co="black") {
     return
 }
 
-custom_boxplus <- function(df, y_label, rounding_level, co="black") {
-  custom_boxplot(df, y_label, rounding_level, co="black") +
+custom_boxplus <- function(df, y_label, rounding_level, co="black", yp=c(1, 25, 50, 75, 99)) {
+  custom_boxplot(df, y_label, rounding_level, co=co, yp) +
   stat_summary(fun.y="mean", geom="point", size=4, color=co, pch="+")
 }
 
