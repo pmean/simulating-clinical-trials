@@ -82,30 +82,12 @@ The center of the boxplot represents the median sample size from the simulation,
 
 ```{r gamma-poisson-scatterplot1, fig.width=7, fig.height=4}
 # Scatterplot of accrual rate versus total sample size
-sim_gp1                                         %>%
-  use_series(lambda)                            %>%
-  multiply_by(30)                               %>%
-  quantile(pctl_list/100)                       -> x_ticks
-x_ticks                                         %>%
-  round(1)                                      -> x_labels
-sim_gp1                                         %>%
-  use_series(Nstar)                             %>%
-  quantile(pctl_list/100)                       -> y_ticks
-y_ticks                                         %>%
-  round(1)                                      -> y_labels
+ylb <- "Estimated total sample size (prior)"
+xlb <- "Monthly accrual rate (prior)"
 sim_gp1                                         %>%
   rename(y=Nstar)                               %>%
   mutate(x=30*lambda)                           %>%
-  ggplot(aes(x, y))                              +
-  geom_point()                                   +
-  ylab("Estimated total sample size (prior)")    + 
-  xlab("Monthly accrual rate (prior)")           +
-  scale_x_continuous(breaks=x_ticks,
-                     minor_breaks=NULL,
-                     labels=x_labels)            +
-  scale_y_continuous(breaks=y_ticks,
-                     minor_breaks=NULL,
-                     labels=y_labels)
+  custom_scatterplot(xlb, ylb)
 ```
 
 You can learn a lot by looking at how the estimated total sample size relates to the prior paramter(s). 

@@ -122,18 +122,19 @@ You should consider exploring how sensitive your estimated total sample size is 
 ### Figure 7.4. How the prior distributions affect the estimated total sample size.
 
 ```{r binomial-part2, fig.width=4, fig.height=4}
-sim_bi1                                         %>%
-  ggplot(aes(pi1, N3star))                       +
-  ylab("Estimated total sample size")            + 
-  xlab("Proportion meeting inclusion")           +
-  geom_point()
-
-sim_bi1                                         %>%
-  ggplot(aes(pi2, N3star))                       +
-  ylab("Estimated total sample size")            + 
-  xlab("Proportion consenting")                  +
-  geom_point()
-
+ylb <- "Estimated total sample size (prior)"
+xlb <- "Proportion excluded (prior)"
+sim_bi0                                         %>%
+  select(pi1, N3star)                           %>%
+  rename(x=pi1)                                 %>%
+  rename(y=N3star)                              %>%
+  custom_scatterplot(xlb, ylb, 2, 0)
+xlb <- "Proportion refusing (prior)"
+sim_bi0                                         %>%
+  select(pi2, N3star)                           %>%
+  rename(x=pi2)                                 %>%
+  rename(y=N3star)                              %>%
+  custom_scatterplot(xlb, ylb, 2, 0)
 ```
 
 The estimated total sample size is more sensitive to the proportion consenting, mostly because your prior beliefs gave this proportion a broader range of possibilities.
@@ -142,7 +143,7 @@ The estimated total sample size is more sensitive to the proportion consenting, 
 
 The trial that you have seen illustrated thus far did not track exclusions and refusals, but let's suppose that there were `r n1` patients who showed up, but `r n1-n2` were excluded and `r n2-n3` who refused consent, leaving `r n3` available for randomization.
 
-### Figure 7.5. Updated total sample size.
+### Figure 7.5. Updated sample size before exclusions and refusals.
 
 ```{r binomial-extension-during, fig.width=7, fig.height=1}
 f <- "7-binomial-extension.stan"
@@ -159,28 +160,37 @@ sim_bi4 %>% rename(y=N3star) -> sim_bi7
 update1_plot <- custom_boxplus(sim_bi5, N_label1b, 0)
 update2_plot <- custom_boxplus(sim_bi6, N_label2b, 0)
 update3_plot <- custom_boxplus(sim_bi7, N_label3b, 0)
-y_range <- range(sim_bi1$y, sim_bi5$y)
+sim_bi1                                         %>%
+  bind_rows(sim_bi2)                            %>%
+  bind_rows(sim_bi3)                            %>%
+  bind_rows(sim_bi5)                            %>%
+  bind_rows(sim_bi6)                            %>%
+  bind_rows(sim_bi7)                            %>%
+  use_series(y)                                 %>%
+  range                                         -> y_range
 prior1_plot  + expand_limits(y=y_range)
 update1_plot + expand_limits(y=y_range)
 ```
 
-### Figure 7.6.
+Your accrual rate is better than you expected, at least for getting people to show up.
+
+### Figure 7.6. Updated sample size after exclusions, before refusals.
 
 ```{r tm2, fig.width=7, fig.height=1}
-y_range <- range(sim_bi2$y, sim_bi6$y)
 prior2_plot  + expand_limits(y=y_range)
 update2_plot + expand_limits(y=y_range)
 ```
 
+The refusals are about what you'd expect, and that means you're still ahead of schedule at this point.
+
 ### Figure 7.7. Updated estimates after exclusions and refusals
 
 ```{r tm3, fig.width=7, fig.height=1}
-y_range <- range(sim_bi3$y, sim_bi7$y)
 prior3_plot  + expand_limits(y=y_range)
 update3_plot + expand_limits(y=y_range)
 ```
 
-The sample size estimate after refusals and exclusions is lower than what you were expecting prior to data collection, mostly because the proportion of refusals is a lot worse.
+The refusals, though, are a disaster. You are losing a lot more than `r 100*P2`% patients due to refusals. In fact, it looks like the surge in the proportion of refusals is the main factor influencing your behind-schedule numbers.
 
 ```{r save-everything}
 save.image("7-binomial-extension.RData")
