@@ -163,7 +163,7 @@ save.image("5-hedging-extension.RData")
 
 ### Figure 5.1. Comparison of simple and hedged predictions prior to data collection.
 
-```{r plot-priors, fig.width=7, fig.height=1}
+```{r plot-priors, fig.width=10, fig.height=1}
 pct4 <- c(1, 25, 75, 99)
 sim_hp0                                   %>%
   rename(y=Nstar)                         %>%
@@ -181,7 +181,7 @@ The hedging hyperprior creates a mixture of gamma priors from weak to strong. So
 
 ### Figure 5.2. Updated prediction with a hedged prior.
 
-```{r plot-hedged-update1, fig.width=7, fig.height=1}
+```{r plot-hedged-update1, fig.width=10, fig.height=1}
 sim_hp1                                   %>%
   rename(y=Nstar)                         %>%
   custom_boxplot(N_label1a, 0, yp=pct4)   -> hedged_update1_plot
@@ -199,7 +199,7 @@ The update with the hedging hyperprior ends up downweighting the strength of the
 
 ### Figure 5.3. Updated prediction with a simple prior.
 
-```{r plot-simple-update1, fig.width=7, fig.height=1}
+```{r plot-simple-update1, fig.width=10, fig.height=1}
 sim_gp1                                   %>%
   rename(y=Nstar)                         %>%
   custom_boxplot(N_label1b, 0, yp=pct4)   -> simple_update1_plot
@@ -213,7 +213,7 @@ In contrast, because the simple prior was very strong, the weighted average of t
 
 ### Figure 5.4. Updated prediction with a flat prior.
 
-```{r plot-flat-update1, fig.width=7, fig.height=1}
+```{r plot-flat-update1, fig.width=10, fig.height=1}
 sim_fl1                                   %>%
   rename(y=Nstar)                         %>%
   custom_boxplot(N_label1c, 0, yp=pct4)   -> flat_update1_plot
@@ -226,7 +226,7 @@ The flat prior behaves as you would suspect, putting pretty much all of the weig
 
 ### Figure 5.5. Updated distribution of hedging hyperparameter.
 
-```{r hyperparameter-plot1, fig.width=7, fig.height=1}
+```{r hyperparameter-plot1, fig.width=10, fig.height=1}
 pct3 <- c(25, 75, 99)
 lb <- "Updated hyperparameter"
 sim_hp1                                   %>%
@@ -243,7 +243,7 @@ Consider an alternative scenario, where the prior distribution and the actual ac
 
 ### Figure 5.6. Alternative update with a hedged prior.
 
-```{r plot-hedged-update2, fig.width=7, fig.height=1}
+```{r plot-hedged-update2, fig.width=10, fig.height=1}
 sim_hp2                                   %>%
   rename(y=Nstar)                         %>%
   custom_boxplot(N_label2a, 0, yp=pct4)   -> hedged_update2_plot
@@ -261,7 +261,7 @@ The heding hyperprior does not need to downweight the strong prior when the data
 
 ### Figure 5.7. Alternative update prediction with a simple prior.
 
-```{r plot-simple-update2, fig.width=7, fig.height=1}
+```{r plot-simple-update2, fig.width=10, fig.height=1}
 sim_gp2                                   %>%
   rename(y=Nstar)                         %>%
   custom_boxplot(N_label2b, 0, yp=pct4)   -> simple_update2_plot
@@ -275,7 +275,7 @@ The predicted sample size of the simple prior is very similar to the hedging hyp
 
 ### Figure 5.8. Alternative update with a flat prior.
 
-```{r plot-flat-update2, fig.width=7, fig.height=1}
+```{r plot-flat-update2, fig.width=10, fig.height=1}
 sim_fl2                                   %>%
   rename(y=Nstar)                         %>%
   custom_boxplot(N_label2c, 0, yp=pct4)   -> flat_update2_plot
@@ -288,7 +288,7 @@ The flat prior also is close to the observed accrual rate, but because it does n
 
 ### Figure 5.9. Alternative update of hedging hyperparameter.
 
-```{r hyperparameter-plot2, fig.width=7, fig.height=1}
+```{r hyperparameter-plot2, fig.width=10, fig.height=1}
 sim_hp2                                   %>%
   rename(y=pi)                            %>%
   custom_boxplus("Updated hyperparameter", 2) +

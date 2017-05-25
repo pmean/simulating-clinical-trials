@@ -165,9 +165,9 @@ We'll fit the discontinuous model, the first one shown, because it is convenient
 
 Generally, you should use strong priors here to limit delta1 and delta3 to the lower end of the range from 0 to 1. If you really thought that delta1 and/or delta3 would be much closer to 1, then you should rethink what your total time planned should be.
 
-### Figure 6.5. Prior distribution for delta1, rescaled to number of days.
+### Figure 6.5. Prior distribution for delta1 (time waiting to start).
 
-```{r delay-priors1, fig.height=1, fig.width=7}
+```{r delay-priors1, fig.height=1, fig.width=10}
 d1_label0a <- sub("prior", paste("prior, S1", S1/2, sep="="), d1_label0)
 d1_label0b <- sub("prior", paste("prior, S1", S1,   sep="="), d1_label0)
 d1_label0c <- sub("prior", paste("prior, S1", S1*2, sep="="), d1_label0)
@@ -178,16 +178,16 @@ sim3 <- data.frame(x=" ", y=rbeta(n_reps, S1*2*N*D1, S1*2*N*(1-D1))*T)
 
 y_range <- range(sim1$y, sim2$y, sim3$y)
 
-custom_boxplot(sim1, d1_label0a, 0, "gray") + expand_limits(y=y_range)
-custom_boxplot(sim2, d1_label0b, 0)         + expand_limits(y=y_range)
-custom_boxplot(sim3, d1_label0c, 0, "gray") + expand_limits(y=y_range)
+custom_boxplot(sim1, d1_label0a, 0, "black") + expand_limits(y=y_range)
+custom_boxplot(sim2, d1_label0b, 0, "red")   + expand_limits(y=y_range)
+custom_boxplot(sim3, d1_label0c, 0, "black") + expand_limits(y=y_range)
 ```
 
 Here's some possible prior distributions. For delta1, the proportion of the total planned time that you spend waiting for the study to get started, a beta(`r N*D1*S1`, `r N*S1*(1-D1)`) corresponds to an expectation that `r D1*100`% of the time (`r D1*T` days) will be lost on average before the trial even begins. The total weight assigned to this prior corresponds to `r S1*100`% of the total sample size.
 
-### Figure 6.6. Prior distribution for delta2, rescaled to patients per month.
+### Figure 6.6. Prior distribution for delta2 (accrual rate early), rescaled to patients per month.
 
-```{r delay-priors2, fig.height=1, fig.width=7}
+```{r delay-priors2, fig.height=1, fig.width=10}
 d2_label0a <- sub("prior", paste("prior, S2", S2/2, sep="="), d2_label0)
 d2_label0b <- sub("prior", paste("prior, S2", S2,   sep="="), d2_label0)
 d2_label0c <- sub("prior", paste("prior, S2", S2*2, sep="="), d2_label0)
@@ -198,16 +198,16 @@ sim3 <- data.frame(x=" ", y=rbeta(n_reps, S2*2*N*D2, S2*2*N*(1-D2))*30*N/T)
 
 y_range <- range(sim1$y, sim2$y, sim3$y)
 
-custom_boxplot(sim1, d2_label0a, 1, "gray") + expand_limits(y=y_range)
-custom_boxplot(sim2, d2_label0b, 1)         + expand_limits(y=y_range)
-custom_boxplot(sim3, d2_label0c, 1, "gray") + expand_limits(y=y_range)
+custom_boxplot(sim1, d2_label0a, 1, "black") + expand_limits(y=y_range)
+custom_boxplot(sim2, d2_label0b, 1, "red")   + expand_limits(y=y_range)
+custom_boxplot(sim3, d2_label0c, 1, "black") + expand_limits(y=y_range)
 ```
 
 For delta2, the proportionate reduction in accrual during the warm-up period, a beta(`r S2*N*D2`, `r S2*N*(1-D2)` corresponds to an expectation that the reductiton during warm-up will be about `r 100*D2`% of the regular accrual rate on average, or roughly `r round(D2*30*N/T)` patients per month. The total weight assigned to this prior corresponds to `r S2*100`% of the total sample size.
 
-### Figure 6.7. Prior distribution for delta3, rescaled to days.
+### Figure 6.7. Prior distribution for delta3 (duration of early accrual), rescaled to days.
 
-```{r delay-priors3, fig.height=1, fig.width=7}
+```{r delay-priors3, fig.height=1, fig.width=10}
 d3_label0a <- sub("prior", paste("prior, S3", S3/2, sep="="), d3_label0)
 d3_label0b <- sub("prior", paste("prior, S3", S3,   sep="="), d3_label0)
 d3_label0c <- sub("prior", paste("prior, S3", S3*2, sep="="), d3_label0)
@@ -218,9 +218,9 @@ sim3 <- data.frame(x=" ", y=rbeta(n_reps, S3*2*N*D3, S3*2*N*(1-D3))*T)
 
 y_range <- range(sim1$y, sim2$y, sim3$y)
 
-custom_boxplot(sim1, d3_label0a, 0, "gray") + expand_limits(y=y_range)
-custom_boxplot(sim2, d3_label0b, 0)         + expand_limits(y=y_range)
-custom_boxplot(sim3, d3_label0c, 0, "gray") + expand_limits(y=y_range)
+custom_boxplot(sim1, d3_label0a, 0, "black") + expand_limits(y=y_range)
+custom_boxplot(sim2, d3_label0b, 0, "red")   + expand_limits(y=y_range)
+custom_boxplot(sim3, d3_label0c, 0, "black") + expand_limits(y=y_range)
 ```
 
 For delta3, the proportion of the total planned time that you spend in the warm-up period, a beta(`r S3*N*D3`, `r S3*N*(1-D3)`) corresponds to an expectation that `r 100*D3`% of the time your trial will be stuck in the warm-up phase. The total weight assigned to this prior corresponds to `r S3*100`% of the total sample size.
@@ -235,7 +235,7 @@ cat(readLines(f), sep="\n")
 
 ### Figure 6.8. Prior estimate of total sample size, accounting for delays.
 
-```{r delay_fit0, fig.height=1, fig.width=7}
+```{r delay_fit0, fig.height=1, fig.width=10}
 mod_dm0 <- jags.model(f, data=dat_prior, 
   n.adapt = 100)
 
@@ -295,7 +295,7 @@ fit_dm1 <- coda.samples(mod_dm1, var=parms, n.iter = 1000)
 
 ### Figure 6.9. Updated estimate of total sample size after `r dat_update1$t` days of nothing.
 
-```{r delay_fit1, fig.height=1, fig.width=7}
+```{r delay_fit1, fig.height=1, fig.width=10}
 y_label <- "Estimated total sample size (update 1)"
 f <- "6-beta-test3.jags"
 
@@ -305,11 +305,11 @@ fit_dm1                                         %>%
 sim_dm1                                         %>%
   rename(y=Nstar)                               %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(N_label1, 0)                    -> update1
+  custom_boxplot(N_label1, 0, co="red")         -> update1
 sim_dm0                                         %>%
   rename(y=Nstar)                               %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(N_label0, 0, co="gray")        -> prior_estimate
+  custom_boxplot(N_label0, 0, co="black")       -> prior_estimate
 r <- range(sim_dm0$Nstar, sim_dm1$Nstar)
 prior_estimate + expand_limits(y=r)
 update1 + expand_limits(y=r)
@@ -319,15 +319,15 @@ Okay, tell me when you think the trial will start, now that we know that the del
 
 ### Figure 6.10. How much longer do you expect to wait after 150 days of nothing.
 
-```{r updated_start, fig.width=7, fig.height=1}
+```{r updated_start, fig.width=10, fig.height=1}
 sim_dm0                                         %>%
   mutate(y=delta1*T)                            %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(d1_label0, 0, co="gray")       -> delta10
+  custom_boxplot(d1_label0, 0, co="black")      -> delta10
 sim_dm1                                         %>%
   mutate(y=delta1*T)                            %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(d1_label1, 0)                  -> delta11
+  custom_boxplot(d1_label1, 0, co="red")        -> delta11
 r <- T*range(sim_dm0$delta1, sim_dm1$delta1)
 delta10 + expand_limits(y=r)
 delta11 + expand_limits(y=r)
@@ -337,11 +337,11 @@ The remaining parameters remain unchanged, of course.
 
 ### Figure 6.11. Update of delta2 after 150 days of nothing.
 
-```{r remaining_parameters, fig.width=7, fig.height=1}
+```{r remaining_parameters, fig.width=10, fig.height=1}
 sim_dm0                                         %>%
   mutate(y=delta2*30*N/T)                       %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(d2_label0, 1, co="gray")       -> delta20
+  custom_boxplot(d2_label0, 1, co="black")       -> delta20
 sim_dm1                                         %>%
   mutate(y=delta2*30*N/T)                       %>%
   mutate(x=" ")                                 %>%
@@ -353,11 +353,11 @@ delta21 + expand_limits(y=r)
 
 ### Figure 6.12. Update of delta3 after 150 days of nothing.
 
-```{r update_delta3, fig.width=7, fig.height=1}
+```{r update_delta3, fig.width=10, fig.height=1}
 sim_dm0                                         %>%
   mutate(y=delta3*T)                            %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(d3_label0, 0, co="gray")       -> delta30
+  custom_boxplot(d3_label0, 0, co="black")       -> delta30
 sim_dm1                                         %>%
   mutate(y=delta3*T)                            %>%
   mutate(x=" ")                                 %>%
@@ -369,11 +369,11 @@ delta31 + expand_limits(y=r)
 
 ### Figure 6.12. Updated of lambda after 150 days of nothing.
 
-```{r updated_lambda, fig.width=7, fig.height=1}
+```{r updated_lambda, fig.width=10, fig.height=1}
 sim_dm0                                         %>%
   mutate(y=lambda*30)                           %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(l_label0, 1, co="gray")        -> lambda0
+  custom_boxplot(l_label0, 1, co="black")        -> lambda0
 sim_dm1                                         %>%
   mutate(y=lambda*30)                           %>%
   mutate(x=" ")                                 %>%
@@ -389,7 +389,7 @@ On day 192 (finally!) the trial starts accruing patients. The early phase, as ex
 
 ### Figure 6.13. Second update of total sample size.
 
-```{r delay_fit2, fig.height=1, fig.width=7}
+```{r delay_fit2, fig.height=1, fig.width=10}
 y_label <- "Estimated total sample size (update 2)"
 f <- "6-beta-test3.jags"
 
@@ -409,11 +409,11 @@ sim_dm2                                         %>%
 sim_dm1                                         %>%
   rename(y=Nstar)                               %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(N_label1, 0, co="gray")        -> update1
+  custom_boxplot(N_label1, 0, co="black")        -> update1
 sim_dm0                                         %>%
   rename(y=Nstar)                               %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(N_label2, 0, co="gray")        -> prior_estimate
+  custom_boxplot(N_label2, 0, co="black")        -> prior_estimate
 r <- range(sim_dm0$Nstar, sim_dm1$Nstar, sim_dm2$Nstar)
 prior_estimate + expand_limits(y=r)
 update1 + expand_limits(y=r)
@@ -424,11 +424,11 @@ What's accounting for most of this shortfall?
 
 Figure 6.14. Second update of delta1.
 
-```{r shortfall_cause, fig.width=7, fig.height=1}
+```{r shortfall_cause, fig.width=10, fig.height=1}
 sim_dm0                                         %>%
   mutate(y=delta1*T)                            %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(d1_label0, 0, co="gray")       -> delta10
+  custom_boxplot(d1_label0, 0, co="black")       -> delta10
 sim_dm1                                         %>%
   mutate(y=delta1*T)                            %>%
   mutate(x=" ")                                 %>%
@@ -445,15 +445,15 @@ delta12 + expand_limits(y=r)
 
 ### Figure 6.15. Second update of delta2.
 
-```{r shortfall2, fig.width=7, fig.height=1}
+```{r shortfall2, fig.width=10, fig.height=1}
 sim_dm0                                         %>%
   mutate(y=delta2*30*N/T)                       %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(d2_label0, 1, co="gray")       -> delta20
+  custom_boxplot(d2_label0, 1, co="black")       -> delta20
 sim_dm1                                         %>%
   mutate(y=delta2*30*N/T)                       %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(d2_label1, 1, co="gray")       -> delta21
+  custom_boxplot(d2_label1, 1, co="black")       -> delta21
 sim_dm2                                         %>%
   mutate(y=delta2*30*N/T)                       %>%
   mutate(x=" ")                                 %>%
@@ -466,15 +466,15 @@ delta22 + expand_limits(y=r)
 
 ### Figure 6.16. Second update of delta3.
 
-```{r shortfall3, fig.width=7, fig.height=1}
+```{r shortfall3, fig.width=10, fig.height=1}
 sim_dm0                                         %>%
   mutate(y=delta3*T)                            %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(d3_label0, 0, co="gray")       -> delta30
+  custom_boxplot(d3_label0, 0, co="black")       -> delta30
 sim_dm1                                         %>%
   mutate(y=delta3*T)                            %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(d3_label1, 0, co="gray")       -> delta31
+  custom_boxplot(d3_label1, 0, co="black")       -> delta31
 sim_dm2                                         %>%
   mutate(y=delta3*T)                            %>%
   mutate(x=" ")                                 %>%
@@ -487,15 +487,15 @@ delta32 + expand_limits(y=r)
 
 ### Figure 6.17. Second update of lambda.
 
-```{r shortfall4, fig.width=7, fig.height=1}
+```{r shortfall4, fig.width=10, fig.height=1}
 sim_dm0                                         %>%
   mutate(y=lambda*30)                           %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(l_label0, 1, co="gray")        -> lambda0
+  custom_boxplot(l_label0, 1, co="black")        -> lambda0
 sim_dm1                                         %>%
   mutate(y=lambda*30)                           %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(l_label1, 1, co="gray")        -> lambda1
+  custom_boxplot(l_label1, 1, co="black")        -> lambda1
 sim_dm2                                         %>%
   mutate(y=lambda*30)                           %>%
   mutate(x=" ")                                 %>%

@@ -22,7 +22,7 @@ When you simulate a clinical trial, you won't do this two times. You'll do it se
 
 ### Figure 2.1. 1000 simulations run prior to start of a clinical trial.
 
-```{r paths-before-trial, echo=FALSE, fig.width=7, fig.height=4}
+```{r paths-before-trial, echo=FALSE, fig.width=10, fig.height=5}
 # For some reason, Stan is very slow for this simulation. I still want to
 # use Stan though because it serves as a good springboard for many of the
 # later simulations.
@@ -67,7 +67,7 @@ I also want to talk about simulating a clinical trial during the trial. What thi
 
 ### Figure 2.2. 1000 simulations run during a clinical trial.
 
-```{r path-during-trial, echo=FALSE, fig.width=7, fig.height=4}
+```{r path-during-trial, echo=FALSE, fig.width=10, fig.height=5}
 f <- "2-paths-during-trial.stan"
 fit_tr2 <- stan(file=f,
   data=dat_updated, iter= 1000, warmup=100, chains = 4)
@@ -123,7 +123,7 @@ x8 <- cumsum(c(pts,x7))
 df <- data.frame(x=1:1336, y=x8, j=0)
 ```
 
-```{r post-mortem, fig.width=7, fig.height=4}
+```{r post-mortem, fig.width=10, fig.height=5}
 path_plot                                        +
   expand_limits(x=1336)                          +
   geom_line(data=df, aes(x, y, group=j), col="red")

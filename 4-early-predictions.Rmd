@@ -92,7 +92,7 @@ for (i in seq(1, nx, by=1)) {
 
 ### Figure 4.1. `r p_label` from flat prior.
 
-```{r plot-very-flat, fig.width=7, fig.height=4}
+```{r plot-very-flat, fig.width=10, fig.height=5}
 # split from the chiunk above to save time during testing
 flat_predictions                                %>%
   bind_rows(informative_predictions)            %>%
@@ -121,7 +121,7 @@ Compare this to the predictions that use an informative prior. The posterior est
 
 ### Figure 4.2. `r p_label` from a strong prior.
 
-```{r plot-informative, fig.width=7, fig.height=4}
+```{r plot-informative, fig.width=10, fig.height=5}
 informative_predictions %>%
   mutate(lo=lo/365)                             %>%
   mutate(hi=hi/365)                             %>%
@@ -137,7 +137,7 @@ informative_predictions %>%
 
 ### Figure 4.3. `r p_label` from a weak prior.
 
-```{r plot-weak, fig.width=7, fig.height=4}
+```{r plot-weak, fig.width=10, fig.height=5}
 weak_predictions %>%
   mutate(lo=lo/365)                             %>%
   mutate(hi=hi/365)                             %>%

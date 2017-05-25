@@ -48,7 +48,7 @@ Here's some possible prior distributions for the proportion excluded and the pro
 
 ### Figure 7.1. Prior distribution for pi1, proportion excluded.
 
-```{r binomial-priors1, fig.height=1, fig.width=7}
+```{r binomial-priors1, fig.height=1, fig.width=10}
 b1_label0a <- sub("prior", paste("prior, S1", S1/2, sep="="), b1_label0)
 b1_label0b <- sub("prior", paste("prior, S1", S1,   sep="="), b1_label0)
 b1_label0c <- sub("prior", paste("prior, S1", S1*2, sep="="), b1_label0)
@@ -68,7 +68,7 @@ A prior strength of 0.2 looks reasonable for the proportion excluded.
 
 ### Figure 7.2. Prior distribution for pi2, proportion refusing.
 
-```{r binomial-priors2, fig.height=1, fig.width=7}
+```{r binomial-priors2, fig.height=1, fig.width=10}
 b2_label0a <- sub("prior", paste("prior, S2", S2/2, sep="="), b2_label0)
 b2_label0b <- sub("prior", paste("prior, S2", S2,   sep="="), b2_label0)
 b2_label0c <- sub("prior", paste("prior, S2", S2*2, sep="="), b2_label0)
@@ -100,7 +100,7 @@ fit_bi0 <- stan(file=f,
 
 ### Figure 7.3. Prior estimate of sample size, accounting for exclusions and refusals.
 
-```{r binomial, fig.height=1, fig.width=7}
+```{r binomial, fig.height=1, fig.width=10}
 fit_bi0                                         %>%
   as.data.frame                                 %>%
   mutate(x=" ")                                 -> sim_bi0
@@ -145,7 +145,7 @@ The trial that you have seen illustrated thus far did not track exclusions and r
 
 ### Figure 7.5. Updated sample size before exclusions and refusals.
 
-```{r binomial-extension-during, fig.width=7, fig.height=1}
+```{r binomial-extension-during, fig.width=10, fig.height=1}
 f <- "7-binomial-extension.stan"
 fit_bi4 <- stan(file=f,
   data=dat_update, iter= 1000, chains = 4)
@@ -176,16 +176,16 @@ Your accrual rate is better than you expected, at least for getting people to sh
 
 ### Figure 7.6. Updated sample size after exclusions, before refusals.
 
-```{r tm2, fig.width=7, fig.height=1}
+```{r tm2, fig.width=10, fig.height=1}
 prior2_plot  + expand_limits(y=y_range)
 update2_plot + expand_limits(y=y_range)
 ```
 
-The refusals are about what you'd expect, and that means you're still ahead of schedule at this point.
+The exclusions are about what you'd expect, and that means you're still ahead of schedule at this point.
 
 ### Figure 7.7. Updated estimates after exclusions and refusals
 
-```{r tm3, fig.width=7, fig.height=1}
+```{r tm3, fig.width=10, fig.height=1}
 prior3_plot  + expand_limits(y=y_range)
 update3_plot + expand_limits(y=y_range)
 ```
