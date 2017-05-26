@@ -2,25 +2,16 @@
 title: "Simulating clinical trials, various simulations"
 author: "Steve Simon"
 date: "March 22, 2017"
-output: html_document
+output: ioslides_presentation
 ---
 
 ```{r preliminaries, echo=FALSE, message=FALSE}
 source("0-preliminaries.R", echo=FALSE)
-N <- 350
-T <- 1095
-S <- 0.4
 ```
 
 # Simulation before, during, and after a clinical trial: A Bayesian approach
 
-### Abstract
-
-Simulation of a clinical trial gives you answers to important economic, logistical, or scientific questions about the trial when some of the features are difficult to characterize with perfect precision. A Bayesian approach with informative priors offers a flexible framework for trial simulation. It provides a seamless transition from simulation prior to the trial to simulation during the trial itself. Although informative priors are controversial, you can avoid perceptions of bias by restricting the informative priors to clinical trial features that are independent of your research hypothesis. You can protect your interim predictions against unrealistic prior beliefs by implementing the hedging hyperprior, a simple hyperdistribution that downweights the strength of the prior when there is a discrepancy between the prior distribution and data observed during the trial itself. The Bayesian approach also gives you a simple post mortem analysis after the trial ends. You can compute percentile values by plugging the point estimates from the actual clinical trial data into the corresponding prior distributions. Over multiple trials, a deviation in these percentiles from a uniform distribution indicates biased specification of the informative priors. The Bayesian approach to trial simulation will be illustrated using various patient accrual models.
-
-Keywords: hedging hyperprior; informative prior distributions; Markov Chain Monte Carlo; patient accrual.
-
-### Introduction.
+## Introduction.
 
 "A Bayesian is one who, vaguely expecting a horse, and catching a glimpse of a donkey, strongly believes he has seen a mule." --Stephen Senn
 
@@ -28,11 +19,22 @@ The fundamental approach in Bayesian data analysis is combining information from
 
 The use of informative priors in testing efficacy and safety is controversial, but this should not stop you from using informative priors in monitoring the operational characteristics of a clinical trial.
 
-### Part 1. An illustration of various simulations
+## Part 1. An illustration of various simulations
+
+```{r}
+N <- 350
+T <- 1095
+S <- 0.4
+s_list <- c(0.1, 0.2, 0.5)
+```
 
 Consider a clinical trial that plans to run for T = `r T` days (`r T/365` years). You hope to recruit N = `r N` patients in that time, which would mean `r round(N/T, 2)` patients per day or `r round(30*N/T, 1)` patients per month. You suspect, however, that the accrual rate might actually be quite a bit higher or quite a bit lower than this target. You set a prior distribution on the accrual rate that is Gamma(`r N*S`, `r T*S`). You need to wait for an explanation of why this might be a reasonable prior distribution. With this prior distribution, you can simulate many things.
 
-```{r simulate-time-prelims}
+## Figure 1.1. Simulation of a clinical trial with a fixed sample size.
+
+```{r simulate_time, fig.width=8, fig.height=4}
+N <- 350; T <- 1095; S <- 0.5
+
 # I'm going to cheat here. A proper simulation would use
 #   lambda <- rgamma(1, N*S, T*S)
 # but to make the plots look a bit cleaner, I'm going to
@@ -67,7 +69,7 @@ simulated_paths                                 %>%
   ggplot(aes(x=t, y=n, group=g))                 +
   scale_x_continuous(breaks=x_breaks)            +
   scale_y_continuous(breaks=y_breaks)            +
-  expand_limits(x=365*3.25, y=375)               +
+  expand_limits(x=365*3.25, y=375)                +
   geom_line()                                    +
   geom_hline(yintercept=N)                       + 
   geom_vline(xintercept=T, color="gray")         + 
@@ -75,23 +77,16 @@ simulated_paths                                 %>%
   ylab("Number of patients")                     +
   geom_label(data=endpoints,
              aes(t, n, label=t),
-             size=2.5)                          -> fig
-save(fig, file="fig/1.1.RData")
-```
-
-### Figure 1.1. Simulation of a clinical trial with a fixed sample size.
-
-```{r simulate-time, fig.width=10, fig.height=5, eval=TRUE}
-# sometimes I will want to limit evaluations of lengthy sections
-# of code. Then I can specify eval=FALSE in the global options
-# and include eval=TRUE on the key sections like this one.
-load("fig/1.1.Rdata")
-print(fig)
+             size=2.5)
 ```
 
 This is simulation of the amount of time it would take to recruit `r N` patients. The target is `r T` days, but some simulations take less time and others take more time.
 
-```{r simulate-n-prelimis}
+## Figure 1.2. Simulation of a clinical trial with a fixed time frame.
+
+```{r simulate_n, echo=FALSE, fig.width=8, fig.height=4}
+N <- 350; T <- 1095; S <- 0.5
+
 lambda_list <- c(
   qgamma(runif(1, 0.01, 0.1),  N*S, T*S),
   qgamma(runif(1, 0.9,  0.99), N*S, T*S))
@@ -127,20 +122,16 @@ simulated_paths                                 %>%
   ylab("Number of patients")                     +
   geom_label(data=endpoints,
              aes(t, n, label=n),
-             size=2.5)                          -> fig
-save(fig, file="fig/1.2.RData")
-```
-
-### Figure 1.2. Simulation of a clinical trial with a fixed time frame.
-
-```{r simulate-n, fig.width=10, fig.height=5}
-load("fig/1.2.RData")
-print(fig)
+             size=2.5)
 ```
 
 This is simulation of the number of patients you can recruit if you restrict the amount of time spentt to exactly `r T` days. The target is `r N` patients, but some simulations estimate a larger or a smaller number of patients.
 
-```{r simulate-composite-prelims}
+## Figure 1.3. Simulation of a trial with a conditional endpoint.
+
+```{r simulate_n_and_time, echo=FALSE, fig.width=8, fig.height=4}
+N <- 350; T <- 1095; S <- 0.5
+
 lambda_list <- c(
   qgamma(runif(1, 0.01, 0.1),  N*S, T*S),
   qgamma(runif(1, 0.9,  0.99), N*S, T*S))
@@ -162,7 +153,7 @@ data.frame(n, t, g)                             %>%
 simulated_paths                                 %>%
   group_by(g)                                   %>%
   summarize(t=max(t), n=max(n))                 %>%
-  mutate(lb=paste(t, n, sep=", "))              -> endpoints
+  mutate(lb=paste(t, n, sep=", "))               -> endpoints
 
 x_breaks <- 365*(0:4)
 y_breaks <- 50*(0:8)
@@ -171,7 +162,7 @@ simulated_paths                                 %>%
   ggplot(aes(x=t, y=n, group=g))                 +
   scale_x_continuous(breaks=x_breaks)            +
   scale_y_continuous(breaks=y_breaks)            +
-  expand_limits(x=365*3.25, y=375)               +
+  expand_limits(x=365*3.25, y=375)                +
   geom_line()                                    +
   geom_hline(yintercept=N)                       + 
   geom_vline(xintercept=T)                       + 
@@ -179,20 +170,16 @@ simulated_paths                                 %>%
   ylab("Number of patients")                     +
   geom_label(data=endpoints,
              aes(t, n, label=lb),
-             size=2.5)                          -> fig
-save(fig, file="fig/1.3.RData")
-```
-
-### Figure 1.3. Simulation of a trial with a conditional endpoint.
-
-```{r simulate-composite, fig.width=10, fig.height=5, eval=TRUE}
-load("fig/1.3.RData")
-print(fig)
+             size=2.5)
 ```
 
 This is a trial with a conditional endpoint. You will end the trial when you get `r N` patients or your trial takes `r T` days, whichever comes first.
 
-```{r simulate-cost-prelims}
+## Figure 1.4. Simulation of the cost of a clinical trial. 
+
+```{r simulate_cost, echo=FALSE, fig.width=8, fig.height=4}
+N <- 350; T <- 1095; S <- 0.5
+
 lambda_list <- c(
   qgamma(runif(1, 0.01, 0.1),  N*S, T*S),
   qgamma(runif(1, 0.9,  0.99), N*S, T*S))
@@ -252,15 +239,7 @@ simulated_paths                                 %>%
   geom_label(
     data=endpoints,
     aes(t, n, label=lb),
-    size=2.5)                                   -> fig
-save(fig, file="fig/1.4.RData")
-```
-
-### Figure 1.4. Simulation of the cost of a clinical trial. 
-
-```{r simulate-cost, fig.width=10, fig.height=5, eval=TRUE}
-load("fig/1.4.RData")
-print(fig)
+    size=2.5)
 ```
 
 This is the same conditional endpoint, but you are measuring the cost of the trial rather than the number of patients or the amount of time. The cost is 80 British Pounds for each day of the trial and 20 British Poundns for each patient in the trial.

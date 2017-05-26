@@ -5,7 +5,7 @@ date: "March 22, 2017"
 output: html_document
 ---
 
-```{r preliminaries, echo=FALSE, message=FALSE}
+```{r preliminaries, message=FALSE, echo=FALSE}
 source("0-preliminaries.R", echo=FALSE)
 pctl_list <- c(1, 25, 50, 75, 99)
 N <- 350
@@ -20,9 +20,7 @@ dat_updated <- list(N=350, T=3*365, S=0.5, n=pts, t=length(pts))
 
 When you simulate a clinical trial, you won't do this two times. You'll do it several thousand times, because computer cycles are cheap. You can run these simulations before the trial starts, but you can continue to run them during the trial itself. You should even run a simulation after the trial ends, comparing the actual trial results with what you thought they might be prior to the start of the trial. Consider this a sort of "post mortem" analysis.
 
-### Figure 2.1. 1000 simulations run prior to start of a clinical trial.
-
-```{r paths-before-trial, echo=FALSE, fig.width=10, fig.height=5}
+```{r path1-prelims, message=FALSE, warning=FALSE}
 # For some reason, Stan is very slow for this simulation. I still want to
 # use Stan though because it serves as a good springboard for many of the
 # later simulations.
@@ -40,7 +38,6 @@ sim_tr1$x %<>%
   sub("Nstar\\[", "", .) %>%
   sub("\\]", "", .)      %>%
   as.numeric
-
 sim_tr1                                         %>%
   filter(x==1095)                               %>%
   use_series(y)                                 %>%
@@ -59,15 +56,20 @@ sim_tr1 %>%
   scale_x_continuous(breaks=365*(0:3))           +
   xlab("Time (days)")                            +
   ylab("Estimated number of patients (Prior)")   +
-  expand_limits(y=500)                          -> path_plot
-print(path_plot)
+  expand_limits(y=500)                          -> fig
+save(fig, file="fig/2.1.RData")
+```
+
+### Figure 2.1. 1000 simulations run prior to start of a clinical trial.
+
+```{r path1, fig.width=10, fig.height=5, eval=TRUE}
+load("fig/2.1.RData")
+print(fig)
 ```
 
 I also want to talk about simulating a clinical trial during the trial. What this means is that you have information sample size up to a certain point in time and you want to simulate how rapidly the sample size might increase for the remainder of time in the trial.
 
-### Figure 2.2. 1000 simulations run during a clinical trial.
-
-```{r path-during-trial, echo=FALSE, fig.width=10, fig.height=5}
+```{r path2-prelims}
 f <- "2-paths-during-trial.stan"
 fit_tr2 <- stan(file=f,
   data=dat_updated, iter= 1000, warmup=100, chains = 4)
@@ -101,13 +103,18 @@ sim_tr2 %>%
                      position="right",
                      minor_breaks=NULL)          +
   scale_x_continuous(breaks=365*(0:3))           +
-  expand_limits(y=500)                           
-
+  expand_limits(y=500)                          -> fig
+save(fig, file="fig/2.2.RData")
 ```
 
-### Figure 2.3. Post mortem examination of actual trial results.
+### Figure 2.2. 1000 simulations run during a clinical trial.
 
-```{r simulate-path}
+```{r path2, fig.width=10, fig.height=5, eval=TRUE}
+load("fig/2.2.RData")
+print(fig)
+```
+
+```{r path3-prelims-1}
 # I do not have the exact path to the final result, but I do know that
 # this trial ended on day 1336 with 341 patients. So it is easy to make
 # a realistic looking path from day 239 with 41 patients.
@@ -123,10 +130,19 @@ x8 <- cumsum(c(pts,x7))
 df <- data.frame(x=1:1336, y=x8, j=0)
 ```
 
-```{r post-mortem, fig.width=10, fig.height=5}
-path_plot                                        +
+```{r path3-prelims-2}
+load("fig/2.1.RData")
+fig                                              +
   expand_limits(x=1336)                          +
-  geom_line(data=df, aes(x, y, group=j), col="red")
+  geom_line(data=df, aes(x, y, group=j), col="red") -> fig
+save(fig, file="fig/2.3.RData")
+```
+
+### Figure 2.3. Post mortem examination of actual trial results.
+
+```{r path3, fig.width=10, fig.height=5, eval=TRUE}
+load("fig/2.3.RData")
+print(fig)
 ```
 
 When the trial ends, you can compare the actual accrual results to what you thought you knew before the trial started. In this particular trial, some of the interim values are made up, but it reflects a trial that ended up short of the target sample size (341 instead of 350 patients) in spite of the fact that it needed 1336 days instead of 1095. Your prior distribution was overly optimistic.
