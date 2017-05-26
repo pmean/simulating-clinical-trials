@@ -63,6 +63,14 @@ simulated_paths                                 %>%
 x_breaks <- 365*(0:4)
 y_breaks <- 50*(0:8)
 
+stash <- function(fig, n) {
+  save(fig, file=paste0("fig/", n, ".RData"))
+}
+fetch <- function(n) {
+  load(file=paste0("fig/", n, ".RData"))
+  print(fig)
+}
+
 simulated_paths                                 %>%
   ggplot(aes(x=t, y=n, group=g))                 +
   scale_x_continuous(breaks=x_breaks)            +
