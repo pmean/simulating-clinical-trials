@@ -348,7 +348,7 @@ It looks like the proportion of time waiting to start has a far greater influenc
 
 The actual trial that I have used so far did not have a formal model for delays, but it is easy enough to modify the data to fit this example. You need to prepend the data with a string of zeros corresponding to the days when the trial was waiting to get started.
 
-### Updating the delay simulation--`r dat_update1$t` days of nothing.
+### Updating the delay simulation--150 days of nothing.
 
 Suppose that you are on day `r dat_update1$t`, and not a single patient has shown up. You were expecting the time to the first patient to be around day `r round(D1*T)`, but it looks like things might be far worse. What does above average delay to the start of your study do to your estimate of the total sample size?
 
@@ -360,9 +360,7 @@ parms <- c("delta1", "delta2", "delta3", "lambda", "Nstar")
 fit_dm1 <- coda.samples(mod_dm1, var=parms, n.iter = 1000)
 ```
 
-### Figure 6.10. Updated estimate of total sample size after `r dat_update1$t` days of nothing.
-
-```{r delay-fit1, fig.height=1, fig.width=10}
+```{r delay-fit1-prelims-2}
 y_label <- "Estimated total sample size (update 1)"
 f <- "6-beta-test3.jags"
 
@@ -378,16 +376,23 @@ sim_dm0                                         %>%
   mutate(x=" ")                                 %>%
   custom_boxplot(N_label0, 0, co="black")       -> prior_estimate
 r <- range(sim_dm0$Nstar, sim_dm1$Nstar)
-prior_estimate + expand_limits(y=r) -> fig
+prior_estimate + expand_limits(y=r)             -> fig
 save(fig, file="fig/6.10a.Rmd")
-update1 + expand_limits(y=r)
+update1 + expand_limits(y=r)                    -> fig
+save(fig, file="fig/6.10b.Rmd")
 ```
 
-Okay, tell me when you think the trial will start, now that we know that the delay is at least `r dat_update1$t` days.
 
-### Figure 6.11. How much longer do you expect to wait after 150 days of nothing.
+### Figure 6.10. Updated estimate of total sample size after 150 days of nothing.
 
-```{r updated_start, fig.width=10, fig.height=1}
+```{r delay-fit1, fig.height=1, fig.width=10}
+load("fig/6.10a.Rmd"); print(fig)
+load("fig/6.10b.Rmd"); print(fig)
+```
+
+It looks like the delay has not hurt the trial that much so far.
+
+```{r delay-updated_start-prelims}
 sim_dm0                                         %>%
   mutate(y=delta1*T)                            %>%
   mutate(x=" ")                                 %>%
@@ -397,15 +402,24 @@ sim_dm1                                         %>%
   mutate(x=" ")                                 %>%
   custom_boxplot(d1_label1, 0, co="red")        -> delta11
 r <- T*range(sim_dm0$delta1, sim_dm1$delta1)
-delta10 + expand_limits(y=r)
-delta11 + expand_limits(y=r)
+delta10 + expand_limits(y=r)                    -> fig
+save(fig, file="fig/6.11a.RData")
+delta11 + expand_limits(y=r)                    -> fig
+save(fig, file="fig/6.11b.RData")
 ```
+
+### Figure 6.11. How much longer do you expect to wait after 150 days of nothing.
+
+```{r delay-updated_start, fig.width=10, fig.height=1}
+load("fig/6.11a.RData"); print(fig)
+load("fig/6.11b.RData"); print(fig)
+```
+
+This boxplot shows when you think the trial will start, now that you know that the delay is at least 150 days.
 
 The remaining parameters remain unchanged, of course.
 
-### Figure 6.12. Update of delta2 after 150 days of nothing.
-
-```{r remaining_parameters, fig.width=10, fig.height=1}
+```{r delay-update-delta2-prelims}
 sim_dm0                                         %>%
   mutate(y=delta2*30*N/T)                       %>%
   mutate(x=" ")                                 %>%
@@ -415,8 +429,17 @@ sim_dm1                                         %>%
   mutate(x=" ")                                 %>%
   custom_boxplot(d2_label1, 1) -> delta21
 r <- range(sim_dm0$delta2, sim_dm1$delta2)*30*N/T
-delta20 + expand_limits(y=r)
-delta21 + expand_limits(y=r)
+delta20 + expand_limits(y=r)                    -> fig
+save(fig, file="fig/6.12a.RData")
+delta21 + expand_limits(y=r)                    -> fig
+save(fig, file="fig/6.12b.RData")
+```
+
+### Figure 6.12. Update of delta2 after 150 days of nothing.
+
+```{r delay-update-delta2, fig.width=10, fig.height=1}
+load("fig/6.12a.RData"); print(fig)
+load("fig/6.12b.RData"); print(fig)
 ```
 
 ### Figure 6.13. Update of delta3 after 150 days of nothing.
