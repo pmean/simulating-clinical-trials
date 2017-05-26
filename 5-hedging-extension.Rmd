@@ -5,7 +5,7 @@ date: "March 22, 2017"
 output: html_document
 ---
 
-```{r preliminaries, echo=FALSE, message=FALSE}
+```{r hedging-preliminaries, echo=FALSE, message=FALSE}
 source("0-preliminaries.R", echo=FALSE)
 N <- 350
 T <- 1095
@@ -37,15 +37,14 @@ One problem with informative prior distributions is that many researchers get th
 
 You can minimize the problems associated with a bad informative prior by adding a hedging hyperparameter.
 
-### Here's the code for a heding hpyerparameter.
+### Here's the code for a hedging hpyerparameter.
 
 ```{r hedging-code}
 f <- "5-hedging-extension.stan"
-# Here's what's hiding in the file 
 cat(readLines(f), sep="\n")
 ```
 
-```{r calculate-hedged-prior}
+```{r hedging-prior-hedging-prelims}
 f <- "5-hedging-extension.stan"
 # the control argument prevents a "Divergent transitions after warmup" error.
 # See http://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
@@ -57,7 +56,7 @@ fit_hp0                                         %>%
   mutate(x=" ")                                 -> sim_hp0
 ```
 
-```{r calculate-simple-prior}
+```{r hedging-prior-simple-prelims}
 f <- "3-gamma-poisson.stan"
 fit_gp0 <- stan(file=f,
   data=dat_prior, iter= 1000, chains = 4)
@@ -66,7 +65,7 @@ fit_gp0                                         %>%
   mutate(x=" ")                                 -> sim_gp0
 ```
 
-```{r calculate-hedged-update}
+```{r hedging-update-hedging-prelims}
 f <- "5-hedging-extension.stan"
 fit_hp1 <- stan(file=f,
   data=dat_update, iter= 1000, chains = 4,
@@ -76,7 +75,7 @@ fit_hp1                                         %>%
   mutate(x=" ")                                 -> sim_hp1
 ```
 
-```{r calculate-simple-update}
+```{r hedging-update-simple-prelims}
 f <- "3-gamma-poisson.stan"
 fit_gp1 <- stan(file=f,
   data=dat_update, iter= 1000, chains = 4)
@@ -85,7 +84,7 @@ fit_gp1                                         %>%
   mutate(x=" ")                                 -> sim_gp1
 ```
 
-```{r calculate-flat-update}
+```{r hedging-update-flat-prelims}
 f <- "3-gamma-poisson.stan"
 fit_fl1 <- stan(file=f,
   data=dat_flat, iter= 1000, chains = 4)
@@ -94,14 +93,14 @@ fit_fl1                                         %>%
   mutate(x=" ")                                 -> sim_fl1
 ```
 
-```{r calculate-linear-projection}
+```{r hedging-update-projection-prelims}
 dat_update                                      %>%
   data.frame                                    %>%
   mutate(Nstar=(n/t)*T)                         %>%
   mutate(x=" ")                                 -> sim_lp1
 ```
 
-```{r calculate-hedged-update2}
+```{r hedging-update2-hedging-prelims}
 f <- "5-hedging-extension.stan"
 fit_hp2 <- stan(file=f,
   data=dat_update2, iter= 1000, chains = 4, 
@@ -111,7 +110,7 @@ fit_hp2                                         %>%
   mutate(x=" ")                                 -> sim_hp2
 ```
 
-```{r calculate-simple-update2}
+```{r hedging-update2-simple-prelims}
 f <- "3-gamma-poisson.stan"
 fit_gp2 <- stan(file=f,
   data=dat_update2, iter= 1000, chains = 4)
@@ -120,7 +119,7 @@ fit_gp2                                         %>%
   mutate(x=" ")                                 -> sim_gp2
 ```
 
-```{r calculate-flat-update2}
+```{r hedging-update2-flat-prelims}
 f <- "3-gamma-poisson.stan"
 fit_fl2 <- stan(file=f,
   data=dat_flat2, iter= 1000, chains = 4)
@@ -129,14 +128,14 @@ fit_fl2                                         %>%
   mutate(x=" ")                                 -> sim_fl2
 ```
 
-```{r calculate-updated-linear-projection}
+```{r hedging-update2-projection-prelims}
 dat_update2                                     %>%
   data.frame                                    %>%
   mutate(Nstar=(n/t)*T)                         %>%
   mutate(x=" ")                                 -> sim_lp2
 ```
 
-```{r calculate-common-range}
+```{r hedging-calculate-common-range-prelims}
 sim_hp0                                         %>%
   bind_rows(sim_gp0)                            %>%
   bind_rows(sim_hp1)                            %>%
@@ -161,9 +160,7 @@ sim_hp0                                         %>%
 save.image("5-hedging-extension.RData")
 ```
 
-### Figure 5.1. Comparison of simple and hedged predictions prior to data collection.
-
-```{r plot-priors, fig.width=10, fig.height=1}
+```{r hedging-prior-prelims-2}
 pct4 <- c(1, 25, 75, 99)
 sim_hp0                                   %>%
   rename(y=Nstar)                         %>%
@@ -173,15 +170,22 @@ sim_gp0                                   %>%
   rename(y=Nstar)                         %>%
   custom_boxplot(N_label0b, 0, yp=pct4)   -> simple_prior_plot
 
-hedged_prior_plot + expand_limits(y=y_range)
-simple_prior_plot + expand_limits(y=y_range)
+hedged_prior_plot + expand_limits(y=y_range) -> fig
+save(fig, file="fig/5.1a.RData")
+simple_prior_plot + expand_limits(y=y_range) -> fig
+save(fig, file="fig/5.1b.RData")
+```
+
+### Figure 5.1. Comparison of simple and hedged predictions prior to data collection.
+
+```{r hedging-prior, fig.width=10, fig.height=1}
+load("fig/5.1a.RData"); print(fig)
+load("fig/5.1b.RData"); print(fig)
 ```
 
 The hedging hyperprior creates a mixture of gamma priors from weak to strong. So it is going to produce more variable predictions than a simple gamma prior.
 
-### Figure 5.2. Updated prediction with a hedged prior.
-
-```{r plot-hedged-update1, fig.width=10, fig.height=1}
+```{r hedging-update-hedging-prelims-2}
 sim_hp1                                   %>%
   rename(y=Nstar)                         %>%
   custom_boxplot(N_label1a, 0, yp=pct4)   -> hedged_update1_plot
@@ -190,49 +194,81 @@ sim_lp1                                   %>%
   rename(y=Nstar)                         %>%
   custom_boxplot(N_label1c, 0)            -> linear_update1_plot
 
-hedged_prior_plot   + expand_limits(y=y_range)
-hedged_update1_plot + expand_limits(y=y_range)
-linear_update1_plot + expand_limits(y=y_range)
+hedged_prior_plot   + expand_limits(y=y_range) -> fig
+save(fig, file="fig/5.2a.RData")
+hedged_update1_plot + expand_limits(y=y_range) -> fig
+save(fig, file="fig/5.2b.RData")
+linear_update1_plot + expand_limits(y=y_range) -> fig
+save(fig, file="fig/5.2c.RData")
+```
+
+### Figure 5.2. Updated prediction with a hedged prior.
+
+```{r hedging-update-hedging, fig.width=10, fig.height=1}
+load("fig/5.2a.RData"); print(fig)
+load("fig/5.2b.RData"); print(fig)
+load("fig/5.2c.RData"); print(fig)
 ```
 
 The update with the hedging hyperprior ends up downweighting the strength of the prior distribution, so the weighted average of the data and the prior is weighted very heavily towards the data.
 
-### Figure 5.3. Updated prediction with a simple prior.
-
-```{r plot-simple-update1, fig.width=10, fig.height=1}
+```{r hedging-updated-simple-prelims-2}
 sim_gp1                                   %>%
   rename(y=Nstar)                         %>%
   custom_boxplot(N_label1b, 0, yp=pct4)   -> simple_update1_plot
 
-simple_prior_plot   + expand_limits(y=y_range)
-simple_update1_plot + expand_limits(y=y_range)
-linear_update1_plot + expand_limits(y=y_range)
+simple_prior_plot   + expand_limits(y=y_range) -> fig
+save(fig, file="fig/5.3a.RData")
+simple_update1_plot + expand_limits(y=y_range) -> fig
+save(fig, file="fig/5.3b.RData")
+linear_update1_plot + expand_limits(y=y_range) -> fig
+save(fig, file="fig/5.3c.RData")
+```
+
+### Figure 5.3. Updated prediction with a simple prior.
+
+```{r hedging-update-simple, fig.width=10, fig.height=1}
+load("fig/5.3a.RData"); print(fig)
+load("fig/5.3b.RData"); print(fig)
+load("fig/5.3c.RData"); print(fig)
 ```
 
 In contrast, because the simple prior was very strong, the weighted average of the prior and the data is pulled back towards the prior.
 
-### Figure 5.4. Updated prediction with a flat prior.
-
-```{r plot-flat-update1, fig.width=10, fig.height=1}
+```{r hedging-update-flat-prelims-2}
 sim_fl1                                   %>%
   rename(y=Nstar)                         %>%
   custom_boxplot(N_label1c, 0, yp=pct4)   -> flat_update1_plot
 
-flat_update1_plot   + expand_limits(y=y_range)
-linear_update1_plot + expand_limits(y=y_range)
+flat_update1_plot   + expand_limits(y=y_range) -> fig
+save(fig, file="fig/5.4a.RData")
+linear_update1_plot + expand_limits(y=y_range) -> fig
+save(fig, file="fig/5.4b.RData")
+```
+
+### Figure 5.4. Updated prediction with a flat prior.
+
+```{r hedging-update-flat, fig.width=10, fig.height=1}
+load("fig/5.4a.RData"); print(fig)
+load("fig/5.4b.RData"); print(fig)
 ```
 
 The flat prior behaves as you would suspect, putting pretty much all of the weight on the data.
 
-### Figure 5.5. Updated distribution of hedging hyperparameter.
-
-```{r hyperparameter-plot1, fig.width=10, fig.height=1}
+```{r hedging-update-hyperparameter-prelims}
 pct3 <- c(25, 75, 99)
 lb <- "Updated hyperparameter"
 sim_hp1                                   %>%
   rename(y=pi)                            %>%
   custom_boxplus(lb, 2, yp=pct3)           +
-  expand_limits(y=c(0, 2))
+  expand_limits(y=c(0, 2))                -> fig
+save(fig, file="fig/5.5.RData")
+```
+
+### Figure 5.5. Updated distribution of hedging hyperparameter.
+
+```{r hedging-update-hyperparameter, fig.width=10, fig.height=1}
+load("fig/5.5.RData"); print(fig)
 ```
 
 The distribution of the hyperparameter shows that when the data and the prior distribution disagree, the hyperparameter shrinks towards zero, effectively weakening the prior. 
@@ -241,9 +277,7 @@ The distribution of the hyperparameter shows that when the data and the prior di
 
 Consider an alternative scenario, where the prior distribution and the actual accrual data are in close agreement. This might occur if the time to recruit `r dat_update2$n` patients was `r dat_update2$t` days instead of `r dat_update$t` days. This is an observed accrual rate of `r round(30*dat_update2$n/dat_update2$t, 1)` patients per month which is very close to the prior estimate of accrual rate of `r round(30*N/T)` patients per month.
 
-### Figure 5.6. Alternative update with a hedged prior.
-
-```{r plot-hedged-update2, fig.width=10, fig.height=1}
+```{r hedging-update2-hedging-prelims-1}
 sim_hp2                                   %>%
   rename(y=Nstar)                         %>%
   custom_boxplot(N_label2a, 0, yp=pct4)   -> hedged_update2_plot
@@ -252,47 +286,79 @@ sim_lp2                                   %>%
   rename(y=Nstar)                         %>%
   custom_boxplot(N_label2d, 0, yp=pct4)   -> linear_update2_plot
 
-hedged_prior_plot   + expand_limits(y=y_range2)
-hedged_update2_plot + expand_limits(y=y_range2)
-linear_update2_plot + expand_limits(y=y_range2)
+hedged_prior_plot   + expand_limits(y=y_range2) -> fig
+save(fig, dat_update, dat_update2, file="fig/5.6a.RData")
+hedged_update2_plot + expand_limits(y=y_range2) -> fig
+save(fig, file="fig/5.6b.RData")
+linear_update2_plot + expand_limits(y=y_range2) -> fig
+save(fig, file="fig/5.6c.RData")
+```
+
+### Figure 5.6. Alternative update with a hedged prior.
+
+```{r hedging-update2-hedging, fig.width=10, fig.height=1}
+load("fig/5.6a.RData"); print(fig)
+load("fig/5.6b.RData"); print(fig)
+load("fig/5.6c.RData"); print(fig)
 ```
 
 The heding hyperprior does not need to downweight the strong prior when the data and the prior as in such close agreement.
 
-### Figure 5.7. Alternative update prediction with a simple prior.
-
-```{r plot-simple-update2, fig.width=10, fig.height=1}
+```{r hedging-update2-simple-prelims-2}
 sim_gp2                                   %>%
   rename(y=Nstar)                         %>%
   custom_boxplot(N_label2b, 0, yp=pct4)   -> simple_update2_plot
 
-simple_prior_plot   + expand_limits(y=y_range2)
-simple_update2_plot + expand_limits(y=y_range2)
-linear_update2_plot + expand_limits(y=y_range2)
+simple_prior_plot   + expand_limits(y=y_range2) -> fig
+save(fig, file="fig/5.7a.RData")
+simple_update2_plot + expand_limits(y=y_range2) -> fig
+save(fig, file="fig/5.7b.RData")
+linear_update2_plot + expand_limits(y=y_range2) -> fig
+save(fig, file="fig/5.7c.RData")
+```
+
+### Figure 5.7. Alternative update prediction with a simple prior.
+
+```{r hedging-update2-simple, fig.width=10, fig.height=1}
+load("fig/5.7a.RData"); print(fig)
+load("fig/5.7b.RData"); print(fig)
+load("fig/5.7c.RData"); print(fig)
 ```
 
 The predicted sample size of the simple prior is very similar to the hedging hyperprior when you have such good agreement.
 
-### Figure 5.8. Alternative update with a flat prior.
-
-```{r plot-flat-update2, fig.width=10, fig.height=1}
+```{r hedging-update2-flat-prelims-2}
 sim_fl2                                   %>%
   rename(y=Nstar)                         %>%
   custom_boxplot(N_label2c, 0, yp=pct4)   -> flat_update2_plot
 
-flat_update2_plot   + expand_limits(y=y_range2)
-linear_update2_plot + expand_limits(y=y_range2)
+flat_update2_plot   + expand_limits(y=y_range2) -> fig
+save(fig, file="fig/5.8a.RData")
+linear_update2_plot + expand_limits(y=y_range2) -> fig
+save(fig, file="fig/5.8b.RData")
+```
+
+### Figure 5.8. Alternative update with a flat prior.
+
+```{r hedging-update2-flat, fig.width=10, fig.height=1}
+load("fig/5.8a.RData"); print(fig)
+load("fig/5.8b.RData"); print(fig)
 ```
 
 The flat prior also is close to the observed accrual rate, but because it does not add the precision of the prior to the precision of the data, you see much more variation in the predicted total sample size.
 
-### Figure 5.9. Alternative update of hedging hyperparameter.
-
-```{r hyperparameter-plot2, fig.width=10, fig.height=1}
+```{r hedging-update2-hyperparameter-prelims-2, fig.width=10, fig.height=1}
 sim_hp2                                   %>%
   rename(y=pi)                            %>%
   custom_boxplus("Updated hyperparameter", 2) +
-  expand_limits(y=c(0, 2))
+  expand_limits(y=c(0, 2))                -> fig
+save(fig, file="fig/5.9.RData")
+```
+
+### Figure 5.9. Alternative update of hedging hyperparameter.
+
+```{r hedging-update2-hyperparameter, fig.width=10, fig.height=1}
+load("fig/5.9.RData"); print(fig)
 ```
 
 The hyperparameter does shrink as it did in the earlier case, and in fact, it has expanded slightly, with a mean and median both a bit larger than 1. This is a reward for choosing such a good prior distribution, but if you want to, you can insure that the average weight given to the prior distribution never exceeds 1, even if your prior matches the data perfectly.

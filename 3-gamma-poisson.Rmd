@@ -36,19 +36,20 @@ sim3 <- data.frame(x=" ", y=rgamma(n_reps, N*S*2, T*S*2)*30)
 
 y_range <- range(sim1$y, sim2$y, sim3$y)
 
-custom_boxplot(sim1, l_label0a, 1, "black") + expand_limits(y=y_range) -> figa
-custom_boxplot(sim2, l_label0b, 1, "red")   + expand_limits(y=y_range) -> figb
-custom_boxplot(sim3, l_label0c, 1, "black") + expand_limits(y=y_range) -> figc
-save(figa, figb, figc, file="fig/3.1.RData")
+custom_boxplot(sim1, l_label0a, 1, "black") + expand_limits(y=y_range) -> fig
+save(fig, file="fig/3.1a.RData")
+custom_boxplot(sim2, l_label0b, 1, "red")   + expand_limits(y=y_range) -> fig
+save(fig, file="fig/3.1b.RData")
+custom_boxplot(sim3, l_label0c, 1, "black") + expand_limits(y=y_range) -> fig
+save(fig, file="fig/3.1c.RData")
 ```
 
 ### Figure 3.1. Boxplot of prior distribution for accrual rate.
 
 ```{r gamma-poisson-prior, fig.width=10, fig.height=1, eval=TRUE}
-load("fig/3.1.RData")
-print(figa)
-print(figb)
-print(figc)
+load("fig/3.1a.RData"); print(fig)
+load("fig/3.1b.RData"); print(fig)
+load("fig/3.1c.RData"); print(fig)
 ```
 
 Selecting a prior distribution requires a lot of work. It helps, I believe to express the strength of the prior distribution as a fraction of the planned sample size. A prior with a strength equivalent to 40% of the planned sample size represents a setting you give equal weight to the prior distribution and the data when you have collected 40% of the data. That's a very strong prior, but not unreasonable. As a researcher who has done this sort of clinical trial many times, the value of S=`r S` seems like the best choice to you.
@@ -165,22 +166,22 @@ sim_gp1                                         %>%
   rename(y=Nstar)                               %>%
   mutate(x=" ")                                 %>%
   custom_boxplot(y_label, 1, co="black")         +
-  expand_limits(y=y_range)                      -> figa
+  expand_limits(y=y_range)                      -> fig
+save(fig, file="fig/3.5a.RData")
 y_label <- "Estimated total sample size (updated)"
 sim_gp2                                         %>%
   rename(y=Nstar)                               %>%
   mutate(x=" ")                                 %>%
   custom_boxplot(y_label, 1, co="red")           +
-  expand_limits(y=y_range)                      -> figb
-save(figa, figb, file="fig/3.5.RData")
+  expand_limits(y=y_range)                      -> fig
+save(fig, file="fig/3.5b.RData")
 ```
 
 ### Figure 3.5. Simulated total sample size during the clinical trial.
 
 ```{r gamma-poisson-update, fig.width=10, fig.height=1}
-load("fig/3.5.RData")
-print(figa)
-print(figb)
+load("fig/3.5a.RData"); print(fig)
+load("fig/3.5b.RData"); print(fig)
 ```
 
 ### Post mortem analysis
@@ -201,17 +202,17 @@ y_label4 <- paste0("Monthly accrual rate (final, ", pctl, ")")
 y_range <- range(sim2$y, sim4$y)
 
 # Boxplot of accrual rate
-custom_boxplot(sim2, N_label0, 1, co="black") + expand_limits(y=y_range) -> figa
-custom_boxplot(sim4, y_label4, 1, co="red")   + expand_limits(y=y_range) -> figb
-save(figa, figb, file="fig/3.6.RData")
+custom_boxplot(sim2, l_label0, 1, co="black") + expand_limits(y=y_range) -> fig
+save(fig, file="fig/3.6a.Rdata")
+custom_boxplot(sim4, y_label4, 1, co="red")   + expand_limits(y=y_range) -> fig
+save(fig, file="fig/3.6b.RData")
 ```
 
 ### Figure 3.6. Comparison of final accrual rate to prior distribution.
 
 ```{r gamma-poisson-post, fig.width=10, fig.height=1, eval=TRUE}
-load("fig/3.6.RData")
-print(figa)
-print(figb)
+load("fig/3.6a.RData"); print(fig)
+load("fig/3.6b.RData"); print(fig)
 ```
 
 Okay, so you were way off. No one is going to hang you. But let's look at your other clinical trials.

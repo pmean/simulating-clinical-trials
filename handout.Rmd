@@ -47,7 +47,7 @@ print(fig)
 
 This is simulation of the amount of time it would take to recruit `r N` patients. The target is `r T` days, but some simulations take less time and others take more time.
 
-### Figure 1.2. Simulation of a clinical trial with a fixed time frame.
+## Figure 1.2. Simulation of a clinical trial with a fixed time frame.
 
 ```{r simulate-n, fig.width=10, fig.height=5}
 load("fig/1.2.RData")
@@ -56,7 +56,7 @@ print(fig)
 
 This is simulation of the number of patients you can recruit if you restrict the amount of time spentt to exactly `r T` days. The target is `r N` patients, but some simulations estimate a larger or a smaller number of patients.
 
-### Figure 1.3. Simulation of a trial with a conditional endpoint.
+## Figure 1.3. Simulation of a trial with a conditional endpoint.
 
 ```{r simulate-composite, fig.width=10, fig.height=5, eval=TRUE}
 load("fig/1.3.RData")
@@ -65,7 +65,7 @@ print(fig)
 
 This is a trial with a conditional endpoint. You will end the trial when you get `r N` patients or your trial takes `r T` days, whichever comes first.
 
-### Figure 1.4. Simulation of the cost of a clinical trial. 
+## Figure 1.4. Simulation of the cost of a clinical trial. 
 
 ```{r simulate-cost, fig.width=10, fig.height=5, eval=TRUE}
 load("fig/1.4.RData")
@@ -74,31 +74,13 @@ print(fig)
 
 This is the same conditional endpoint, but you are measuring the cost of the trial rather than the number of patients or the amount of time. The cost is 80 British Pounds for each day of the trial and 20 British Pounds for each patient in the trial.
 
----
-title: "Simulating clinical trials, paths in a simulation"
-author: "Steve Simon"
-date: "March 22, 2017"
-output: html_document
----
-
-```{r preliminaries, message=FALSE, echo=FALSE}
-source("0-preliminaries.R", echo=FALSE)
-pctl_list <- c(1, 25, 50, 75, 99)
-N <- 350
-T <- 1095
-S <- 0.4
-dat_prior <- list(N=N, T=T, S=S)
-pts <- unlist(read.csv("2-paths-count.csv"))
-dat_updated <- list(N=350, T=3*365, S=0.5, n=pts, t=length(pts))
-```
-
 ## Part 2.  Paths in a simulation
 
 When you simulate a clinical trial, you won't do this two times. You'll do it several thousand times, because computer cycles are cheap. You can run these simulations before the trial starts, but you can continue to run them during the trial itself. You should even run a simulation after the trial ends, comparing the actual trial results with what you thought they might be prior to the start of the trial. Consider this a sort of "post mortem" analysis.
 
 ## Figure 2.1. 1000 simulations run prior to start of a clinical trial.
 
-```{r path1, fig.width=10, fig.height=5, eval=TRUE}
+```{r path1, fig.width=10, fig.height=5, eval=FALSE}
 load("fig/2.1.RData")
 print(fig)
 ```
@@ -107,15 +89,265 @@ I also want to talk about simulating a clinical trial during the trial. What thi
 
 ## Figure 2.2. 1000 simulations run during a clinical trial.
 
-```{r path2, fig.width=10, fig.height=5, eval=TRUE}
+```{r path2, fig.width=10, fig.height=5, eval=FALSE}
 load("fig/2.2.RData")
 print(fig)
 ```
 ## Figure 2.3. Post mortem examination of actual trial results.
 
-```{r path3, fig.width=10, fig.height=5, eval=TRUE}
+```{r path3, fig.width=10, fig.height=5, eval=FALSE}
 load("fig/2.3.RData")
 print(fig)
 ```
 
 When the trial ends, you can compare the actual accrual results to what you thought you knew before the trial started. In this particular trial, some of the interim values are made up, but it reflects a trial that ended up short of the target sample size (341 instead of 350 patients) in spite of the fact that it needed 1336 days instead of 1095. Your prior distribution was overly optimistic.
+
+## Part 3. Gamma Poisson models
+
+From this point onward, you'll be seeing summarizations of the simulations using boxplots and scatterplots, but it's worth remembering that behind these graphs are thousands of random paths. The simulation of total sample size for a fixed time frame is a Poisson model with an informative gamma prior. 
+
+## Figure 3.1. Boxplot of prior distribution for accrual rate.
+
+```{r gamma-poisson-prior, fig.width=10, fig.height=1, eval=TRUE}
+load("fig/3.1a.RData"); print(fig)
+load("fig/3.1b.RData"); print(fig)
+load("fig/3.1c.RData"); print(fig)
+```
+
+Selecting a prior distribution requires a lot of work. It helps, I believe to express the strength of the prior distribution as a fraction of the planned sample size. A prior with a strength equivalent to 40% of the planned sample size represents a setting you give equal weight to the prior distribution and the data when you have collected 40% of the data. That's a very strong prior, but not unreasonable. As a researcher who has done this sort of clinical trial many times, the value of S=`r S` seems like the best choice to you.
+
+## Stan code for the gamma-Poisson model
+
+```{r gamma-poisson-code, eval=TRUE}
+f <- "3-gamma-poisson.stan"
+cat(readLines(f), sep="\n")
+```
+
+Here is code in Stan (running inside of R) that simulates the results of a clinical trial with a target goal of 350 patients in 3 years (1095 days) and places a range of uncertainty on the accrual rate that is characterized by a gamma(175, 547.5). This is a prior distribution with a strength roughly equal to half the target sample size.
+
+## Figure 3.2. Simulated total sample size prior to start of clinical trial.
+
+```{r gamma-poisson-prior-predictions, fig.width=10, fig.height=1}
+load("fig/3.2.RData")
+print(fig)
+```
+
+The center of the boxplot represents the median sample size from the simulation, and it is close to our target. The spread in the boxplot is caused by the random nature of patient accrual and uncertainty associated with the Poisson rate parameter.
+
+## Figure 3.3. Relationship of prior estimate of accrual rate and estimated total sample size.
+
+```{r gamma-poisson-prior-scatterplot, fig.width=10, fig.height=5, eval=TRUE}
+load("fig/3.3.RData")
+print(fig)
+```
+
+You can learn a lot by looking at how the estimated total sample size relates to the prior paramter(s). 
+
+Recall that in this simulation, you randomly select an accrual rate, gamma, and then you simulate a path based on that value of lambda. Not too surprisingly, the sample size depends on what lambda is chosen, though there is some variation, even for the same value of lambda.
+
+## Figure 3.4. Relationship of fixed accrual estimate and estimated total sample size.
+
+```{r gamma-poisson-prior-fixed, fig.width=10, fig.height=5, eval=TRUE}
+load("fig/3.4.RData")
+print(fig)
+```
+
+With a plot like this, you can run some sensitivity checks, such as "what would happen if the accrual rate were closer to 8.5 patients per month"
+
+## Update
+
+The key reason that you should run your simulations in a Bayesian framework is that you can make a seamless transition to a simulation of a clinical trial during the trial itself. In this trial, the early accrual rate was much lower than expected. After 239 days, you have only gotten 41 patients. If you were on target, it would have taken only 1095*(41/350) = `r round(1095*(41/350))` days to get this many patients. How much is this shortfall hurting us?
+
+## Figure 3.5. Simulated total sample size during the clinical trial.
+
+```{r gamma-poisson-update, fig.width=10, fig.height=1}
+load("fig/3.5a.RData"); print(fig)
+load("fig/3.5b.RData"); print(fig)
+```
+
+## Post mortem analysis
+
+For this trial, you were able to get 341 patients, but it took a lot longer than you expected, 1336 days instead of 1095 days. Time to get ready for your next clinical trial. NOT SO FAST! You are not done with simulations when the trial is over. After the trial, take a look at how your accrual rate ranks relative to the range of accrual rates associated with your prior distribution.
+
+## Figure 3.6. Comparison of final accrual rate to prior distribution.
+
+```{r gamma-poisson-post, fig.width=10, fig.height=1, eval=TRUE}
+load("fig/3.6a.RData"); print(fig)
+load("fig/3.6b.RData"); print(fig)
+```
+
+Okay, so you were way off. Maybe you just had a bad day. But let's look at your other clinical trials.
+
+## Figure 3.7. Percentile plot showing bias to low end.
+
+```{r gamma-poisson-percentile1, fig.width=10, fig.height=1}
+load("fig/3.7.RData")
+print(fig)
+```
+
+When you are estimating accrual, a low percentile means that the final data from all of your clinical trials is in the lower tail of your prior distribution. So a plot where most or all of the percentiles fall below 50% means that you have a overly optimistic assessment of accrual before most of your trials.
+
+## Figure 3.8. Percentile plot showing bias to extremes.
+
+```{r gamma-poisson-percentile2, fig.width=10, fig.height=1, eval=TRUE}
+load("fig/3.8.RData")
+print(fig)
+```
+
+Another pattern to look for is a tendency to fall at either extreme. This means that your prior distributions are too narrow and you have too much confidence in your ability to assess accrual rates. Maybe in the future, you should choose wider prior distributions (smaller values of S).
+
+## Figure 3.9. Percentile plot showing relatively even spread.
+
+```{r percentile-plot3, fig.width=10, fig.height=1, eval=TRUE}
+load("fig/3.9.RData")
+print(fig)
+```
+
+Just for perspective, here is a what a percentile plot might look like if your prior distributions were reasonably accurate. You tend to see (albeit very roughly) about as many percentiles above  and below 50% and about as many in the middle (between 25% and 75%) as you do outside the middle.
+
+## Part 4. Early predictions
+
+```{r preload}
+load("fig/4.1.RData")
+```
+
+
+The commonly cited objection to informative priors is that they can bias the research. Whether that is true or not in a hypothesis testing framework is a matter of open debate. But using informative priors for operational characteristics of a study will not bias any resulting hypothesis tests.
+
+While most Bayesian models use flat, non-informative, or only weakly informative prior distributions, when you are simulating the operational features of a clinical trial, you need to be bold and use strong informative prior distributions. There are three reasons for this.
+
+First, if the best you can do for accrual rates for a clinical trial is a flat prior, what you are really saying is that you think you might see a couple of patients every day, or maybe a couple of patients every year, and you really don't have a strong belief of one of these accrual rates over another. Anyone who can only predict accrual rates across such a wide range is unqualified to run a clinical trial.
+
+Second, if you run a simulation with a flat prior before the trial starts, you get results with an unrealisticly wide range.
+
+Third, a strong prior distribution provides you with stable estimates early in the clinical trial. This is worth an illustration.
+
+### Figure 4.1. Prediction band (25 and 75 percentiles) from flat prior.
+
+```{r early-predictions-flat, fig.width=10, fig.height=5}
+print(fig)
+```
+
+The concept of a flat prior is a bit tricky when you have an infinite range, like a gamma distribution has, but in this case it is a gamma(0.001, 0.001), a common choice for a non-informative gamma prior.
+
+This is possibly an unfair example because the trial had a slow start. But it takes more than 100 days into the trial to get a decent estimate of the upper bound. The first three predictions are a measure of how unstable things are. On the first day, you have recruited one patient, and the 75th percentile is estimated at `r round(flat_predictions$hi[1]/365, 1)` years. On the second day, no one shows up, so your upper limit jumps to `r round(flat_predictions$hi[2]/365, 1)` years. On the third day, one patient shows up, so your upper limit plummets to `r round(flat_predictions$hi[3]/365, 1)` years.
+
+Compare this to the predictions that use an informative prior. The posterior estimate in a Bayesian model with an informative prior is a weighted average of the prior distribution and the data, and that weighted average leans very heavily on the prior distribution early in the trial.
+
+### Figure 4.2. Prediction band (25 and 75 percentiles) from strong prior.
+
+```{r early-predictions-strong, fig.width=10, fig.height=5}
+load("fig/4.2.RData"); print(fig)
+```
+
+### Figure 4.3. Prediction band (25 and 75 percentiles) from weak prior.
+
+```{r early-predictions-weak, fig.width=10, fig.height=5, eval=TRUE}
+load("fig/4.3.RData"); print(fig)
+```
+
+## Part 5. Hedging priors
+
+One problem with informative prior distributions is that many researchers get them wrong. They are either too optimistic about the accrual rate, or they think they know the accrual rate with more certainty than they actually do, or sometimes both.
+
+You can minimize the problems associated with a bad informative prior by adding a hedging hyperparameter.
+
+### Here's the code for a hedging hpyerparameter.
+
+```{r hedging-code}
+f <- "5-hedging-extension.stan"
+cat(readLines(f), sep="\n")
+```
+
+
+### Figure 5.1. Comparison of simple and hedged predictions prior to data collection.
+
+```{r hedging-prior, fig.width=10, fig.height=1}
+load("fig/5.1a.RData"); print(fig)
+load("fig/5.1b.RData"); print(fig)
+```
+
+The hedging hyperprior creates a mixture of gamma priors from weak to strong. So it is going to produce more variable predictions than a simple gamma prior.
+
+### Figure 5.2. Updated prediction with a hedged prior.
+
+```{r hedging-update-hedging, fig.width=10, fig.height=1}
+load("fig/5.2a.RData"); print(fig)
+load("fig/5.2b.RData"); print(fig)
+load("fig/5.2c.RData"); print(fig)
+```
+
+The update with the hedging hyperprior ends up downweighting the strength of the prior distribution, so the weighted average of the data and the prior is weighted very heavily towards the data.
+
+### Figure 5.3. Updated prediction with a simple prior.
+
+```{r hedging-update-simple, fig.width=10, fig.height=1}
+load("fig/5.3a.RData"); print(fig)
+load("fig/5.3b.RData"); print(fig)
+load("fig/5.3c.RData"); print(fig)
+```
+
+In contrast, because the simple prior was very strong, the weighted average of the prior and the data is pulled back towards the prior.
+
+### Figure 5.4. Updated prediction with a flat prior.
+
+```{r hedging-update-flat, fig.width=10, fig.height=1}
+load("fig/5.4a.RData"); print(fig)
+load("fig/5.4b.RData"); print(fig)
+```
+
+The flat prior behaves as you would suspect, putting pretty much all of the weight on the data.
+
+### Figure 5.5. Updated distribution of hedging hyperparameter.
+
+```{r hedging-update-hyperparameter, fig.width=10, fig.height=1}
+load("fig/5.5.RData"); print(fig)
+```
+
+The distribution of the hyperparameter shows that when the data and the prior distribution disagree, the hyperparameter shrinks towards zero, effectively weakening the prior. 
+
+### Alternative scenario
+
+```{r preload-2}
+load("fig/5.6a.RData")
+```
+
+Consider an alternative scenario, where the prior distribution and the actual accrual data are in close agreement. This might occur if the time to recruit `r dat_update2$n` patients was `r dat_update2$t` days instead of `r dat_update$t` days. This is an observed accrual rate of `r round(30*dat_update2$n/dat_update2$t, 1)` patients per month which is very close to the prior estimate of accrual rate of `r round(30*N/T)` patients per month.
+
+
+### Figure 5.6. Alternative update with a hedged prior.
+
+```{r hedging-update2-hedging, fig.width=10, fig.height=1}
+load("fig/5.6a.RData"); print(fig)
+load("fig/5.6b.RData"); print(fig)
+load("fig/5.6c.RData"); print(fig)
+```
+
+The heding hyperprior does not need to downweight the strong prior when the data and the prior as in such close agreement.
+
+### Figure 5.7. Alternative update prediction with a simple prior.
+
+```{r hedging-update2-simple, fig.width=10, fig.height=1}
+load("fig/5.7a.RData"); print(fig)
+load("fig/5.7b.RData"); print(fig)
+load("fig/5.7c.RData"); print(fig)
+```
+
+The predicted sample size of the simple prior is very similar to the hedging hyperprior when you have such good agreement.
+
+### Figure 5.8. Alternative update with a flat prior.
+
+```{r hedging-update2-flat, fig.width=10, fig.height=1}
+load("fig/5.8a.RData"); print(fig)
+load("fig/5.8b.RData"); print(fig)
+```
+
+The flat prior also is close to the observed accrual rate, but because it does not add the precision of the prior to the precision of the data, you see much more variation in the predicted total sample size.
+
+### Figure 5.9. Alternative update of hedging hyperparameter.
+
+```{r hedging-update2-hyperparameter, fig.width=10, fig.height=1}
+load("fig/5.9.RData"); print(fig)
+```
+
+The hyperparameter does shrink as it did in the earlier case, and in fact, it has expanded slightly, with a mean and median both a bit larger than 1. This is a reward for choosing such a good prior distribution, but if you want to, you can insure that the average weight given to the prior distribution never exceeds 1, even if your prior matches the data perfectly.
