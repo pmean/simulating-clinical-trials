@@ -19,6 +19,7 @@ S2 <- 0.2
 n1 <- 90
 n2 <- 81
 n3 <- 41
+save(N, T, S, P1, P2, S1, S2, n1, n2, n3, file="fig/7.0.RData")
 dat_prior <- list(N=N, T=T, S=S, 
                    n=0, t=0, 
                    P1=P1, S1=S1, P2=P2, S2=S2,
@@ -46,9 +47,7 @@ You can model these two processes using binomial distributions.
 
 Here's some possible prior distributions for the proportion excluded and the proportion refusing consent.
 
-### Figure 7.1. Prior distribution for pi1, proportion excluded.
-
-```{r binomial-priors1, fig.height=1, fig.width=10}
+```{r binomial-priors1-prelims}
 b1_label0a <- sub("prior", paste("prior, S1", S1/2, sep="="), b1_label0)
 b1_label0b <- sub("prior", paste("prior, S1", S1,   sep="="), b1_label0)
 b1_label0c <- sub("prior", paste("prior, S1", S1*2, sep="="), b1_label0)
@@ -59,16 +58,25 @@ sim3 <- data.frame(x=" ", y=rbeta(n_reps, S1*2*N*P1, S1*2*N*(1-P1)))
 
 y_range <- range(sim1$y, sim2$y, sim3$y)
 
-custom_boxplus(sim1, b1_label0a, 2, "gray") + expand_limits(y=y_range)
-custom_boxplus(sim2, b1_label0b, 2)         + expand_limits(y=y_range)
-custom_boxplus(sim3, b1_label0c, 2, "gray") + expand_limits(y=y_range)
+custom_boxplus(sim1, b1_label0a, 2, "gray") + expand_limits(y=y_range) -> fig
+save(fig, file="fig/7.1a.RData")
+custom_boxplus(sim2, b1_label0b, 2)         + expand_limits(y=y_range) -> fig
+save(fig, file="fig/7.1b.RData")
+custom_boxplus(sim3, b1_label0c, 2, "gray") + expand_limits(y=y_range) -> fig
+save(fig, file="fig/7.1c.RData")
+```
+
+### Figure 7.1. Prior distribution for pi1, proportion excluded.
+
+```{r binomial-priors1, fig.height=1, fig.width=10}
+load("fig/7.1a.RData"); print(fig)
+load("fig/7.1b.RData"); print(fig)
+load("fig/7.1c.RData"); print(fig)
 ```
 
 A prior strength of 0.2 looks reasonable for the proportion excluded.
 
-### Figure 7.2. Prior distribution for pi2, proportion refusing.
-
-```{r binomial-priors2, fig.height=1, fig.width=10}
+```{r binomial-priors2-prelims}
 b2_label0a <- sub("prior", paste("prior, S2", S2/2, sep="="), b2_label0)
 b2_label0b <- sub("prior", paste("prior, S2", S2,   sep="="), b2_label0)
 b2_label0c <- sub("prior", paste("prior, S2", S2*2, sep="="), b2_label0)
@@ -79,9 +87,20 @@ sim3 <- data.frame(x=" ", y=rbeta(n_reps, S2*2*N*P2, S2*2*N*(1-P2)))
 
 y_range <- range(sim1$y, sim2$y, sim3$y)
 
-custom_boxplus(sim1, b1_label0a, 2, "gray") + expand_limits(y=y_range)
-custom_boxplus(sim2, b1_label0b, 2)         + expand_limits(y=y_range)
-custom_boxplus(sim3, b1_label0c, 2, "gray") + expand_limits(y=y_range)
+custom_boxplus(sim1, b1_label0a, 2, "gray") + expand_limits(y=y_range) -> fig
+save(fig, file="fig/7.2a.RData")
+custom_boxplus(sim2, b1_label0b, 2)         + expand_limits(y=y_range) -> fig
+save(fig, file="fig/7.2b.RData")
+custom_boxplus(sim3, b1_label0c, 2, "gray") + expand_limits(y=y_range) -> fig
+save(fig, file="fig/7.2c.RData")
+```
+
+### Figure 7.2. Prior distribution for pi2, proportion refusing.
+
+```{r binomial-priors2, fig.height=1, fig.width=10}
+load("fig/7.2a.RData"); print(fig)
+load("fig/7.2b.RData"); print(fig)
+load("fig/7.2c.RData"); print(fig)
 ```
 
 A prior strength of 0.1 looks reasonable for proportion refusing.
@@ -98,9 +117,7 @@ fit_bi0 <- stan(file=f,
   data=dat_prior, iter= 1000, chains = 4)
 ```
 
-### Figure 7.3. Prior estimate of sample size, accounting for exclusions and refusals.
-
-```{r binomial, fig.height=1, fig.width=10}
+```{r binomial-prior-n-prelims}
 fit_bi0                                         %>%
   as.data.frame                                 %>%
   mutate(x=" ")                                 -> sim_bi0
@@ -112,29 +129,47 @@ y_range <- range(sim_bi1$y, sim_bi2$y, sim_bi3$y)
 prior1_plot <- custom_boxplus(sim_bi1, N_label1a, 0)
 prior2_plot <- custom_boxplus(sim_bi2, N_label2a, 0)
 prior3_plot <- custom_boxplus(sim_bi3, N_label3a, 0)
-prior1_plot + expand_limits(y=y_range)
-prior2_plot + expand_limits(y=y_range)
-prior3_plot + expand_limits(y=y_range)
+prior1_plot + expand_limits(y=y_range) -> fig
+save(fig, file="fig/7.3a.RData")
+prior2_plot + expand_limits(y=y_range) -> fig
+save(fig, file="fig/7.3b.RData")
+prior3_plot + expand_limits(y=y_range) -> fig
+save(fig, file="fig/7.3c.RData")
+```
+
+### Figure 7.3. Prior estimate of sample size, accounting for exclusions and refusals.
+
+```{r binomial-prior-n, fig.height=1, fig.width=10}
+load("fig/7.3a.RData"); print(fig)
+load("fig/7.3b.RData"); print(fig)
+load("fig/7.3c.RData"); print(fig)
 ```
 
 You should consider exploring how sensitive your estimated total sample size is relative to each of the binomial parameters.
 
-### Figure 7.4. How the prior distributions affect the estimated total sample size.
-
-```{r binomial-part2, fig.width=4, fig.height=4}
+```{r binomial-scatterplots-prelims}
 ylb <- "Estimated total sample size (prior)"
 xlb <- "Proportion excluded (prior)"
 sim_bi0                                         %>%
   select(pi1, N3star)                           %>%
   rename(x=pi1)                                 %>%
   rename(y=N3star)                              %>%
-  custom_scatterplot(xlb, ylb, 2, 0)
+  custom_scatterplot(xlb, ylb, 2, 0)            -> fig
+save(fig, file="fig/7.4a.RData")
 xlb <- "Proportion refusing (prior)"
 sim_bi0                                         %>%
   select(pi2, N3star)                           %>%
   rename(x=pi2)                                 %>%
   rename(y=N3star)                              %>%
-  custom_scatterplot(xlb, ylb, 2, 0)
+  custom_scatterplot(xlb, ylb, 2, 0)            -> fig
+save(fig, file="fig/7.4b.RData")
+```
+
+### Figure 7.4. How the prior distributions affect the estimated total sample size.
+
+```{r binomial-scatterplots, fig.width=4, fig.height=4}
+load("fig/7.4a.RData"); print(fig)
+load("fig/7.4b.RData"); print(fig)
 ```
 
 The estimated total sample size is more sensitive to the proportion consenting, mostly because your prior beliefs gave this proportion a broader range of possibilities.
@@ -143,9 +178,7 @@ The estimated total sample size is more sensitive to the proportion consenting, 
 
 The trial that you have seen illustrated thus far did not track exclusions and refusals, but let's suppose that there were `r n1` patients who showed up, but `r n1-n2` were excluded and `r n2-n3` who refused consent, leaving `r n3` available for randomization.
 
-### Figure 7.5. Updated sample size before exclusions and refusals.
-
-```{r binomial-extension-during, fig.width=10, fig.height=1}
+```{r binomial-update-n1-prelims}
 f <- "7-binomial-extension.stan"
 fit_bi4 <- stan(file=f,
   data=dat_update, iter= 1000, chains = 4)
@@ -168,26 +201,49 @@ sim_bi1                                         %>%
   bind_rows(sim_bi7)                            %>%
   use_series(y)                                 %>%
   range                                         -> y_range
-prior1_plot  + expand_limits(y=y_range)
-update1_plot + expand_limits(y=y_range)
+prior1_plot  + expand_limits(y=y_range) -> fig
+save(fig, file="fig/7.5a.RData")
+update1_plot + expand_limits(y=y_range) -> fig
+save(fig, file="fig/7.5b.RData")
+```
+
+### Figure 7.5. Updated sample size before exclusions and refusals.
+
+```{r binomial-update-n1, fig.width=10, fig.height=1}
+load("fig/7.5a.RData"); print(fig)
+load("fig/7.5b.RData"); print(fig)
 ```
 
 Your accrual rate is better than you expected, at least for getting people to show up.
 
+```{r binomial-update-n2-update}
+prior2_plot  + expand_limits(y=y_range) -> fig
+save(fig, file="fig/7.6a.RData")
+update2_plot + expand_limits(y=y_range) -> fig
+save(fig, file="fig/7.6b.RData")
+```
+
 ### Figure 7.6. Updated sample size after exclusions, before refusals.
 
-```{r tm2, fig.width=10, fig.height=1}
-prior2_plot  + expand_limits(y=y_range)
-update2_plot + expand_limits(y=y_range)
+```{r binomial-update-n2, fig.width=10, fig.height=1}
+load("fig/7.6a.RData"); print(fig)
+load("fig/7.6b.RData"); print(fig)
 ```
 
 The exclusions are about what you'd expect, and that means you're still ahead of schedule at this point.
 
+```{r binomial-update-n3-prelims}
+prior3_plot  + expand_limits(y=y_range) -> fig
+save(fig, file="fig/7.7a.RData")
+update3_plot + expand_limits(y=y_range) -> fig
+save(fig, file="fig/7.7b.RData")
+```
+
 ### Figure 7.7. Updated estimates after exclusions and refusals
 
-```{r tm3, fig.width=10, fig.height=1}
-prior3_plot  + expand_limits(y=y_range)
-update3_plot + expand_limits(y=y_range)
+```{r binomial-update-n3, fig.width=10, fig.height=1}
+load("fig/7.7a.RData"); print(fig)
+load("fig/7.7b.RData"); print(fig)
 ```
 
 The refusals, though, are a disaster. You are losing a lot more than `r 100*P2`% patients due to refusals. In fact, it looks like the surge in the proportion of refusals is the main factor influencing your behind-schedule numbers.

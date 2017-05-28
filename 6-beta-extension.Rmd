@@ -18,6 +18,7 @@ S3 <- 0.2
 D1 <- 0.12
 D2 <- 0.4
 D3 <- 0.06
+t1 <- 150
 dat_prior <- list(
   N=N, T=T, S=S, 
   D1=D1, S1=S1,
@@ -30,9 +31,13 @@ dat_update1$t <- 150
 dat_update1$n <- rep(0, 150)
 
 pts <- unlist(read.csv("2-paths-count.csv"))
+n2 <- sum(pts)
+t2 <- 192 + length(pts)
 dat_update2 <- dat_update1
 dat_update2$t <- 192 + length(pts)
 dat_update2$n <- c(rep(0, 192), pts)
+
+save(N, T, S, S1, S2, S3, D1, D2, D3, t1, t2, n2, file="fig/6.0.RData")
 
 N_label0 <- "Estimated total sample size (prior)"
 N_label1 <- sub("prior", "update 1", N_label0)
@@ -99,7 +104,7 @@ delay_graph                                      +
   geom_segment(x   =120, y   =180,
                xend=150, yend=180,
                color="gray", size=1)            -> fig
-save(fig, "fig/6.1.RData")
+save(fig, file="fig/6.1.RData")
 ```
 
 
@@ -119,7 +124,7 @@ delay_graph                                      +
   geom_segment(x   =120, y   =150,
                xend=150, yend=200,
                color="gray", size=1)            -> fig
-save(fig, "fig/6.2.RData")
+save(fig, file="fig/6.2.RData")
 ```
 
 ### Figure 6.2. Linear transition from slow to normal accrual.
@@ -138,7 +143,7 @@ delay_graph                                      +
     geom_segment(x   =120, y   =250,
                xend=150, yend=200,
                color="gray", size=1)            -> fig
-save(fig, "fig/6.3.RData")
+save(fig, file="fig/6.3.RData")
 ```
 
 ### Figure 6.3. Linear transition from fast to normal accrual.
@@ -226,11 +231,11 @@ sim3 <- data.frame(x=" ", y=rbeta(n_reps, S2*2*N*D2, S2*2*N*(1-D2))*30*N/T)
 y_range <- range(sim1$y, sim2$y, sim3$y)
 
 custom_boxplot(sim1, d2_label0a, 1, "black") + expand_limits(y=y_range) -> fig
-save(fig, file="fig/6.6a")
+save(fig, file="fig/6.6a.RData")
 custom_boxplot(sim2, d2_label0b, 1, "red")   + expand_limits(y=y_range) -> fig
-save(fig, file="fig/6.6b")
+save(fig, file="fig/6.6b.RData")
 custom_boxplot(sim3, d2_label0c, 1, "black") + expand_limits(y=y_range) -> fig
-save(fig, file="fig/6.6c")
+save(fig, file="fig/6.6c.RData")
 ```
 
 ### Figure 6.6. Prior distribution for delta2 (accrual rate early), rescaled to patients per month.
@@ -255,14 +260,11 @@ sim3 <- data.frame(x=" ", y=rbeta(n_reps, S3*2*N*D3, S3*2*N*(1-D3))*T)
 y_range <- range(sim1$y, sim2$y, sim3$y)
 
 custom_boxplot(sim1, d3_label0a, 0, "black") + expand_limits(y=y_range) -> fig
-save(fig, file="file/6.7a.RData")
+save(fig, file="fig/6.7a.RData")
 custom_boxplot(sim2, d3_label0b, 0, "red")   + expand_limits(y=y_range) -> fig
-save(fig, file="file/6.7b.RData")
+save(fig, file="fig/6.7b.RData")
 custom_boxplot(sim3, d3_label0c, 0, "black") + expand_limits(y=y_range) -> fig
-save(fig, file="file/6.7c.RData")
-load("fig/6.7a.RData"); print(fig)
-load("fig/6.7b.RData"); print(fig)
-load("fig/6.7c.RData"); print(fig)
+save(fig, file="fig/6.7c.RData")
 ```
 
 ### Figure 6.7. Prior distribution for delta3 (duration of early accrual), rescaled to days.
@@ -442,9 +444,7 @@ load("fig/6.12a.RData"); print(fig)
 load("fig/6.12b.RData"); print(fig)
 ```
 
-### Figure 6.13. Update of delta3 after 150 days of nothing.
-
-```{r update_delta3, fig.width=10, fig.height=1}
+```{r delay-update-delta3-prelims}
 sim_dm0                                         %>%
   mutate(y=delta3*T)                            %>%
   mutate(x=" ")                                 %>%
@@ -454,13 +454,20 @@ sim_dm1                                         %>%
   mutate(x=" ")                                 %>%
   custom_boxplot(d3_label1, 0)                  -> delta31
 r <- T*range(sim_dm0$delta3, sim_dm1$delta3)
-delta30 + expand_limits(y=r)
-delta31 + expand_limits(y=r)
+delta30 + expand_limits(y=r) -> fig
+save(fig, file="fig/6.13a.RData")
+delta31 + expand_limits(y=r) -> fig
+save(fig, file="fig/6.13b.RData")
 ```
 
-### Figure 6.14. Updated of lambda after 150 days of nothing.
+### Figure 6.13. Update of delta3 after 150 days of nothing.
 
-```{r updated_lambda, fig.width=10, fig.height=1}
+```{r delay-update-delta3, fig.width=10, fig.height=1}
+load("fig/6.13a.RData"); print(fig)
+load("fig/6.13b.RData"); print(fig)
+```
+
+```{r delay-update-lambda-prelims}
 sim_dm0                                         %>%
   mutate(y=lambda*30)                           %>%
   mutate(x=" ")                                 %>%
@@ -470,17 +477,24 @@ sim_dm1                                         %>%
   mutate(x=" ")                                 %>%
   custom_boxplot(l_label1, 1)                   -> lambda1
 r <- range(sim_dm0$lambda, sim_dm1$lambda)*30
-lambda0 + expand_limits(y=r)
-lambda1 + expand_limits(y=r)
+lambda0 + expand_limits(y=r) -> fig
+save(fig, file="fig/6.14a.RData")
+lambda1 + expand_limits(y=r) -> fig
+save(fig, file="fig/6.14b.RData")
+```
+
+### Figure 6.14. Update of lambda after 150 days of nothing.
+
+```{r delay-update-lambda, fig.width=10, fig.height=1}
+load("fig/6.14a.RData"); print(fig)
+load("fig/6.14b.RData"); print(fig)
 ```
 
 ### Update 2. We have 240 days of accrual data after 192 days of waiting.
 
 On day 192 (finally!) the trial starts accruing patients. The early phase, as expected, was slow, but now you have `r sum(dat_update2$n)` patients after 239 days of active accrual. So how are we doing now?
 
-### Figure 6.15. Second update of total sample size.
-
-```{r delay_fit2, fig.height=1, fig.width=10}
+```{r delay-fit2-prelims}
 y_label <- "Estimated total sample size (update 2)"
 f <- "6-beta-test3.jags"
 
@@ -506,16 +520,25 @@ sim_dm0                                         %>%
   mutate(x=" ")                                 %>%
   custom_boxplot(N_label2, 0, co="black")        -> prior_estimate
 r <- range(sim_dm0$Nstar, sim_dm1$Nstar, sim_dm2$Nstar)
-prior_estimate + expand_limits(y=r)
-update1 + expand_limits(y=r)
-update2 + expand_limits(y=r)
+prior_estimate + expand_limits(y=r) -> fig
+save(fig, file="fig/6.15a.RData")
+update1 + expand_limits(y=r) -> fig
+save(fig, file="fig/6.15b.RData")
+update2 + expand_limits(y=r) -> fig
+save(fig, file="fig/6.15c.RData")
 ```
 
-What's accounting for most of this shortfall?
+### Figure 6.15. Second update of total sample size.
 
-### Figure 6.16. Second update of delta1.
+```{r delay-fit2, fig.height=1, fig.width=10}
+load("fig/6.15a.RData"); print(fig)
+load("fig/6.15b.RData"); print(fig)
+load("fig/6.15c.RData"); print(fig)
+```
 
-```{r shortfall_cause, fig.width=10, fig.height=1}
+The news is very bad. What's accounting for most of this shortfall?
+
+```{r delay-update2-delta1-prelims}
 sim_dm0                                         %>%
   mutate(y=delta1*T)                            %>%
   mutate(x=" ")                                 %>%
@@ -529,14 +552,23 @@ sim_dm2                                         %>%
   mutate(x=" ")                                 %>%
   custom_boxplot(d1_label2, 0)                  -> delta12
 r <- T*range(sim_dm0$delta1, sim_dm1$delta1, sim_dm2$delta1)
-delta10 + expand_limits(y=r)
-delta11 + expand_limits(y=r)
-delta12 + expand_limits(y=r)
+delta10 + expand_limits(y=r) -> fig
+save(fig, file="fig/6.16a.RData")
+delta11 + expand_limits(y=r) -> fig
+save(fig, file="fig/6.16b.RData")
+delta12 + expand_limits(y=r) -> fig
+save(fig, file="fig/6.16c.RData")
 ```
 
-### Figure 6.17. Second update of delta2.
+### Figure 6.16. Second update of delta1.
 
-```{r shortfall2, fig.width=10, fig.height=1}
+```{r delay-update2-delta1, fig.width=10, fig.height=1}
+load("fig/6.16a.RData"); print(fig)
+load("fig/6.16b.RData"); print(fig)
+load("fig/6.16c.RData"); print(fig)
+```
+
+```{r delay-update2-delta2-prelims}
 sim_dm0                                         %>%
   mutate(y=delta2*30*N/T)                       %>%
   mutate(x=" ")                                 %>%
@@ -550,14 +582,23 @@ sim_dm2                                         %>%
   mutate(x=" ")                                 %>%
   custom_boxplot(d2_label2, 1)                  -> delta22
 r <- range(sim_dm0$delta2, sim_dm1$delta2, sim_dm2$delta2)*30*N/T
-delta20 + expand_limits(y=r)
-delta21 + expand_limits(y=r)
-delta22 + expand_limits(y=r)
+delta20 + expand_limits(y=r) -> fig
+save(fig, file="fig/6.17a.RData")
+delta21 + expand_limits(y=r) -> fig
+save(fig, file="fig/6.17b.RData")
+delta22 + expand_limits(y=r) -> fig
+save(fig, file="fig/6.17c.RData")
 ```
 
-### Figure 6.18. Second update of delta3.
+### Figure 6.17. Second update of delta2.
 
-```{r shortfall3, fig.width=10, fig.height=1}
+```{r delay-update2-delta2, fig.width=10, fig.height=1}
+load("fig/6.17a.RData"); print(fig)
+load("fig/6.17b.RData"); print(fig)
+load("fig/6.17c.RData"); print(fig)
+```
+
+```{r delay-update2-delta3-prelims}
 sim_dm0                                         %>%
   mutate(y=delta3*T)                            %>%
   mutate(x=" ")                                 %>%
@@ -571,14 +612,23 @@ sim_dm2                                         %>%
   mutate(x=" ")                                 %>%
   custom_boxplot(d3_label2, 0)                  -> delta32
 r <- T*range(sim_dm0$delta3, sim_dm1$delta3, sim_dm2$delta3)
-delta30 + expand_limits(y=r)
-delta31 + expand_limits(y=r)
-delta32 + expand_limits(y=r)
+delta30 + expand_limits(y=r) -> fig
+save(fig, file="fig/6.18a.RData")
+delta31 + expand_limits(y=r) -> fig
+save(fig, file="fig/6.18b.RData")
+delta32 + expand_limits(y=r) -> fig
+save(fig, file="fig/6.18c.RData")
 ```
 
-### Figure 6.19. Second update of lambda.
+### Figure 6.18. Second update of delta3.
 
-```{r shortfall4, fig.width=10, fig.height=1}
+```{r delay-update2-delta3, fig.width=10, fig.height=1}
+load("fig/6.18a.RData"); print(fig)
+load("fig/6.18b.RData"); print(fig)
+load("fig/6.18c.RData"); print(fig)
+```
+
+```{r delay-update2-lambda-prelims}
 sim_dm0                                         %>%
   mutate(y=lambda*30)                           %>%
   mutate(x=" ")                                 %>%
@@ -592,9 +642,20 @@ sim_dm2                                         %>%
   mutate(x=" ")                                 %>%
   custom_boxplot(l_label2, 1)                   -> lambda2
 r <- range(sim_dm0$lambda, sim_dm1$lambda, sim_dm1$lambda)*30
-lambda0 + expand_limits(y=r)
-lambda1 + expand_limits(y=r)
-lambda2 + expand_limits(y=r)
+lambda0 + expand_limits(y=r) -> fig
+save(fig, file="fig/6.19a.RData")
+lambda1 + expand_limits(y=r) -> fig
+save(fig, file="fig/6.19b.RData")
+lambda2 + expand_limits(y=r) -> fig
+save(fig, file="fig/6.19c.RData")
+```
+
+### Figure 6.19. Second update of lambda.
+
+```{r delay-update2-lambda, fig.width=10, fig.height=1}
+load("fig/6.19a.RData"); print(fig)
+load("fig/6.19b.RData"); print(fig)
+load("fig/6.19c.RData"); print(fig)
 ```
 
 ```{r save_everything, echo=FALSE}

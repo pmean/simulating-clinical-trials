@@ -351,3 +351,297 @@ load("fig/5.9.RData"); print(fig)
 ```
 
 The hyperparameter does shrink as it did in the earlier case, and in fact, it has expanded slightly, with a mean and median both a bit larger than 1. This is a reward for choosing such a good prior distribution, but if you want to, you can insure that the average weight given to the prior distribution never exceeds 1, even if your prior matches the data perfectly.
+
+### Part 6. Simulating delays in a clinical trial.
+
+There are several different models for accrual delays. They may or may not include a start-up time before ANY accrual, and they may or may not include a warm-up time early in the trial when accrual is slower. If there is a warm-up time, there are several ways to model the transition from slow accrual to full accrual.
+
+
+### Figure 6.1. Discontinuous transition from slow to normal accrual.
+ 
+```{r delay-example1, fig.height=2, fig.width=5}
+load("fig/6.0.RData")
+load("fig/6.1.RData"); print(fig)
+```
+
+Here's a discontinuous transition from slow to full accrual. It has three parameters, the duration of the waiting to start period, the rate during slow accrual, and the duration of the transition to full accrual.
+
+### Figure 6.2. Linear transition from slow to normal accrual.
+
+```{r delay-example2, fig.height=2, fig.width=5}
+load("fig/6.2.RData"); print(fig)
+```
+
+Here's a linear transition from slow to full accrual. It has two parameters, the duration of the waiting to start period and the duration of the transition to full accrual.
+
+### Figure 6.3. Linear transition from fast to normal accrual.
+
+```{r delay-example3, fig.height=2, fig.width=5}
+load("fig/6.3.RData"); print(fig)
+```
+
+Here's an example of a partially discontinuous transition where the early accrual is fast, perhaps because there were a large number of patients waiting for the trial to start.
+
+### Figure 6.4. Smooth transition from slow to normal accrual.
+
+```{r delay-example4, fig.height=2, fig.width=5}
+load("fig/6.4.RData"); print(fig)
+```
+
+Here's a smooth transition using a rescaled version of the function $f(x)=3x^2-2x^3$. This functiton is a cubic spline with the properties
+
+f(0)=0 (starts at zero to maintain continuity at 0)
+
+f'(0) (starts out flat to maintain smoothness at 0)
+
+f(1)=1 (rises to a new level)
+
+f'(1)=0 (levels off at the new level to maintain smoothness)
+
+### Priors for a delay model
+
+We'll fit the discontinuous model, the first one shown, because it is convenient, but there are probably very few practical differences among these models. The discontinuous model has three parameters. Delta1 represents the duration of time waiting for the trial to start as a fraction of the total time planned. Delta2 represents the ratio of the accrual rate during the slow accrual period and the accrual rate during the full accrual period. Delta3 represents the duration of time for the slow accrual period as a fraction of the total time planned.
+
+Generally, you should use strong priors here to limit delta1 and delta3 to the lower end of the range from 0 to 1. If you really thought that delta1 and/or delta3 would be much closer to 1, then you should rethink what your total time planned should be.
+
+### Figure 6.5. Prior distribution for delta1 (time waiting to start).
+
+```{r delay-priors1, fig.height=1, fig.width=10}
+load("fig/6.5a.RData"); print(fig)
+load("fig/6.5b.RData"); print(fig)
+load("fig/6.5c.RData"); print(fig)
+```
+
+Here's some possible prior distributions. For delta1, the proportion of the total planned time that you spend waiting for the study to get started, a beta(`r N*D1*S1`, `r N*S1*(1-D1)`) corresponds to an expectation that `r D1*100`% of the time (`r D1*T` days) will be lost on average before the trial even begins. The total weight assigned to this prior corresponds to `r S1*100`% of the total sample size.
+
+### Figure 6.6. Prior distribution for delta2 (accrual rate early), rescaled to patients per month.
+
+```{r delay-priors2, fig.height=1, fig.width=10}
+load("fig/6.6a.RData"); print(fig)
+load("fig/6.6b.RData"); print(fig)
+load("fig/6.6c.RData"); print(fig)
+```
+
+For delta2, the proportionate reduction in accrual during the warm-up period, a beta(`r S2*N*D2`, `r S2*N*(1-D2)` corresponds to an expectation that the reductiton during warm-up will be about `r 100*D2`% of the regular accrual rate on average, or roughly `r round(D2*30*N/T)` patients per month. The total weight assigned to this prior corresponds to `r S2*100`% of the total sample size.
+
+### Figure 6.7. Prior distribution for delta3 (duration of early accrual), rescaled to days.
+
+```{r delay-priors3, fig.height=1, fig.width=10}
+load("fig/6.7a.RData"); print(fig)
+load("fig/6.7b.RData"); print(fig)
+load("fig/6.7c.RData"); print(fig)
+```
+
+For delta3, the proportion of the total planned time that you spend in the warm-up period, a beta(`r S3*N*D3`, `r S3*N*(1-D3)`) corresponds to an expectation that `r 100*D3`% of the time your trial will be stuck in the warm-up phase. The total weight assigned to this prior corresponds to `r S3*100`% of the total sample size.
+
+### Here's the code to fit a simulation involving delays.
+
+```{r delay_code}
+f <- "6-beta-test3.jags"
+cat(readLines(f), sep="\n")
+```
+
+The delay model involves discontinuities, which cause problems for stan, so this code is for a similar program called jags.
+
+### Figure 6.8. Prior estimate of total sample size, accounting for delays.
+
+```{r delay-fit0, fig.height=1, fig.width=10}
+load("fig/6.8.RData"); print(fig)
+```
+
+You are taking a big hit here. But you should be thankful that you're accounting for these sorts of things before the trial starts.
+
+You should consider exploring how sensitive your estimated total sample size is relative to each of the delay parameters.
+
+### Figure 6.9. Effect of prior parameters on estimated total sample size.
+
+```{r delay-scaterplots, fig.width=4, fig.height=4}
+load("fig/6.9a.RData"); print(fig)
+load("fig/6.9b.RData"); print(fig)
+load("fig/6.9c.RData"); print(fig)
+load("fig/6.9d.RData"); print(fig)
+```
+
+It looks like the proportion of time waiting to start has a far greater influence on the total sample size than the other parameters. This would change if you changed your prior distributions, of course, but in general it makes sense. Time lost waiting for the trial to start is time when no subjects enter. Time during slow accrual is important but at least you are getting some subjects in during this time frame. The relative slowness during the warm-up period is also not too critical.
+
+The actual trial that I have used so far did not have a formal model for delays, but it is easy enough to modify the data to fit this example. You need to prepend the data with a string of zeros corresponding to the days when the trial was waiting to get started.
+
+### Updating the delay simulation--150 days of nothing.
+
+Suppose that you are on day `r t1`, and not a single patient has shown up. You were expecting the time to the first patient to be around day `r round(D1*T)`, but it looks like things might be far worse. What does above average delay to the start of your study do to your estimate of the total sample size?
+
+### Figure 6.10. Updated estimate of total sample size after 150 days of nothing.
+
+```{r delay-fit1, fig.height=1, fig.width=10}
+load("fig/6.10a.Rmd"); print(fig)
+load("fig/6.10b.Rmd"); print(fig)
+```
+
+It looks like the delay has not hurt the trial that much so far.
+
+### Figure 6.11. How much longer do you expect to wait after 150 days of nothing.
+
+```{r delay-updated_start, fig.width=10, fig.height=1}
+load("fig/6.11a.RData"); print(fig)
+load("fig/6.11b.RData"); print(fig)
+```
+
+This boxplot shows when you think the trial will start, now that you know that the delay is at least 150 days.
+
+The remaining parameters remain unchanged, of course.
+
+### Figure 6.12. Update of delta2 after 150 days of nothing.
+
+```{r delay-update-delta2, fig.width=10, fig.height=1}
+load("fig/6.12a.RData"); print(fig)
+load("fig/6.12b.RData"); print(fig)
+```
+
+### Figure 6.13. Update of delta3 after 150 days of nothing.
+
+```{r delay-update-delta3, fig.width=10, fig.height=1}
+load("fig/6.13a.RData"); print(fig)
+load("fig/6.13b.RData"); print(fig)
+```
+
+### Figure 6.14. Update of lambda after 150 days of nothing.
+
+```{r delay-update-lambda, fig.width=10, fig.height=1}
+load("fig/6.14a.RData"); print(fig)
+load("fig/6.14b.RData"); print(fig)
+```
+
+### Update 2. We have 240 days of accrual data after 192 days of waiting.
+
+On day 192 (finally!) the trial starts accruing patients. The early phase, as expected, was slow, but now you have `r n2` patients after `r t2-t1` days of active accrual. So how are you doing now?
+
+### Figure 6.15. Second update of total sample size.
+
+```{r delay-fit2, fig.height=1, fig.width=10}
+load("fig/6.15a.RData"); print(fig)
+load("fig/6.15b.RData"); print(fig)
+load("fig/6.15c.RData"); print(fig)
+```
+
+The news is very bad. What's accounting for most of your shortfall?
+
+### Figure 6.16. Second update of delta1.
+
+```{r delay-update2-delta1, fig.width=10, fig.height=1}
+load("fig/6.16a.RData"); print(fig)
+load("fig/6.16b.RData"); print(fig)
+load("fig/6.16c.RData"); print(fig)
+```
+
+### Figure 6.17. Second update of delta2.
+
+```{r delay-update2-delta2, fig.width=10, fig.height=1}
+load("fig/6.17a.RData"); print(fig)
+load("fig/6.17b.RData"); print(fig)
+load("fig/6.17c.RData"); print(fig)
+```
+
+### Figure 6.18. Second update of delta3.
+
+```{r delay-update2-delta3, fig.width=10, fig.height=1}
+load("fig/6.18a.RData"); print(fig)
+load("fig/6.18b.RData"); print(fig)
+load("fig/6.18c.RData"); print(fig)
+```
+
+
+### Figure 6.19. Second update of lambda.
+
+```{r delay-update2-lambda, fig.width=10, fig.height=1}
+load("fig/6.19a.RData"); print(fig)
+load("fig/6.19b.RData"); print(fig)
+load("fig/6.19c.RData"); print(fig)
+```
+
+### Part 7. Modeling exclusions and refusals
+
+There's a gauntlet that patients must travel through before they are officially part of your clinical trial. As you ask them questions, you will find that some of the patients might not meet all of your inclusion criteria. Also, the patients may change their minds, after hearing the details of your clinical trial, and decide that they don't really want to participate after all.
+
+You can model these two processes using binomial distributions.
+
+Here's some possible prior distributions for the proportion excluded and the proportion refusing consent.
+
+### Figure 7.1. Prior distribution for pi1, proportion excluded.
+
+```{r binomial-priors1, fig.height=1, fig.width=10}
+load("fig/7.0.RData")
+load("fig/7.1a.RData"); print(fig)
+load("fig/7.1b.RData"); print(fig)
+load("fig/7.1c.RData"); print(fig)
+```
+
+A prior strength of 0.2 looks reasonable for the proportion excluded.
+
+### Figure 7.2. Prior distribution for pi2, proportion refusing.
+
+```{r binomial-priors2, fig.height=1, fig.width=10}
+load("fig/7.2a.RData"); print(fig)
+load("fig/7.2b.RData"); print(fig)
+load("fig/7.2c.RData"); print(fig)
+```
+
+A prior strength of 0.1 looks reasonable for proportion refusing.
+
+If you do a simple extrapolation, the total sample size after exclusions and refusals should be about `r 100*(1-P1)*(1-P2)`% of the `r N` planned patients or `r N*(1-P1)*(1-P2)` patients.
+
+### Here's what the code would look like for this model.
+
+```{r binomial-code}
+f <- "7-binomial-extension.stan"
+cat(readLines(f), sep="\n")
+```
+
+### Figure 7.3. Prior estimate of sample size, accounting for exclusions and refusals.
+
+```{r binomial-prior-n, fig.height=1, fig.width=10}
+load("fig/7.3a.RData"); print(fig)
+load("fig/7.3b.RData"); print(fig)
+load("fig/7.3c.RData"); print(fig)
+```
+
+You should consider exploring how sensitive your estimated total sample size is relative to each of the binomial parameters.
+
+### Figure 7.4. How the prior distributions affect the estimated total sample size.
+
+```{r binomial-scatterplots, fig.width=4, fig.height=4}
+load("fig/7.4a.RData"); print(fig)
+load("fig/7.4b.RData"); print(fig)
+```
+
+The estimated total sample size is more sensitive to the proportion consenting, mostly because your prior beliefs gave this proportion a broader range of possibilities.
+
+### Update. 
+
+The trial that you have seen illustrated thus far did not track exclusions and refusals, but let's suppose that there were `r n1` patients who showed up, but `r n1-n2` were excluded and `r n2-n3` who refused consent, leaving `r n3` available for randomization.
+
+### Figure 7.5. Updated sample size before exclusions and refusals.
+
+```{r binomial-update-n1, fig.width=10, fig.height=1}
+load("fig/7.5a.RData"); print(fig)
+load("fig/7.5b.RData"); print(fig)
+```
+
+Your accrual rate is better than you expected, at least for getting people to show up.
+
+### Figure 7.6. Updated sample size after exclusions, before refusals.
+
+```{r binomial-update-n2, fig.width=10, fig.height=1}
+load("fig/7.6a.RData"); print(fig)
+load("fig/7.6b.RData"); print(fig)
+```
+
+The exclusions are about what you'd expect, and that means you're still ahead of schedule at this point.
+
+### Figure 7.7. Updated estimates after exclusions and refusals
+
+```{r binomial-update-n3, fig.width=10, fig.height=1}
+load("fig/7.7a.RData"); print(fig)
+load("fig/7.7b.RData"); print(fig)
+```
+
+The refusals, though, are a disaster. You are losing a lot more than `r 100*P2`% patients due to refusals. In fact, it looks like the surge in the proportion of refusals is the main factor influencing your behind-schedule numbers.
