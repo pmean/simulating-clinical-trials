@@ -452,7 +452,7 @@ save(fig, file="fig/6.15a.RData")
 sim_dm2                                         %>%
   rename(y=Nstar)                               %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(N_label2, 0, co=color1)        %>%
+  custom_boxplot(N_label2, 0, co=color1)         +
   expand_limits(y=r)                            -> fig
 save(fig, file="fig/6.15b.RData")
 ```
@@ -464,119 +464,76 @@ load("fig/6.15a.RData"); print(fig)
 load("fig/6.15b.RData"); print(fig)
 ```
 
-```{r delay-update2-delta1-prelims}
-r <- T*range(sim_dm0$delta1, sim_dm2$delta1)
+```{r delay-update2-delta2-prelims}
+r <- range(sim_dm0$delta2, sim_dm1$delta2, sim_dm2$delta2)*30*N/T
 sim_dm0                                         %>%
-  mutate(y=delta1*T)                            %>%
+  mutate(y=delta2*30*N/T)                       %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(d1_label0, 0, co=color0)        +
+  custom_boxplot(d2_label0, 1, co=color0)        + 
   expand_limits(y=r)                            -> fig
-save(fig, file="fig/6.16a.RData")
+save(fig, file="fig/6.16a.RData")-> delta20
 
 sim_dm2                                         %>%
-  mutate(y=delta1*T)                            %>%
+  mutate(y=delta2*30*N/T)                       %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(d1_label2, 0, co=color1)        +
+  custom_boxplot(d2_label2, 1, co=color1)        + 
   expand_limits(y=r)                            -> fig
 save(fig, file="fig/6.16b.RData")
-
 ```
 
-### Figure 6.16. Second update of delta1.
+### Figure 6.16. Second update of delta2.
 
-```{r delay-update2-delta1, fig.width=10, fig.height=1}
+```{r delay-update2-delta2, fig.width=10, fig.height=1}
 load("fig/6.16a.RData"); print(fig)
 load("fig/6.16b.RData"); print(fig)
 ```
 
-```{r delay-update2-delta2-prelims}
-sim_dm0                                         %>%
-  mutate(y=delta2*30*N/T)                       %>%
-  mutate(x=" ")                                 %>%
-  custom_boxplot(d2_label0, 1, co=color0)       -> delta20
-sim_dm1                                         %>%
-  mutate(y=delta2*30*N/T)                       %>%
-  mutate(x=" ")                                 %>%
-  custom_boxplot(d2_label1, 1, co=color0)       -> delta21
-sim_dm2                                         %>%
-  mutate(y=delta2*30*N/T)                       %>%
-  mutate(x=" ")                                 %>%
-  custom_boxplot(d2_label2, 1)                  -> delta22
-r <- range(sim_dm0$delta2, sim_dm1$delta2, sim_dm2$delta2)*30*N/T
-delta20 + expand_limits(y=r) -> fig
-save(fig, file="fig/6.17a.RData")
-delta21 + expand_limits(y=r) -> fig
-save(fig, file="fig/6.17b.RData")
-delta22 + expand_limits(y=r) -> fig
-save(fig, file="fig/6.17c.RData")
-```
-
-### Figure 6.17. Second update of delta2.
-
-```{r delay-update2-delta2, fig.width=10, fig.height=1}
-load("fig/6.17a.RData"); print(fig)
-load("fig/6.17b.RData"); print(fig)
-load("fig/6.17c.RData"); print(fig)
-```
-
 ```{r delay-update2-delta3-prelims}
+r <- T*range(sim_dm0$delta3, sim_dm1$delta3, sim_dm2$delta3)
 sim_dm0                                         %>%
   mutate(y=delta3*T)                            %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(d3_label0, 0, co=color0)       -> delta30
-sim_dm1                                         %>%
-  mutate(y=delta3*T)                            %>%
-  mutate(x=" ")                                 %>%
-  custom_boxplot(d3_label1, 0, co=color0)       -> delta31
+  custom_boxplot(d3_label0, 0, co=color0)        + 
+  expand_limits(y=r)                            -> fig
+save(fig, file="fig/6.17a.RData")
+
 sim_dm2                                         %>%
   mutate(y=delta3*T)                            %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(d3_label2, 0)                  -> delta32
-r <- T*range(sim_dm0$delta3, sim_dm1$delta3, sim_dm2$delta3)
-delta30 + expand_limits(y=r) -> fig
-save(fig, file="fig/6.18a.RData")
-delta31 + expand_limits(y=r) -> fig
-save(fig, file="fig/6.18b.RData")
-delta32 + expand_limits(y=r) -> fig
-save(fig, file="fig/6.18c.RData")
+  custom_boxplot(d3_label2, 0)                   +
+  expand_limits(y=r)                            -> fig
+save(fig, file="fig/6.17b.RData")
 ```
 
-### Figure 6.18. Second update of delta3.
+### Figure 6.17. Second update of delta3.
 
 ```{r delay-update2-delta3, fig.width=10, fig.height=1}
-load("fig/6.18a.RData"); print(fig)
-load("fig/6.18b.RData"); print(fig)
-load("fig/6.18c.RData"); print(fig)
+load("fig/6.17a.RData"); print(fig)
+load("fig/6.17b.RData"); print(fig)
 ```
 
 ```{r delay-update2-lambda-prelims}
+r <- range(sim_dm0$lambda, sim_dm1$lambda, sim_dm1$lambda)*30
 sim_dm0                                         %>%
   mutate(y=lambda*30)                           %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(l_label0, 1, co=color0)        -> lambda0
-sim_dm1                                         %>%
-  mutate(y=lambda*30)                           %>%
-  mutate(x=" ")                                 %>%
-  custom_boxplot(l_label1, 1, co=color0)        -> lambda1
+  custom_boxplot(l_label0, 1, co=color0)         +
+  expand_limits(y=r)                            -> fig
+save(fig, file="fig/6.18a.RData")
+
 sim_dm2                                         %>%
   mutate(y=lambda*30)                           %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(l_label2, 1)                   -> lambda2
-r <- range(sim_dm0$lambda, sim_dm1$lambda, sim_dm1$lambda)*30
-lambda0 + expand_limits(y=r) -> fig
-save(fig, file="fig/6.19a.RData")
-lambda1 + expand_limits(y=r) -> fig
-save(fig, file="fig/6.19b.RData")
-lambda2 + expand_limits(y=r) -> fig
-save(fig, file="fig/6.19c.RData")
+  custom_boxplot(l_label2, 1, co=color1)         +
+  expand_limits(y=r)                            -> fig
+save(fig, file="fig/6.18b.RData")
 ```
 
-### Figure 6.19. Second update of lambda.
+### Figure 6.18. Second update of lambda.
 
 ```{r delay-update2-lambda, fig.width=10, fig.height=1}
-load("fig/6.19a.RData"); print(fig)
-load("fig/6.19b.RData"); print(fig)
-load("fig/6.19c.RData"); print(fig)
+load("fig/6.18a.RData"); print(fig)
+load("fig/6.18b.RData"); print(fig)
 ```
 
 ```{r save_everything, echo=FALSE}

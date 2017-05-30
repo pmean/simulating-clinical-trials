@@ -7,13 +7,8 @@ output: html_document
 
 ```{r preliminaries, echo=FALSE, message=FALSE}
 source("0-preliminaries.R", echo=FALSE)
-n_reps <- 1000
-pctl_list <- c(1, 25, 50, 75, 99)
-N <- 350
-T <- 1095
-S <- 0.5
 P1 <- 0.1
-S1 <- 0.1
+S1 <- 0.4
 P2 <- 0.3
 S2 <- 0.2
 n1 <- 90
@@ -58,11 +53,11 @@ sim3 <- data.frame(x=" ", y=rbeta(n_reps, S1*2*N*P1, S1*2*N*(1-P1)))
 
 y_range <- range(sim1$y, sim2$y, sim3$y)
 
-custom_boxplus(sim1, b1_label0a, 2, "gray") + expand_limits(y=y_range) -> fig
+custom_boxplus(sim1, b1_label0a, 2, co=color0) + expand_limits(y=y_range) -> fig
 save(fig, file="fig/7.1a.RData")
-custom_boxplus(sim2, b1_label0b, 2)         + expand_limits(y=y_range) -> fig
+custom_boxplus(sim2, b1_label0b, 2, co=color1) + expand_limits(y=y_range) -> fig
 save(fig, file="fig/7.1b.RData")
-custom_boxplus(sim3, b1_label0c, 2, "gray") + expand_limits(y=y_range) -> fig
+custom_boxplus(sim3, b1_label0c, 2, co=color0) + expand_limits(y=y_range) -> fig
 save(fig, file="fig/7.1c.RData")
 ```
 
@@ -74,7 +69,6 @@ load("fig/7.1b.RData"); print(fig)
 load("fig/7.1c.RData"); print(fig)
 ```
 
-A prior strength of 0.2 looks reasonable for the proportion excluded.
 
 ```{r binomial-priors2-prelims}
 b2_label0a <- sub("prior", paste("prior, S2", S2/2, sep="="), b2_label0)
@@ -87,11 +81,11 @@ sim3 <- data.frame(x=" ", y=rbeta(n_reps, S2*2*N*P2, S2*2*N*(1-P2)))
 
 y_range <- range(sim1$y, sim2$y, sim3$y)
 
-custom_boxplus(sim1, b1_label0a, 2, "gray") + expand_limits(y=y_range) -> fig
+custom_boxplus(sim1, b1_label0a, 2, co=color0) + expand_limits(y=y_range) -> fig
 save(fig, file="fig/7.2a.RData")
-custom_boxplus(sim2, b1_label0b, 2)         + expand_limits(y=y_range) -> fig
+custom_boxplus(sim2, b1_label0b, 2, co=color1) + expand_limits(y=y_range) -> fig
 save(fig, file="fig/7.2b.RData")
-custom_boxplus(sim3, b1_label0c, 2, "gray") + expand_limits(y=y_range) -> fig
+custom_boxplus(sim3, b1_label0c, 2, co=color0) + expand_limits(y=y_range) -> fig
 save(fig, file="fig/7.2c.RData")
 ```
 
@@ -102,10 +96,6 @@ load("fig/7.2a.RData"); print(fig)
 load("fig/7.2b.RData"); print(fig)
 load("fig/7.2c.RData"); print(fig)
 ```
-
-A prior strength of 0.1 looks reasonable for proportion refusing.
-
-If you do a simple extrapolation, the total sample size after exclusions and refusals should be about `r 100*(1-P1)*(1-P2)`% of the `r N` planned patients or `r N*(1-P1)*(1-P2)` patients.
 
 ### Here's what the code would look like for this model.
 
@@ -172,12 +162,6 @@ load("fig/7.4a.RData"); print(fig)
 load("fig/7.4b.RData"); print(fig)
 ```
 
-The estimated total sample size is more sensitive to the proportion consenting, mostly because your prior beliefs gave this proportion a broader range of possibilities.
-
-### Update. 
-
-The trial that you have seen illustrated thus far did not track exclusions and refusals, but let's suppose that there were `r n1` patients who showed up, but `r n1-n2` were excluded and `r n2-n3` who refused consent, leaving `r n3` available for randomization.
-
 ```{r binomial-update-n1-prelims}
 f <- "7-binomial-extension.stan"
 fit_bi4 <- stan(file=f,
@@ -190,7 +174,6 @@ fit_bi4                                         %>%
 sim_bi4 %>% rename(y=N1star) -> sim_bi5
 sim_bi4 %>% rename(y=N2star) -> sim_bi6
 sim_bi4 %>% rename(y=N3star) -> sim_bi7
-update1_plot <- custom_boxplus(sim_bi5, N_label1b, 0)
 update2_plot <- custom_boxplus(sim_bi6, N_label2b, 0)
 update3_plot <- custom_boxplus(sim_bi7, N_label3b, 0)
 sim_bi1                                         %>%
@@ -201,9 +184,10 @@ sim_bi1                                         %>%
   bind_rows(sim_bi7)                            %>%
   use_series(y)                                 %>%
   range                                         -> y_range
-prior1_plot  + expand_limits(y=y_range) -> fig
+
+custom_boxplus(sim_bi1, N_label1a, 0, co=color0) + expand_limits(y=y_range) -> fig
 save(fig, file="fig/7.5a.RData")
-update1_plot + expand_limits(y=y_range) -> fig
+custom_boxplus(sim_bi5, N_label1b, 0, co=color1) + expand_limits(y=y_range) -> fig
 save(fig, file="fig/7.5b.RData")
 ```
 
@@ -217,9 +201,9 @@ load("fig/7.5b.RData"); print(fig)
 Your accrual rate is better than you expected, at least for getting people to show up.
 
 ```{r binomial-update-n2-update}
-prior2_plot  + expand_limits(y=y_range) -> fig
+custom_boxplus(sim_bi2, N_label2a, 0, co=color0) + expand_limits(y=y_range) -> fig
 save(fig, file="fig/7.6a.RData")
-update2_plot + expand_limits(y=y_range) -> fig
+custom_boxplus(sim_bi6, N_label2b, 0, co=color1) + expand_limits(y=y_range) -> fig
 save(fig, file="fig/7.6b.RData")
 ```
 
@@ -233,9 +217,9 @@ load("fig/7.6b.RData"); print(fig)
 The exclusions are about what you'd expect, and that means you're still ahead of schedule at this point.
 
 ```{r binomial-update-n3-prelims}
-prior3_plot  + expand_limits(y=y_range) -> fig
+custom_boxplus(sim_bi3, N_label3a, 0, co=color0) + expand_limits(y=y_range) -> fig
 save(fig, file="fig/7.7a.RData")
-update3_plot + expand_limits(y=y_range) -> fig
+custom_boxplus(sim_bi7, N_label3b, 0, co=color1) + expand_limits(y=y_range) -> fig
 save(fig, file="fig/7.7b.RData")
 ```
 
