@@ -8,10 +8,6 @@ output: html_document
 ```{r preliminaries, echo=FALSE, message=FALSE}
 source("0-preliminaries.R", echo=FALSE)
 p_list <- c(0.25, 0.75)
-p_list                                          %>%
-  multiply_by(100)                              %>%
-  paste(collapse=" and ")                       %>%
-  paste("The", ., "percentile predictions")     -> p_label
 ```
 
 ## Part 4. Early predictions
@@ -164,6 +160,11 @@ save(fig, file="fig/4.3.RData")
 ```{r early-predictions-weak, fig.width=10, fig.height=5, eval=TRUE}
 load("fig/4.3.RData"); print(fig)
 ```
+
+```{r save-everything}
+save.image("4-early-predictions.RData")
+```
+
 
 
 

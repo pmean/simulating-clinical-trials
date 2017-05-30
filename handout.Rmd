@@ -7,6 +7,16 @@ output: html_document
 
 # Simulation before, during, and after a clinical trial: A Bayesian approach
 
+Steve Simon, mail@pmean.com
+
+The code that produced these figures is available at https://github.com/pmean/simulating-clinical-trials
+
+Thanks to my collaborators: Byron Gajewski, Jiang Yu
+
+Thanks to Vladimir Anisimov for inviting me
+
+Thanks to the people of Great Britain for providing such a nice venue for this conference.
+
 ## Abstract
 
 Simulation of a clinical trial gives you answers to important economic, logistical, or scientific questions about the trial when some of the features are difficult to characterize with perfect precision. A Bayesian approach with informative priors offers a flexible framework for trial simulation. It provides a seamless transition from simulation prior to the trial to simulation during the trial itself. Although informative priors are controversial, you can avoid perceptions of bias by restricting the informative priors to clinical trial features that are independent of your research hypothesis. You can protect your interim predictions against unrealistic prior beliefs by implementing the hedging hyperprior, a simple hyperdistribution that downweights the strength of the prior when there is a discrepancy between the prior distribution and data observed during the trial itself. The Bayesian approach also gives you a simple post mortem analysis after the trial ends. You can compute percentile values by plugging the point estimates from the actual clinical trial data into the corresponding prior distributions. Over multiple trials, a deviation in these percentiles from a uniform distribution indicates biased specification of the informative priors. The Bayesian approach to trial simulation will be illustrated using various patient accrual models.
@@ -31,9 +41,8 @@ opts_chunk$set(
   message=FALSE,
   warning=FALSE)
 
-N <- 350
-T <- 1095
-S <- 0.4
+# load constants used throughout the various programs.
+load("fig/0.0.Rdata")
 ```
 
 Consider a clinical trial that plans to run for T = `r T` days (`r T/365` years). You hope to recruit N = `r N` patients in that time, which would mean `r round(N/T, 2)` patients per day or `r round(30*N/T, 1)` patients per month. You suspect, however, that the accrual rate might actually be quite a bit higher or quite a bit lower than this target. You set a prior distribution on the accrual rate that is Gamma(`r N*S`, `r T*S`). You need to wait for an explanation of why this might be a reasonable prior distribution. With this prior distribution, you can simulate many things.
@@ -80,27 +89,31 @@ When you simulate a clinical trial, you won't do this two times. You'll do it se
 
 ## Figure 2.1. 1000 simulations run prior to start of a clinical trial.
 
-```{r path1, fig.width=10, fig.height=5, eval=FALSE}
+```{r path1, fig.width=10, fig.height=5}
 load("fig/2.1.RData")
 print(fig)
 ```
 
-I also want to talk about simulating a clinical trial during the trial. What this means is that you have information sample size up to a certain point in time and you want to simulate how rapidly the sample size might increase for the remainder of time in the trial.
+There is a fairly wide spread of possible sample sizes in this trial.
 
 ## Figure 2.2. 1000 simulations run during a clinical trial.
 
-```{r path2, fig.width=10, fig.height=5, eval=FALSE}
+```{r path2, fig.width=10, fig.height=5}
 load("fig/2.2.RData")
 print(fig)
 ```
+
+You an also run a simulation of a clinical trial during the trial. What this means is that you have information sample size up to a certain point in time and you want to simulate from that information and from your prior knowledge of accrual rates what the final sample size might be.
+
 ## Figure 2.3. Post mortem examination of actual trial results.
 
-```{r path3, fig.width=10, fig.height=5, eval=FALSE}
+```{r path3, fig.width=10, fig.height=5}
 load("fig/2.3.RData")
 print(fig)
 ```
 
-When the trial ends, you can compare the actual accrual results to what you thought you knew before the trial started. In this particular trial, some of the interim values are made up, but it reflects a trial that ended up short of the target sample size (341 instead of 350 patients) in spite of the fact that it needed 1336 days instead of 1095. Your prior distribution was overly optimistic.
+When the trial ends, you can compare the actual accrual results to what you though
+t you knew before the trial started. In this particular trial, some of the interim values are made up, but it reflects a trial that ended up short of the target sample size (`r n_final` instead of `r N` patients) in spite of the fact that it needed `r t_final` days instead of `r T`. Your prior distribution was overly optimistic.
 
 ## Part 3. Gamma Poisson models
 
@@ -116,6 +129,10 @@ load("fig/3.1c.RData"); print(fig)
 
 Selecting a prior distribution requires a lot of work. It helps, I believe to express the strength of the prior distribution as a fraction of the planned sample size. A prior with a strength equivalent to 40% of the planned sample size represents a setting you give equal weight to the prior distribution and the data when you have collected 40% of the data. That's a very strong prior, but not unreasonable. As a researcher who has done this sort of clinical trial many times, the value of S=`r S` seems like the best choice to you.
 
+Some of you may be cautious about such a bold prior, so for perspective, I am showing (in gray) two weaker prior distributions.
+
+The tick marks on these graphs and all future graphs are placed at the 1st, 25th, 50th, 75th, and 99th percentiles.
+
 ## Stan code for the gamma-Poisson model
 
 ```{r gamma-poisson-code, eval=TRUE}
@@ -123,7 +140,7 @@ f <- "3-gamma-poisson.stan"
 cat(readLines(f), sep="\n")
 ```
 
-Here is code in Stan (running inside of R) that simulates the results of a clinical trial with a target goal of 350 patients in 3 years (1095 days) and places a range of uncertainty on the accrual rate that is characterized by a gamma(175, 547.5). This is a prior distribution with a strength roughly equal to half the target sample size.
+Here is code in Stan (running inside of R) that simulates the results of a clinical trial with a target goal of `r N` patients in ` r round(T/365, 1)` years (`r T` days) and places a range of uncertainty on the accrual rate that is characterized by a gamma(`r N*S`, `r T*S`). This is a prior distribution with a strength roughly equal to `r 100*S`% of the target sample size.
 
 ## Figure 3.2. Simulated total sample size prior to start of clinical trial.
 
@@ -156,7 +173,7 @@ With a plot like this, you can run some sensitivity checks, such as "what would 
 
 ## Update
 
-The key reason that you should run your simulations in a Bayesian framework is that you can make a seamless transition to a simulation of a clinical trial during the trial itself. In this trial, the early accrual rate was much lower than expected. After 239 days, you have only gotten 41 patients. If you were on target, it would have taken only 1095*(41/350) = `r round(1095*(41/350))` days to get this many patients. How much is this shortfall hurting us?
+The key reason that you should run your simulations in a Bayesian framework is that you can make a seamless transition to a simulation of a clinical trial during the trial itself. In this trial, the early accrual rate was much lower than expected. After `r t` days, you have only gotten `r n` patients. If you were on target, it would have taken only `r T` * (`r n` / `r N`) = `r round(T*(n/N))` days to get this many patients. How much is this shortfall hurting you?
 
 ## Figure 3.5. Simulated total sample size during the clinical trial.
 
@@ -165,9 +182,11 @@ load("fig/3.5a.RData"); print(fig)
 load("fig/3.5b.RData"); print(fig)
 ```
 
+Your estimate of the final sample size is much lower after getting all this bad news about accrual rates. Notice also that the predictions have much less variability. This is partly due to your greater knowledge of accrual when you combine your prior distribution with the actual data and partly due to the fact that you are predicting less far into the future.
+
 ## Post mortem analysis
 
-For this trial, you were able to get 341 patients, but it took a lot longer than you expected, 1336 days instead of 1095 days. Time to get ready for your next clinical trial. NOT SO FAST! You are not done with simulations when the trial is over. After the trial, take a look at how your accrual rate ranks relative to the range of accrual rates associated with your prior distribution.
+For this trial, you were able to get `r n_final` patients, but it took a lot longer than you expected, `r t_final` days instead of `r T` days. Time to get ready for your next clinical trial. NOT SO FAST! You are not done with simulations when the trial is over. After the trial, take a look at how your accrual rate ranks relative to the range of accrual rates associated with your prior distribution.
 
 ## Figure 3.6. Comparison of final accrual rate to prior distribution.
 
@@ -203,14 +222,13 @@ load("fig/3.9.RData")
 print(fig)
 ```
 
-Just for perspective, here is a what a percentile plot might look like if your prior distributions were reasonably accurate. You tend to see (albeit very roughly) about as many percentiles above  and below 50% and about as many in the middle (between 25% and 75%) as you do outside the middle.
+Just for perspective, here is a what a percentile plot might look like if your prior distributions were reasonably accurate. You tend to see (albeit very roughly) about as many percentiles above and below 50% and about as many in the middle (between 25% and 75%) as you do outside the middle.
 
 ## Part 4. Early predictions
 
 ```{r preload}
 load("fig/4.1.RData")
 ```
-
 
 The commonly cited objection to informative priors is that they can bias the research. Whether that is true or not in a hypothesis testing framework is a matter of open debate. But using informative priors for operational characteristics of a study will not bias any resulting hypothesis tests.
 
@@ -245,6 +263,16 @@ load("fig/4.2.RData"); print(fig)
 ```{r early-predictions-weak, fig.width=10, fig.height=5, eval=TRUE}
 load("fig/4.3.RData"); print(fig)
 ```
+
+Even if you only have a very weak idea of what the accrual rate should be, you should still use that weak prior rather than a flat prior. This shows the behavior of a prior distribution with S=0.02, which puts equal weight on the prior and the data after 7 patients have entered the trial. It has a much more pessimistic view of accrual than the strong prior, because it is weighting the actual accrual data far more heavily. But the weak prior does not have the wild swings in predicition that the flat prior does.
+
+You can look carefully at the last two plots and get a sense for when you might want a weak prior and when you might want a strong prior. There are several rules for when you might want to "hit the panic button" in a research study. A simple rule says to review your clinical trial and propose modifications if the probabilty of finishing after the target time increases from about 50% to about 75%.
+
+For the weak prior distribution, this occurs on day 12. For the strong prior distribution, this occurs on day 33. If you've run this sort trial many times before, you really shouldn't react to a little bit of early bad news. But eventually, if enough bad news accumulates, you do need to react.
+
+On the other hand, if this trial is novel in many ways and you have a lot of uncertainty about the true accrual rate, then you want to pay close attention to even a little bit of bad news and react quickly.
+
+The strength of the prior distribution provides a balance between being sensitive to what the data is telling you about accrual but not overreacting.
 
 ## Part 5. Hedging priors
 
@@ -350,7 +378,7 @@ The flat prior also is close to the observed accrual rate, but because it does n
 load("fig/5.9.RData"); print(fig)
 ```
 
-The hyperparameter does shrink as it did in the earlier case, and in fact, it has expanded slightly, with a mean and median both a bit larger than 1. This is a reward for choosing such a good prior distribution, but if you want to, you can insure that the average weight given to the prior distribution never exceeds 1, even if your prior matches the data perfectly.
+The hyperparameter does not shrink as it did in the earlier case, and in fact, it has expanded slightly, with a mean and median both a bit larger than 1. This is a reward for choosing such a good prior distribution, but if you want to, you can modify this model to insure that the average weight given to the prior distribution never exceeds 1, even if your prior matches the data perfectly.
 
 ### Part 6. Simulating delays in a clinical trial.
 
@@ -412,7 +440,7 @@ load("fig/6.5b.RData"); print(fig)
 load("fig/6.5c.RData"); print(fig)
 ```
 
-Here's some possible prior distributions. For delta1, the proportion of the total planned time that you spend waiting for the study to get started, a beta(`r N*D1*S1`, `r N*S1*(1-D1)`) corresponds to an expectation that `r D1*100`% of the time (`r D1*T` days) will be lost on average before the trial even begins. The total weight assigned to this prior corresponds to `r S1*100`% of the total sample size.
+Here's some possible prior distributions. For delta1, the proportion of the total planned time that you spend waiting for the study to get started, a beta(`r N*D1*S1`, `r N*S1*(1-D1)`) corresponds to an expectation that `r D1*100`% of the time (`r D1*T` days) will be lost on average before the trial even begins. The weight assigned to this prior corresponds to `r S1*100`% of the total sample size.
 
 ### Figure 6.6. Prior distribution for delta2 (accrual rate early), rescaled to patients per month.
 
@@ -422,7 +450,7 @@ load("fig/6.6b.RData"); print(fig)
 load("fig/6.6c.RData"); print(fig)
 ```
 
-For delta2, the proportionate reduction in accrual during the warm-up period, a beta(`r S2*N*D2`, `r S2*N*(1-D2)` corresponds to an expectation that the reductiton during warm-up will be about `r 100*D2`% of the regular accrual rate on average, or roughly `r round(D2*30*N/T)` patients per month. The total weight assigned to this prior corresponds to `r S2*100`% of the total sample size.
+For delta2, the proportionate reduction in accrual during the warm-up period, a beta(`r S2*N*D2`, `r S2*N*(1-D2)`) corresponds to an expectation that the reduction during warm-up will be about `r 100*D2`% of the regular accrual rate on average, or roughly `r round(D2*30*N/T)` patients per month. The weight assigned to this prior corresponds to `r S2*100`% of the total sample size.
 
 ### Figure 6.7. Prior distribution for delta3 (duration of early accrual), rescaled to days.
 
@@ -432,7 +460,7 @@ load("fig/6.7b.RData"); print(fig)
 load("fig/6.7c.RData"); print(fig)
 ```
 
-For delta3, the proportion of the total planned time that you spend in the warm-up period, a beta(`r S3*N*D3`, `r S3*N*(1-D3)`) corresponds to an expectation that `r 100*D3`% of the time your trial will be stuck in the warm-up phase. The total weight assigned to this prior corresponds to `r S3*100`% of the total sample size.
+For delta3, the proportion of the total planned time that you spend in the warm-up period, a beta(`r S3*N*D3`, `r S3*N*(1-D3)`) corresponds to an expectation that `r 100*D3`% of the time your trial will be stuck in the warm-up phase. The weight assigned to this prior corresponds to `r S3*100`% of the total sample size.
 
 ### Here's the code to fit a simulation involving delays.
 
@@ -468,7 +496,7 @@ The actual trial that I have used so far did not have a formal model for delays,
 
 ### Updating the delay simulation--150 days of nothing.
 
-Suppose that you are on day `r t1`, and not a single patient has shown up. You were expecting the time to the first patient to be around day `r round(D1*T)`, but it looks like things might be far worse. What does above average delay to the start of your study do to your estimate of the total sample size?
+Suppose that you are on day `r t1`, and not a single patient has shown up. You were expecting the time to the first patient to be around day `r round(D1*T)`, but it looks like things might be far worse. What does the above average delay to the start of your study do to your estimate of the total sample size?
 
 ### Figure 6.10. Updated estimate of total sample size after 150 days of nothing.
 
@@ -486,7 +514,7 @@ load("fig/6.11a.RData"); print(fig)
 load("fig/6.11b.RData"); print(fig)
 ```
 
-This boxplot shows when you think the trial will start, now that you know that the delay is at least 150 days.
+This boxplot shows when you think the trial will start, now that you know that the delay is at least 150 days. Notice that the model is placing a small probability on the possibility that the study actually started prior to 150 days, but nobody wanted to announce the start until some patients actually started showing up. You can easily modify this model to zero out the probability associated with start times earlier than 150 days.
 
 The remaining parameters remain unchanged, of course.
 
@@ -497,6 +525,8 @@ load("fig/6.12a.RData"); print(fig)
 load("fig/6.12b.RData"); print(fig)
 ```
 
+The slight differences you see here are just variations due to the simulation and the prior estimate of the accrual rate during the early phase and the updated estimate of the accrual rate during the early phase are identical if you don't have any data yet in the early phase.
+
 ### Figure 6.13. Update of delta3 after 150 days of nothing.
 
 ```{r delay-update-delta3, fig.width=10, fig.height=1}
@@ -504,12 +534,16 @@ load("fig/6.13a.RData"); print(fig)
 load("fig/6.13b.RData"); print(fig)
 ```
 
+Similarly, the estimated duration of the early phase is unchanged if you haven't even entered the early phase yet.
+
 ### Figure 6.14. Update of lambda after 150 days of nothing.
 
 ```{r delay-update-lambda, fig.width=10, fig.height=1}
 load("fig/6.14a.RData"); print(fig)
 load("fig/6.14b.RData"); print(fig)
 ```
+
+Finally, the estimated accrual rate during the late phase is unchanged. You have no data in the early or late phases, yet.
 
 ### Update 2. We have 240 days of accrual data after 192 days of waiting.
 
@@ -520,7 +554,6 @@ On day 192 (finally!) the trial starts accruing patients. The early phase, as ex
 ```{r delay-fit2, fig.height=1, fig.width=10}
 load("fig/6.15a.RData"); print(fig)
 load("fig/6.15b.RData"); print(fig)
-load("fig/6.15c.RData"); print(fig)
 ```
 
 The news is very bad. What's accounting for most of your shortfall?
@@ -530,8 +563,9 @@ The news is very bad. What's accounting for most of your shortfall?
 ```{r delay-update2-delta1, fig.width=10, fig.height=1}
 load("fig/6.16a.RData"); print(fig)
 load("fig/6.16b.RData"); print(fig)
-load("fig/6.16c.RData"); print(fig)
 ```
+
+The model still clings stubbornly to the belief that the researchers were not honest with the stated start date, and that there were a few days of zero accrual early on.
 
 ### Figure 6.17. Second update of delta2.
 
@@ -541,6 +575,8 @@ load("fig/6.17b.RData"); print(fig)
 load("fig/6.17c.RData"); print(fig)
 ```
 
+The rate of accrual during the early phase appears to be only slightly below what we thought it might be.
+
 ### Figure 6.18. Second update of delta3.
 
 ```{r delay-update2-delta3, fig.width=10, fig.height=1}
@@ -548,6 +584,8 @@ load("fig/6.18a.RData"); print(fig)
 load("fig/6.18b.RData"); print(fig)
 load("fig/6.18c.RData"); print(fig)
 ```
+
+The duration of the early phase, however, appears to be substantially longer than we expected.
 
 
 ### Figure 6.19. Second update of lambda.
@@ -557,6 +595,8 @@ load("fig/6.19a.RData"); print(fig)
 load("fig/6.19b.RData"); print(fig)
 load("fig/6.19c.RData"); print(fig)
 ```
+
+The accrual rate during the late phase seems to be a bit lower than we thought, but not by much. It looks like no one factor is totally to blame. The shortfall is affected by the longer than normal time to start the study, combined with the longer than normal duration of slow accrual combined with the slower than expected accrual rates both early and late.
 
 ### Part 7. Modeling exclusions and refusals
 
@@ -645,3 +685,17 @@ load("fig/7.7b.RData"); print(fig)
 ```
 
 The refusals, though, are a disaster. You are losing a lot more than `r 100*P2`% patients due to refusals. In fact, it looks like the surge in the proportion of refusals is the main factor influencing your behind-schedule numbers.
+
+## Conclusion
+
+An informative prior distribution allows you to model the operational characteristics of a clinical trial before it starts.
+
+As your trial progresses, you combine the informative prior distribution with observed data to get an updated prediction.
+
+A strong prior distribution will prevent you from panicking from a small amount of bad news early in the trial.
+
+A weak prior distribution will allow you to react quickly to early evidence of problems.
+
+A flat or non-informative prior leads to unstable predictions early in the trial.
+
+When your trial is done, compare the final results to the prior.

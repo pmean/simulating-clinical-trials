@@ -7,13 +7,9 @@ output: html_document
 
 ```{r preliminaries, message=FALSE, echo=FALSE}
 source("0-preliminaries.R", echo=FALSE)
-pctl_list <- c(1, 25, 50, 75, 99)
-N <- 350
-T <- 1095
-S <- 0.4
 dat_prior <- list(N=N, T=T, S=S)
 pts <- unlist(read.csv("2-paths-count.csv"))
-dat_updated <- list(N=350, T=3*365, S=0.5, n=pts, t=length(pts))
+dat_updated <- list(N=N, T=T, S=S, n=pts, t=length(pts))
 ```
 
 ### Part 2.  Paths in a simulation
@@ -134,7 +130,7 @@ df <- data.frame(x=1:1336, y=x8, j=0)
 load("fig/2.1.RData")
 fig                                              +
   expand_limits(x=1336)                          +
-  geom_line(data=df, aes(x, y, group=j), col="red") -> fig
+  geom_line(data=df, aes(x, y, group=j), col=color2) -> fig
 save(fig, file="fig/2.3.RData")
 ```
 

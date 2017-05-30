@@ -1,4 +1,7 @@
+# remove anything that might conflict with the current program
 rm(list=ls())
+
+# read in all the necessary libraries
 library(broom)
 library(dplyr)
 library(ggplot2)
@@ -7,15 +10,72 @@ library(magrittr)
 library(rjags)
 library(rstan)
 library(tidyr)
+
+# these are some recommended setting for stan
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
+
+# these are default settings for R Markdown 
+# that hide a lot of the technical details.
 opts_chunk$set(
   echo=FALSE,
   message=FALSE,
   warning=FALSE)
 
-pctl_list <- c(1, 25, 75, 99)
+# these are constants used in most of the programs
+N <- 350
+T <- 1095
+S <- 0.4
+t <- 239
+n <- 41
 
+# constants for hedged prior
+na <- 41
+ta <- 129
+
+# constants for delay model
+S1 <- 0.2
+S2 <- 0.1
+S3 <- 0.2
+D1 <- 0.12
+D2 <- 0.4
+D3 <- 0.06
+t1 <- 150
+
+t_final <- 1336
+n_final <- 341
+save(N, T, S, t, n, 
+     na, ta, t_final, n_final,
+     S1, S2, S3, D1, D2, D3, t1,
+     file="fig/0.0.RData")
+
+# more constants
+n_reps <- 1000
+pctl_list <- c(1, 25, 50, 75, 99)
+color0 <- "gray75" # de-emphasized color
+color1 <- "green"  # normal color
+color2 <- "red"    # color used for contrast
+
+l_label0 <- "Monthly accrual rate (prior)"
+l_label1 <- sub("prior", "update", l_label0)
+
+N_label0 <- "Estimated total sample size (prior)"
+N_label1 <- sub("prior", "update", N_label0)
+N_label2 <- sub("prior", "second update", N_label0)
+
+N_label0a <- sub("prior", "hedged prior", N_label0)
+N_label0b <- sub("prior", "simple prior", N_label0)
+N_label1a <- sub("prior", "update", N_label0a)
+N_label1b <- sub("prior", "update", N_label0b)
+N_label1c <- sub("hedged update", "simple linear projection", N_label1a)
+N_label1d <- sub("prior", "linear projection", N_label0)
+N_label2a <- N_label1a
+N_label2b <- N_label1b
+N_label2c <- N_label1c
+N_label2d <- N_label1d
+
+
+# functions for boxplots and scatterplots
 
 custom_boxplot <- function(df, y_label, rounding_level, co="black", yp=c(1, 25, 50, 75, 99)) {
   df                                            %>%

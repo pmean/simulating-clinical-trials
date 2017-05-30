@@ -7,18 +7,7 @@ output: html_document
 
 ```{r gamma-poisson-preliminaries, echo=FALSE, message=FALSE}
 source("0-preliminaries.R", echo=FALSE)
-n_reps <- 1000
-pctl_list <- c(1, 25, 50, 75, 99)
-N <- 350
-T <- 1095
-S <- 0.4
 dat_prior <- list(N=N, T=T, S=S, n=0, t=0)
-
-l_label0 <- "Monthly accrual rate (prior)"
-l_label1 <- sub("prior", "updated", l_label0)
-
-N_label0 <- "Estimated total sample size (prior)"
-N_label1 <- sub("prior", "updated", N_label0)
 ```
 
 ### Part 3. Gamma Poisson models
@@ -26,21 +15,21 @@ N_label1 <- sub("prior", "updated", N_label0)
 From this point onward, you'll be seeing summarizations of the simulations using boxplots and scatterplots, but it's worth remembering that behind these graphs are thousands of random paths. The simulation of total sample size for a fixed time frame is a Poisson model with an informative gamma prior. 
 
 ```{r gamma-poisson-prior-prelims}
-l_label0a <- sub("prior", paste("prior, S", S/2, sep="="), l_label0)
-l_label0b <- sub("prior", paste("prior, S", S,   sep="="), l_label0)
-l_label0c <- sub("prior", paste("prior, S", S*2, sep="="), l_label0)
+l_label0a <- sub("prior", paste("prior, S", S/4, sep="="), l_label0)
+l_label0b <- sub("prior", paste("prior, S", S/2, sep="="), l_label0)
+l_label0c <- sub("prior", paste("prior, S", S , sep="="), l_label0)
 
-sim1 <- data.frame(x=" ", y=rgamma(n_reps, N*S/2, T*S/2)*30)
-sim2 <- data.frame(x=" ", y=rgamma(n_reps, N*S,   T*S  )*30)
-sim3 <- data.frame(x=" ", y=rgamma(n_reps, N*S*2, T*S*2)*30)
+sim1 <- data.frame(x=" ", y=rgamma(n_reps, N*S/4, T*S/4)*30)
+sim2 <- data.frame(x=" ", y=rgamma(n_reps, N*S/2, T*S/2)*30)
+sim3 <- data.frame(x=" ", y=rgamma(n_reps, N*S  , T*S  )*30)
 
 y_range <- range(sim1$y, sim2$y, sim3$y)
 
-custom_boxplot(sim1, l_label0a, 1, "black") + expand_limits(y=y_range) -> fig
+custom_boxplus(sim1, l_label0a, 1, color0) + expand_limits(y=y_range) -> fig
 save(fig, file="fig/3.1a.RData")
-custom_boxplot(sim2, l_label0b, 1, "red")   + expand_limits(y=y_range) -> fig
+custom_boxplus(sim2, l_label0b, 1, color0)   + expand_limits(y=y_range) -> fig
 save(fig, file="fig/3.1b.RData")
-custom_boxplot(sim3, l_label0c, 1, "black") + expand_limits(y=y_range) -> fig
+custom_boxplus(sim3, l_label0c, 1, color1) + expand_limits(y=y_range) -> fig
 save(fig, file="fig/3.1c.RData")
 ```
 
@@ -74,7 +63,7 @@ Here is code in Stan (running inside of R) that simulates the results of a clini
 sim_gp1                                         %>%
   rename(y=Nstar)                               %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(N_label0, 1)                   -> fig
+  custom_boxplus(N_label0, 1)                   -> fig
 save(fig, file="fig/3.2.RData")
 prior_estimate <- fig
 ```
@@ -114,7 +103,7 @@ sim_gp1                                         %>%
   rename(y=Nstar)                               %>%
   mutate(x=30*lambda)                           %>%
   mutate(h=(x>8.45)*(x<8.55))                   %>%
-  mutate(x=ifelse(h==0, x, 8.5))                %>%
+  # mutate(x=ifelse(h==0, x, 8.5))                %>%
   arrange(h)                                    -> sim_sliced
 sim_sliced                                      %>%
   filter(h==1)                                  %>%  
@@ -133,7 +122,7 @@ sim_sliced                                      %>%
   scale_y_continuous(breaks=y_ticks,
                      minor_breaks=NULL,
                      labels=y_labels)            +
-  scale_color_manual(values=c("black", "red"))  -> fig
+  scale_color_manual(values=c(color0, color1))  -> fig
 save(fig, file="fig/3.4.RData")
 ```
 
@@ -165,14 +154,14 @@ y_label <- "Estimated total sample size (prior)"
 sim_gp1                                         %>%
   rename(y=Nstar)                               %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(y_label, 1, co="black")         +
+  custom_boxplus(y_label, 1, co=color0)         +
   expand_limits(y=y_range)                      -> fig
 save(fig, file="fig/3.5a.RData")
 y_label <- "Estimated total sample size (updated)"
 sim_gp2                                         %>%
   rename(y=Nstar)                               %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(y_label, 1, co="red")           +
+  custom_boxplus(y_label, 1, co=color1)           +
   expand_limits(y=y_range)                      -> fig
 save(fig, file="fig/3.5b.RData")
 ```
@@ -202,9 +191,9 @@ y_label4 <- paste0("Monthly accrual rate (final, ", pctl, ")")
 y_range <- range(sim2$y, sim4$y)
 
 # Boxplot of accrual rate
-custom_boxplot(sim2, l_label0, 1, co="black") + expand_limits(y=y_range) -> fig
+custom_boxplus(sim2, l_label0, 1, co=color0) + expand_limits(y=y_range) -> fig
 save(fig, file="fig/3.6a.Rdata")
-custom_boxplot(sim4, y_label4, 1, co="red")   + expand_limits(y=y_range) -> fig
+custom_boxplus(sim4, y_label4, 1, co=color1)   + expand_limits(y=y_range) -> fig
 save(fig, file="fig/3.6b.RData")
 ```
 
