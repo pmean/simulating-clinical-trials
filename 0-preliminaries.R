@@ -52,9 +52,8 @@ save(N, T, S, t, n,
 # more constants
 n_reps <- 1000
 pctl_list <- c(1, 25, 50, 75, 99)
-color0 <- "gray75" # de-emphasized color
-color1 <- "black"  # normal color
-color2 <- "red"    # color used for contrast
+color0 <- "darkred" # de-emphasized color
+color1 <- "red"  # normal color
 
 l_label0 <- "Monthly accrual rate (prior)"
 l_label1 <- sub("prior", "update", l_label0)

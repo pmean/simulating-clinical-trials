@@ -10,17 +10,6 @@ source("0-preliminaries.R", echo=FALSE)
 p_list <- c(0.25, 0.75)
 ```
 
-## Part 4. Early predictions
-
-The commonly cited objection to informative priors is that they can bias the research. Whether that is true or not in a hypothesis testing framework is a matter of open debate. But using informative priors for operational characteristics of a study will not bias any resulting hypothesis tests.
-
-While most Bayesian models use flat, non-informative, or only weakly informative prior distributions, when you are simulating the operational features of a clinical trial, you need to be bold and use strong informative prior distributions. There are three reasons for this.
-
-First, if the best you can do for accrual rates for a clinical trial is a flat prior, what you are really saying is that you think you might see a couple of patients every day, or maybe a couple of patients every year, and you really don't have a strong belief of one of these accrual rates over another. Anyone who can only predict accrual rates across such a wide range is unqualified to run a clinical trial.
-
-Second, if you run a simulation with a flat prior before the trial starts, you get results with an unrealisticly wide range.
-
-Third, a strong prior distribution provides you with stable estimates early in the clinical trial. This is worth an illustration.
 
 ```{r early-predictions-flat-prelims-1}
 # stan is inefficient for these next couple of models, but I'm not
@@ -113,12 +102,6 @@ save(fig, flat_predictions, file="fig/4.1.RData")
 load("fig/4.1.RData"); print(fig)
 ```
 
-The concept of a flat prior is a bit tricky when you have an infinite range, like a gamma distribution has, but in this case it is a gamma(0.001, 0.001), a common choice for a non-informative gamma prior.
-
-This is possibly an unfair example because the trial had a slow start. But it takes more than 100 days into the trial to get a decent estimate of the upper bound. The first three predictions are a measure of how unstable things are. On the first day, you have recruited one patient, and the `r p_list[2]*100`th percentile is estimated at `r round(flat_predictions$hi[1]/365)` years. On the second day, no one shows up, so your upper limit jumps to `r round(flat_predictions$hi[2]/365)` years. On the third day, one patient shows up, so your upper limit plummets to `r round(flat_predictions$hi[3]/365)` years.
-
-Compare this to the predictions that use an informative prior. The posterior estimate in a Bayesian model with an informative prior is a weighted average of the prior distribution and the data, and that weighted average leans very heavily on the prior distribution early in the trial.
-
 ```{r early-predictions-strong-prelims-2}
 informative_predictions %>%
   mutate(lo=lo/365)                             %>%
@@ -159,6 +142,32 @@ save(fig, file="fig/4.3.RData")
 
 ```{r early-predictions-weak, fig.width=10, fig.height=5, eval=TRUE}
 load("fig/4.3.RData"); print(fig)
+```
+
+```{r rescaled-strong-prelims-2}
+informative_predictions %>%
+  mutate(lo=lo/365)                             %>%
+  mutate(hi=hi/365)                             %>%
+  ggplot(aes(x=t, ymin=lo, ymax=hi))             +
+  scale_y_log10(breaks=c(1:6,10*1:6), minor=NULL)+
+  geom_ribbon(alpha=0.2)                         +
+  geom_line(aes(x=t, y=hi))                      +
+  geom_line(aes(x=t, y=lo))                      +
+  ylab("Estimated trial duration (years)")       +
+  xlab("Date of prediction (days)")             -> fig
+tx <- min(which(informative_predictions$lo>1095*1.1))
+print(tx)
+save(fig, file="fig/4.4.RData")
+```
+
+### Figure 4.4 Rescaled prediction
+
+```{r rescaled-strong, fig.width=10, fig.height=5}
+tx <- min(which(informative_predictions$lo>1095*1.1))
+print(tx)
+load("fig/4.4.RData"); 
+fig + geom_vline(xintercept=105)
+print(fig)
 ```
 
 ```{r save-everything}
