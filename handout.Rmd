@@ -268,11 +268,25 @@ load("fig/4.3.RData"); print(fig)
 
 Even if you only have a very weak idea of what the accrual rate should be, you should still use that weak prior rather than a flat prior. This shows the behavior of a prior distribution with S=0.02, which puts equal weight on the prior and the data after 7 patients have entered the trial. It has a much more pessimistic view of accrual than the strong prior, because it is weighting the actual accrual data far more heavily. But the weak prior does not have the wild swings in predicition that the flat prior does.
 
-You can look carefully at the last two plots and get a sense for when you might want a weak prior and when you might want a strong prior. There are several rules for when you might want to "hit the panic button" in a research study. A simple rule says to review your clinical trial and propose modifications if the probabilty of finishing after the target time increases from about 50% to about 75%.
+You can look carefully at the last two plots and get a sense for when you might want a weak prior and when you might want a strong prior. There are several rules for when you might want to "hit the panic button" in a research study. A simple rule says to review your clinical trial and propose modifications if the probabilty of finishing at least six months late is 75% or more.
 
-For the weak prior distribution, this occurs on day 12. For the strong prior distribution, this occurs on day 33. If you've run this sort trial many times before, you really shouldn't react to a little bit of early bad news. But eventually, if enough bad news accumulates, you do need to react.
+### Figure 4.4 When to panic--strong prior
 
-On the other hand, if this trial is novel in many ways and you have a lot of uncertainty about the true accrual rate, then you want to pay close attention to even a little bit of bad news and react quickly.
+```{r rescaled-strong, fig.width=10, fig.height=5}
+load("fig/4.4.RData"); print(fig)
+```
+
+For the strong prior distribution, it takes a while to reach this point. If you've run this sort trial many times before, you really shouldn't react to a little bit of early bad news. But eventually, if enough bad news accumulates, you do need to react.
+
+### Figure 4.5 When to panic--weak prior
+
+```{r rescaled-weak, fig.width=10, fig.height=5}
+load("fig/4.5.RData"); print(fig)
+```
+
+For the weak prior, you get a much faster read on problems. This makes sense. If your trial is novel in many ways and you have a lot of uncertainty about the true accrual rate, then you want to pay close attention to even a little bit of bad news and react quickly.
+
+The strength of the prior distribution controls how quickly you react to early bad news. A weaker prior ecourages you to act faster; a stronger prior resists the temptation to overreact early on. But even a very strong prior will reach a point of panic if the actual accrual data is bad enough for long enough.
 
 The strength of the prior distribution provides a balance between being sensitive to what the data is telling you about accrual but not overreacting.
 

@@ -145,29 +145,53 @@ load("fig/4.3.RData"); print(fig)
 ```
 
 ```{r rescaled-strong-prelims-2}
+tx <- min(which(informative_predictions$lo>365*3.5))
+lb <- paste0("(", tx, ",", 3.5, ")")
 informative_predictions %>%
   mutate(lo=lo/365)                             %>%
   mutate(hi=hi/365)                             %>%
   ggplot(aes(x=t, ymin=lo, ymax=hi))             +
-  scale_y_log10(breaks=c(1:6,10*1:6), minor=NULL)+
+  scale_y_continuous()                           +
   geom_ribbon(alpha=0.2)                         +
   geom_line(aes(x=t, y=hi))                      +
   geom_line(aes(x=t, y=lo))                      +
+  geom_vline(xintercept=tx)                      +
+  geom_hline(yintercept=3.5)                     +
+  geom_label(aes(x=tx, y=3.5, label=lb))         +
   ylab("Estimated trial duration (years)")       +
   xlab("Date of prediction (days)")             -> fig
-tx <- min(which(informative_predictions$lo>1095*1.1))
-print(tx)
-save(fig, file="fig/4.4.RData")
+save(fig, tx, lb, file="fig/4.4.RData")
 ```
 
-### Figure 4.4 Rescaled prediction
+### Figure 4.4 When to panic--strong prior
 
 ```{r rescaled-strong, fig.width=10, fig.height=5}
-tx <- min(which(informative_predictions$lo>1095*1.1))
-print(tx)
-load("fig/4.4.RData"); 
-fig + geom_vline(xintercept=105)
-print(fig)
+load("fig/4.4.RData"); print(fig)
+```
+
+```{r rescaled-weak-prelims-2}
+tx <- min(which(weak_predictions$lo>365*3.5))
+lb <- paste0("(", tx, ",", 3.5, ")")
+weak_predictions                                %>%
+  mutate(lo=lo/365)                             %>%
+  mutate(hi=hi/365)                             %>%
+  ggplot(aes(x=t, ymin=lo, ymax=hi))             +
+  scale_y_continuous()                           +
+  geom_ribbon(alpha=0.2)                         +
+  geom_line(aes(x=t, y=hi))                      +
+  geom_line(aes(x=t, y=lo))                      +
+  geom_vline(xintercept=tx)                      +
+  geom_hline(yintercept=3.5)                     +
+  geom_label(aes(x=tx, y=3.5, label=lb))         +
+  ylab("Estimated trial duration (years)")       +
+  xlab("Date of prediction (days)")             -> fig
+save(fig, tx, lb, file="fig/4.5.RData")
+```
+
+### Figure 4.5 When to panic--weak prior
+
+```{r rescaled-weak, fig.width=10, fig.height=5}
+load("fig/4.5.RData"); print(fig)
 ```
 
 ```{r save-everything}
