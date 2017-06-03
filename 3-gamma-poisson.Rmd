@@ -63,7 +63,7 @@ Here is code in Stan (running inside of R) that simulates the results of a clini
 sim_gp1                                         %>%
   rename(y=Nstar)                               %>%
   mutate(x=" ")                                 %>%
-  custom_boxplus(N_label0, 1)                   -> fig
+  custom_boxplus(N_label0, 1, color1)           -> fig
 save(fig, file="fig/3.2.RData")
 prior_estimate <- fig
 ```

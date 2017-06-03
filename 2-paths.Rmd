@@ -130,8 +130,9 @@ df <- data.frame(x=1:1336, y=x8, j=0)
 load("fig/2.1.RData")
 fig                                              +
   expand_limits(x=1336)                          +
-  geom_line(data=df, aes(x, y, group=j), col=color2) -> fig
-save(fig, file="fig/2.3.RData")
+  geom_line(data=df, aes(x, y, group=j), col=color2) +
+  geom_label(aes(x=1336, y=341, label="(1336,341)")) -> fig
+save(fig, sim_gp1, file="fig/2.3.RData")
 ```
 
 ### Figure 2.3. Post mortem examination of actual trial results.
