@@ -2,7 +2,9 @@
 title: "Simulating clinical trials--binomial extension"
 author: "Steve Simon"
 date: "March 22, 2017"
-output: html_document
+output:
+  word_document: default
+  html_document: default
 ---
 
 ```{r preliminaries, echo=FALSE, message=FALSE}
@@ -36,28 +38,22 @@ N_label3b <- sub("prior", "update", N_label3a)
 
 ### Part 7. Modeling exclusions and refusals
 
-There's a gauntlet that patients must travel through before they are officially part of your clinical trial. As you ask them questions, you will find that some of the patients might not meet all of your inclusion criteria. Also, the patients may change their minds, after hearing the details of your clinical trial, and decide that they don't really want to participate after all.
-
-You can model these two processes using binomial distributions.
-
-Here's some possible prior distributions for the proportion excluded and the proportion refusing consent.
-
 ```{r binomial-priors1-prelims}
-b1_label0a <- sub("prior", paste("prior, S1", S1/2, sep="="), b1_label0)
-b1_label0b <- sub("prior", paste("prior, S1", S1,   sep="="), b1_label0)
-b1_label0c <- sub("prior", paste("prior, S1", S1*2, sep="="), b1_label0)
+b1_label0a <- sub("prior", paste("prior, S1", S1/4, sep="="), b1_label0)
+b1_label0b <- sub("prior", paste("prior, S1", S1/2, sep="="), b1_label0)
+b1_label0c <- sub("prior", paste("prior, S1", S1  , sep="="), b1_label0)
 
-sim1 <- data.frame(x=" ", y=rbeta(n_reps, S1/2*N*P1, S1/2*N*(1-P1)))
-sim2 <- data.frame(x=" ", y=rbeta(n_reps, S1  *N*P1, S1  *N*(1-P1)))
-sim3 <- data.frame(x=" ", y=rbeta(n_reps, S1*2*N*P1, S1*2*N*(1-P1)))
+sim1 <- data.frame(x=" ", y=rbeta(n_reps, S1/4*N*P1, S1/4*N*(1-P1)))
+sim2 <- data.frame(x=" ", y=rbeta(n_reps, S1/2*N*P1, S1/2*N*(1-P1)))
+sim3 <- data.frame(x=" ", y=rbeta(n_reps, S1  *N*P1, S1  *N*(1-P1)))
 
 y_range <- range(sim1$y, sim2$y, sim3$y)
 
 custom_boxplus(sim1, b1_label0a, 2, co=color0) + expand_limits(y=y_range) -> fig
 save(fig, file="fig/7.1a.RData")
-custom_boxplus(sim2, b1_label0b, 2, co=color1) + expand_limits(y=y_range) -> fig
+custom_boxplus(sim2, b1_label0b, 2, co=color0) + expand_limits(y=y_range) -> fig
 save(fig, file="fig/7.1b.RData")
-custom_boxplus(sim3, b1_label0c, 2, co=color0) + expand_limits(y=y_range) -> fig
+custom_boxplus(sim3, b1_label0c, 2, co=color1) + expand_limits(y=y_range) -> fig
 save(fig, file="fig/7.1c.RData")
 ```
 
@@ -69,23 +65,22 @@ load("fig/7.1b.RData"); print(fig)
 load("fig/7.1c.RData"); print(fig)
 ```
 
-
 ```{r binomial-priors2-prelims}
-b2_label0a <- sub("prior", paste("prior, S2", S2/2, sep="="), b2_label0)
-b2_label0b <- sub("prior", paste("prior, S2", S2,   sep="="), b2_label0)
-b2_label0c <- sub("prior", paste("prior, S2", S2*2, sep="="), b2_label0)
+b2_label0a <- sub("prior", paste("prior, S2", S2/4, sep="="), b2_label0)
+b2_label0b <- sub("prior", paste("prior, S2", S2/2, sep="="), b2_label0)
+b2_label0c <- sub("prior", paste("prior, S2", S2 , sep="="), b2_label0)
 
-sim1 <- data.frame(x=" ", y=rbeta(n_reps, S2/2*N*P2, S2/2*N*(1-P2)))
-sim2 <- data.frame(x=" ", y=rbeta(n_reps, S2  *N*P2, S2  *N*(1-P2)))
-sim3 <- data.frame(x=" ", y=rbeta(n_reps, S2*2*N*P2, S2*2*N*(1-P2)))
+sim1 <- data.frame(x=" ", y=rbeta(n_reps, S2/4*N*P2, S2/4*N*(1-P2)))
+sim2 <- data.frame(x=" ", y=rbeta(n_reps, S2/2*N*P2, S2/2*N*(1-P2)))
+sim3 <- data.frame(x=" ", y=rbeta(n_reps, S2  *N*P2, S2  *N*(1-P2)))
 
 y_range <- range(sim1$y, sim2$y, sim3$y)
 
 custom_boxplus(sim1, b1_label0a, 2, co=color0) + expand_limits(y=y_range) -> fig
 save(fig, file="fig/7.2a.RData")
-custom_boxplus(sim2, b1_label0b, 2, co=color1) + expand_limits(y=y_range) -> fig
+custom_boxplus(sim2, b1_label0b, 2, co=color0) + expand_limits(y=y_range) -> fig
 save(fig, file="fig/7.2b.RData")
-custom_boxplus(sim3, b1_label0c, 2, co=color0) + expand_limits(y=y_range) -> fig
+custom_boxplus(sim3, b1_label0c, 2, co=color1) + expand_limits(y=y_range) -> fig
 save(fig, file="fig/7.2c.RData")
 ```
 
@@ -116,9 +111,9 @@ sim_bi0 %>% rename(y=N1star) -> sim_bi1
 sim_bi0 %>% rename(y=N2star) -> sim_bi2
 sim_bi0 %>% rename(y=N3star) -> sim_bi3
 y_range <- range(sim_bi1$y, sim_bi2$y, sim_bi3$y)
-prior1_plot <- custom_boxplus(sim_bi1, N_label1a, 0)
-prior2_plot <- custom_boxplus(sim_bi2, N_label2a, 0)
-prior3_plot <- custom_boxplus(sim_bi3, N_label3a, 0)
+prior1_plot <- custom_boxplus(sim_bi1, N_label1a, 0, color0)
+prior2_plot <- custom_boxplus(sim_bi2, N_label2a, 0, color0)
+prior3_plot <- custom_boxplus(sim_bi3, N_label3a, 0, color1)
 prior1_plot + expand_limits(y=y_range) -> fig
 save(fig, file="fig/7.3a.RData")
 prior2_plot + expand_limits(y=y_range) -> fig
@@ -134,8 +129,6 @@ load("fig/7.3a.RData"); print(fig)
 load("fig/7.3b.RData"); print(fig)
 load("fig/7.3c.RData"); print(fig)
 ```
-
-You should consider exploring how sensitive your estimated total sample size is relative to each of the binomial parameters.
 
 ```{r binomial-scatterplots-prelims}
 ylb <- "Estimated total sample size (prior)"
@@ -198,8 +191,6 @@ load("fig/7.5a.RData"); print(fig)
 load("fig/7.5b.RData"); print(fig)
 ```
 
-Your accrual rate is better than you expected, at least for getting people to show up.
-
 ```{r binomial-update-n2-update}
 custom_boxplus(sim_bi2, N_label2a, 0, co=color0) + expand_limits(y=y_range) -> fig
 save(fig, file="fig/7.6a.RData")
@@ -214,8 +205,6 @@ load("fig/7.6a.RData"); print(fig)
 load("fig/7.6b.RData"); print(fig)
 ```
 
-The exclusions are about what you'd expect, and that means you're still ahead of schedule at this point.
-
 ```{r binomial-update-n3-prelims}
 custom_boxplus(sim_bi3, N_label3a, 0, co=color0) + expand_limits(y=y_range) -> fig
 save(fig, file="fig/7.7a.RData")
@@ -229,8 +218,6 @@ save(fig, file="fig/7.7b.RData")
 load("fig/7.7a.RData"); print(fig)
 load("fig/7.7b.RData"); print(fig)
 ```
-
-The refusals, though, are a disaster. You are losing a lot more than `r 100*P2`% patients due to refusals. In fact, it looks like the surge in the proportion of refusals is the main factor influencing your behind-schedule numbers.
 
 ```{r save-everything}
 save.image("7-binomial-extension.RData")

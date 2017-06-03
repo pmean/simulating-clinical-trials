@@ -17,7 +17,7 @@ From this point onward, you'll be seeing summarizations of the simulations using
 ```{r gamma-poisson-prior-prelims}
 l_label0a <- sub("prior", paste("prior, S", S/4, sep="="), l_label0)
 l_label0b <- sub("prior", paste("prior, S", S/2, sep="="), l_label0)
-l_label0c <- sub("prior", paste("prior, S", S , sep="="), l_label0)
+l_label0c <- sub("prior", paste("prior, S", S  , sep="="), l_label0)
 
 sim1 <- data.frame(x=" ", y=rgamma(n_reps, N*S/4, T*S/4)*30)
 sim2 <- data.frame(x=" ", y=rgamma(n_reps, N*S/2, T*S/2)*30)

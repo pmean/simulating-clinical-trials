@@ -132,7 +132,7 @@ fig                                              +
   expand_limits(x=1336)                          +
   geom_line(data=df, aes(x, y, group=j), col=color2) +
   geom_label(aes(x=1336, y=341, label="(1336,341)")) -> fig
-save(fig, sim_gp1, file="fig/2.3.RData")
+save(fig, file="fig/2.3.RData")
 ```
 
 ### Figure 2.3. Post mortem examination of actual trial results.
@@ -141,8 +141,6 @@ save(fig, sim_gp1, file="fig/2.3.RData")
 load("fig/2.3.RData")
 print(fig)
 ```
-
-When the trial ends, you can compare the actual accrual results to what you thought you knew before the trial started. In this particular trial, some of the interim values are made up, but it reflects a trial that ended up short of the target sample size (341 instead of 350 patients) in spite of the fact that it needed 1336 days instead of 1095. Your prior distribution was overly optimistic.
 
 ```{r save-everything}
 save.image("2-paths.RData")

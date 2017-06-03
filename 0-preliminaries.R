@@ -52,8 +52,8 @@ save(N, T, S, t, n,
 # more constants
 n_reps <- 1000
 pctl_list <- c(1, 25, 50, 75, 99)
-color0 <- "darkred" # de-emphasized color
-color1 <- "red"  # normal color
+color0 <- c(1, 0, 0) # de-emphasized color
+color1 <- c(0, 1, 0) # normal color
 color2 <- "green" # highlight color
 
 l_label0 <- "Monthly accrual rate (prior)"
@@ -77,7 +77,10 @@ N_label2d <- N_label1d
 
 # functions for boxplots and scatterplots
 
-custom_boxplot <- function(df, y_label, rounding_level, co="black", yp=c(1, 25, 50, 75, 99)) {
+custom_boxplot <- function(df, y_label, rounding_level, 
+                           co=c(0, 0, 1), yp=c(1, 25, 50, 75, 99)) {
+  lt <- rgb(0.75+0.25*co[1], 0.75+0.25*co[2], 0.75+0.25*co[3])
+  dk <- rgb(0.5*co[1], 0.5*co[2], 0.5*co[3])
   df                                            %>%
     use_series(y)                               %>%
     quantile(yp/100)                            -> tm
@@ -85,25 +88,28 @@ custom_boxplot <- function(df, y_label, rounding_level, co="black", yp=c(1, 25, 
     round(rounding_level)                       -> lb
   df                                            %>%
     ggplot(aes(x, y))                            +
-    geom_boxplot(color=co)                       +
+    theme(panel.background=element_rect(fill=lt))                  +
+    geom_boxplot(color=dk, fill=lt)                       +
     scale_y_continuous(breaks=tm,
                        minor=NULL,
                        labels=lb)                +
-    theme(axis.title = element_text(color=co))   +
-    theme(axis.text = element_text(color=co))    +
-    theme(axis.ticks = element_line(color=co))   +
+    theme(axis.title = element_text(color=dk))   +
+    theme(axis.text = element_text(color=dk))    +
+    theme(axis.ticks = element_line(color=dk))   +
     xlab(" ")                                    +
     ylab(y_label)                                +
     coord_flip()                                %>%
     return
 }
 
-custom_boxplus <- function(df, y_label, rounding_level, co="black", yp=c(1, 25, 50, 75, 99)) {
+custom_boxplus <- function(df, y_label, rounding_level, 
+                           co=c(0, 0, 1), yp=c(1, 25, 50, 75, 99)) {
+  dk <- rgb(0.5*co[1], 0.5*co[2], 0.5*co[3])
   custom_boxplot(df, y_label, rounding_level, co=co, yp) +
-  stat_summary(fun.y="mean", geom="point", size=4, color=co, pch="+")
+  stat_summary(fun.y="mean", geom="point", size=4, color=dk, pch="+")
 }
 
-custom_scatterplot <- function(df, x_name, y_name, round_x=1, round_y=0) {
+custom_scatterplot <- function(df, x_name, y_name, round_x=1, round_y=0,co="darkgreen") {
   df                                              %>%
     use_series(x)                                 %>%
     quantile(pctl_list/100)                       -> x_ticks
@@ -118,13 +124,16 @@ custom_scatterplot <- function(df, x_name, y_name, round_x=1, round_y=0) {
     ggplot(aes(x, y))                              +
     xlab(x_name)                                   +
     ylab(y_name)                                   +
+    theme(axis.title = element_text(color=co))     +
+    theme(axis.text = element_text(color=co))      +
+    theme(axis.ticks = element_line(color=co))     +
     scale_x_continuous(breaks=x_ticks,
                        minor_breaks=NULL,
                        labels=x_labels)            +
     scale_y_continuous(breaks=y_ticks,
                        minor_breaks=NULL,
                        labels=y_labels)            +
-    geom_point()                                  %>%
+    geom_point(col=co)                            %>%
     return
 }
 

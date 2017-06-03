@@ -152,21 +152,21 @@ load("fig/6.4.RData"); print(fig)
 ```
 
 ```{r delay-priors1-prelims}
-d1_label0a <- sub("prior", paste("prior, S1", S1/2, sep="="), d1_label0)
-d1_label0b <- sub("prior", paste("prior, S1", S1,   sep="="), d1_label0)
-d1_label0c <- sub("prior", paste("prior, S1", S1*2, sep="="), d1_label0)
+d1_label0a <- sub("prior", paste("prior, S1", S1/4, sep="="), d1_label0)
+d1_label0b <- sub("prior", paste("prior, S1", S1/2, sep="="), d1_label0)
+d1_label0c <- sub("prior", paste("prior, S1", S1,   sep="="), d1_label0)
 
-sim1 <- data.frame(x=" ", y=rbeta(n_reps, S1/2*N*D1, S1/2*N*(1-D1))*T)
-sim2 <- data.frame(x=" ", y=rbeta(n_reps, S1  *N*D1, S1  *N*(1-D1))*T)
-sim3 <- data.frame(x=" ", y=rbeta(n_reps, S1*2*N*D1, S1*2*N*(1-D1))*T)
+sim1 <- data.frame(x=" ", y=rbeta(n_reps, S1/4*N*D1, S1/4*N*(1-D1))*T)
+sim2 <- data.frame(x=" ", y=rbeta(n_reps, S1/2*N*D1, S1/2*N*(1-D1))*T)
+sim3 <- data.frame(x=" ", y=rbeta(n_reps, S1  *N*D1, S1  *N*(1-D1))*T)
 
 y_range <- range(sim1$y, sim2$y, sim3$y)
 
-custom_boxplot(sim1, d1_label0a, 0, color0) + expand_limits(y=y_range) -> fig
+custom_boxplus(sim1, d1_label0a, 0, color0) + expand_limits(y=y_range) -> fig
 save(fig, file="fig/6.5a.RData")
-custom_boxplot(sim2, d1_label0b, 0, color1) + expand_limits(y=y_range) -> fig
+custom_boxplus(sim2, d1_label0b, 0, color0) + expand_limits(y=y_range) -> fig
 save(fig, file="fig/6.5b.RData")
-custom_boxplot(sim3, d1_label0c, 0, color0) + expand_limits(y=y_range) -> fig
+custom_boxplus(sim3, d1_label0c, 0, color1) + expand_limits(y=y_range) -> fig
 save(fig, file="fig/6.5c.RData")
 ```
 
@@ -179,21 +179,21 @@ load("fig/6.5c.RData"); print(fig)
 ```
 
 ```{r delay-priors2-prelims}
-d2_label0a <- sub("prior", paste("prior, S2", S2/2, sep="="), d2_label0)
-d2_label0b <- sub("prior", paste("prior, S2", S2,   sep="="), d2_label0)
-d2_label0c <- sub("prior", paste("prior, S2", S2*2, sep="="), d2_label0)
+d2_label0a <- sub("prior", paste("prior, S2", S2/4, sep="="), d2_label0)
+d2_label0b <- sub("prior", paste("prior, S2", S2/2, sep="="), d2_label0)
+d2_label0c <- sub("prior", paste("prior, S2", S2,   sep="="), d2_label0)
 
-sim1 <- data.frame(x=" ", y=rbeta(n_reps, S2/2*N*D2, S2/2*N*(1-D2))*30*N/T)
-sim2 <- data.frame(x=" ", y=rbeta(n_reps, S2  *N*D2, S2  *N*(1-D2))*30*N/T)
-sim3 <- data.frame(x=" ", y=rbeta(n_reps, S2*2*N*D2, S2*2*N*(1-D2))*30*N/T)
+sim1 <- data.frame(x=" ", y=rbeta(n_reps, S2/4*N*D2, S2/4*N*(1-D2))*30*N/T)
+sim2 <- data.frame(x=" ", y=rbeta(n_reps, S2/2*N*D2, S2/2*N*(1-D2))*30*N/T)
+sim3 <- data.frame(x=" ", y=rbeta(n_reps, S2  *N*D2, S2  *N*(1-D2))*30*N/T)
 
 y_range <- range(sim1$y, sim2$y, sim3$y)
 
-custom_boxplot(sim1, d2_label0a, 1, color0) + expand_limits(y=y_range) -> fig
+custom_boxplus(sim1, d2_label0a, 1, color0) + expand_limits(y=y_range) -> fig
 save(fig, file="fig/6.6a.RData")
-custom_boxplot(sim2, d2_label0b, 1, color1) + expand_limits(y=y_range) -> fig
+custom_boxplus(sim2, d2_label0b, 1, color0) + expand_limits(y=y_range) -> fig
 save(fig, file="fig/6.6b.RData")
-custom_boxplot(sim3, d2_label0c, 1, color0) + expand_limits(y=y_range) -> fig
+custom_boxplus(sim3, d2_label0c, 1, color1) + expand_limits(y=y_range) -> fig
 save(fig, file="fig/6.6c.RData")
 ```
 
@@ -206,21 +206,21 @@ load("fig/6.6c.RData"); print(fig)
 ```
 
 ```{r delay-priors3-prelims}
-d3_label0a <- sub("prior", paste("prior, S3", S3/2, sep="="), d3_label0)
-d3_label0b <- sub("prior", paste("prior, S3", S3,   sep="="), d3_label0)
-d3_label0c <- sub("prior", paste("prior, S3", S3*2, sep="="), d3_label0)
+d3_label0a <- sub("prior", paste("prior, S3", S3/4, sep="="), d3_label0)
+d3_label0b <- sub("prior", paste("prior, S3", S3/2, sep="="), d3_label0)
+d3_label0c <- sub("prior", paste("prior, S3", S3,   sep="="), d3_label0)
 
-sim1 <- data.frame(x=" ", y=rbeta(n_reps, S3/2*N*D3, S3/2*N*(1-D3))*T)
-sim2 <- data.frame(x=" ", y=rbeta(n_reps, S3  *N*D3, S3  *N*(1-D3))*T)
-sim3 <- data.frame(x=" ", y=rbeta(n_reps, S3*2*N*D3, S3*2*N*(1-D3))*T)
+sim1 <- data.frame(x=" ", y=rbeta(n_reps, S3/4*N*D3, S3/4*N*(1-D3))*T)
+sim2 <- data.frame(x=" ", y=rbeta(n_reps, S3/2*N*D3, S3/2*N*(1-D3))*T)
+sim3 <- data.frame(x=" ", y=rbeta(n_reps, S3  *N*D3, S3  *N*(1-D3))*T)
 
 y_range <- range(sim1$y, sim2$y, sim3$y)
 
-custom_boxplot(sim1, d3_label0a, 0, color0) + expand_limits(y=y_range) -> fig
+custom_boxplus(sim1, d3_label0a, 0, color0) + expand_limits(y=y_range) -> fig
 save(fig, file="fig/6.7a.RData")
-custom_boxplot(sim2, d3_label0b, 0, color1) + expand_limits(y=y_range) -> fig
+custom_boxplus(sim2, d3_label0b, 0, color0) + expand_limits(y=y_range) -> fig
 save(fig, file="fig/6.7b.RData")
-custom_boxplot(sim3, d3_label0c, 0, color0) + expand_limits(y=y_range) -> fig
+custom_boxplus(sim3, d3_label0c, 0, color1) + expand_limits(y=y_range) -> fig
 save(fig, file="fig/6.7c.RData")
 ```
 
@@ -252,7 +252,7 @@ fit_dm0                                         %>%
 sim_dm0                                         %>%
   rename(y=Nstar)                               %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(N_label0, 0)                   -> fig
+  custom_boxplus(N_label0, 0, color1)           -> fig
 save(fig, file="fig/6.8.RData")
 prior_estimate <- fig
 ```
@@ -313,11 +313,11 @@ fit_dm1                                         %>%
 sim_dm1                                         %>%
   rename(y=Nstar)                               %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(N_label1, 0, co=color1)       -> update1
+  custom_boxplus(N_label1, 0, co=color1)       -> update1
 sim_dm0                                         %>%
   rename(y=Nstar)                               %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(N_label0, 0, co=color0)       -> prior_estimate
+  custom_boxplus(N_label0, 0, co=color0)       -> prior_estimate
 r <- range(sim_dm0$Nstar, sim_dm1$Nstar)
 prior_estimate + expand_limits(y=r)             -> fig
 save(fig, file="fig/6.10a.Rmd")
@@ -336,11 +336,11 @@ load("fig/6.10b.Rmd"); print(fig)
 sim_dm0                                         %>%
   mutate(y=delta1*T)                            %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(d1_label0, 0, co=color0)      -> delta10
+  custom_boxplus(d1_label0, 0, co=color0)      -> delta10
 sim_dm1                                         %>%
   mutate(y=delta1*T)                            %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(d1_label1, 0, co=color1)      -> delta11
+  custom_boxplus(d1_label1, 0, co=color1)      -> delta11
 r <- T*range(sim_dm0$delta1, sim_dm1$delta1)
 delta10 + expand_limits(y=r)                    -> fig
 save(fig, file="fig/6.11a.RData")
@@ -359,11 +359,11 @@ load("fig/6.11b.RData"); print(fig)
 sim_dm0                                         %>%
   mutate(y=delta2*30*N/T)                       %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(d2_label0, 1, co=color0)       -> delta20
+  custom_boxplus(d2_label0, 1, co=color0)       -> delta20
 sim_dm1                                         %>%
   mutate(y=delta2*30*N/T)                       %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(d2_label1, 1, co=color1)       -> delta21
+  custom_boxplus(d2_label1, 1, co=color1)       -> delta21
 r <- range(sim_dm0$delta2, sim_dm1$delta2)*30*N/T
 delta20 + expand_limits(y=r)                    -> fig
 save(fig, file="fig/6.12a.RData")
@@ -382,11 +382,11 @@ load("fig/6.12b.RData"); print(fig)
 sim_dm0                                         %>%
   mutate(y=delta3*T)                            %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(d3_label0, 0, co=color0)       -> delta30
+  custom_boxplus(d3_label0, 0, co=color0)       -> delta30
 sim_dm1                                         %>%
   mutate(y=delta3*T)                            %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(d3_label1, 0, co=color1)       -> delta31
+  custom_boxplus(d3_label1, 0, co=color1)       -> delta31
 r <- T*range(sim_dm0$delta3, sim_dm1$delta3)
 delta30 + expand_limits(y=r) -> fig
 save(fig, file="fig/6.13a.RData")
@@ -405,11 +405,11 @@ load("fig/6.13b.RData"); print(fig)
 sim_dm0                                         %>%
   mutate(y=lambda*30)                           %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(l_label0, 1, co=color0)        -> lambda0
+  custom_boxplus(l_label0, 1, co=color0)        -> lambda0
 sim_dm1                                         %>%
   mutate(y=lambda*30)                           %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(l_label1, 1, co=color1)        -> lambda1
+  custom_boxplus(l_label1, 1, co=color1)        -> lambda1
 r <- range(sim_dm0$lambda, sim_dm1$lambda)*30
 lambda0 + expand_limits(y=r) -> fig
 save(fig, file="fig/6.14a.RData")
@@ -445,14 +445,14 @@ r <- range(sim_dm0$Nstar, sim_dm2$Nstar)
 sim_dm0                                         %>%
   rename(y=Nstar)                               %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(N_label0, 0, co=color0)         +
+  custom_boxplus(N_label0, 0, co=color0)         +
   expand_limits(y=r)                            -> fig
 save(fig, file="fig/6.15a.RData")
 
 sim_dm2                                         %>%
   rename(y=Nstar)                               %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(N_label2, 0, co=color1)         +
+  custom_boxplus(N_label2, 0, co=color1)         +
   expand_limits(y=r)                            -> fig
 save(fig, file="fig/6.15b.RData")
 ```
@@ -469,14 +469,14 @@ r <- range(sim_dm0$delta2, sim_dm1$delta2, sim_dm2$delta2)*30*N/T
 sim_dm0                                         %>%
   mutate(y=delta2*30*N/T)                       %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(d2_label0, 1, co=color0)        + 
+  custom_boxplus(d2_label0, 1, co=color0)        + 
   expand_limits(y=r)                            -> fig
 save(fig, file="fig/6.16a.RData")-> delta20
 
 sim_dm2                                         %>%
   mutate(y=delta2*30*N/T)                       %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(d2_label2, 1, co=color1)        + 
+  custom_boxplus(d2_label2, 1, co=color1)        + 
   expand_limits(y=r)                            -> fig
 save(fig, file="fig/6.16b.RData")
 ```
@@ -493,14 +493,14 @@ r <- T*range(sim_dm0$delta3, sim_dm1$delta3, sim_dm2$delta3)
 sim_dm0                                         %>%
   mutate(y=delta3*T)                            %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(d3_label0, 0, co=color0)        + 
+  custom_boxplus(d3_label0, 0, co=color0)        + 
   expand_limits(y=r)                            -> fig
 save(fig, file="fig/6.17a.RData")
 
 sim_dm2                                         %>%
   mutate(y=delta3*T)                            %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(d3_label2, 0)                   +
+  custom_boxplus(d3_label2, 0, color1)           +
   expand_limits(y=r)                            -> fig
 save(fig, file="fig/6.17b.RData")
 ```
@@ -517,14 +517,14 @@ r <- range(sim_dm0$lambda, sim_dm1$lambda, sim_dm1$lambda)*30
 sim_dm0                                         %>%
   mutate(y=lambda*30)                           %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(l_label0, 1, co=color0)         +
+  custom_boxplus(l_label0, 1, co=color0)         +
   expand_limits(y=r)                            -> fig
 save(fig, file="fig/6.18a.RData")
 
 sim_dm2                                         %>%
   mutate(y=lambda*30)                           %>%
   mutate(x=" ")                                 %>%
-  custom_boxplot(l_label2, 1, co=color1)         +
+  custom_boxplus(l_label2, 1, co=color1)         +
   expand_limits(y=r)                            -> fig
 save(fig, file="fig/6.18b.RData")
 ```
