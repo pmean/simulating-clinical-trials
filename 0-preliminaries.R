@@ -79,8 +79,10 @@ N_label2d <- N_label1d
 
 custom_boxplot <- function(df, y_label, rounding_level, 
                            co=c(0, 0, 1), yp=c(1, 25, 50, 75, 99)) {
-  lt <- rgb(0.75+0.25*co[1], 0.75+0.25*co[2], 0.75+0.25*co[3])
-  dk <- rgb(0.5*co[1], 0.5*co[2], 0.5*co[3])
+  p0 <- 0.95; q0 <- 1-p0 # controls how light the light color is
+  p1 <- 0.50             # controls how dark the dark color is
+  lt <- rgb(p0+q0*co[1], p0+q0*co[2], p0+q0*co[3])
+  dk <- rgb(p1*co[1], p1*co[2], p1*co[3])
   df                                            %>%
     use_series(y)                               %>%
     quantile(yp/100)                            -> tm

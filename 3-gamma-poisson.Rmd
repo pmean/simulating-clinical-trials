@@ -122,7 +122,8 @@ sim_sliced                                      %>%
   scale_y_continuous(breaks=y_ticks,
                      minor_breaks=NULL,
                      labels=y_labels)            +
-  scale_color_manual(values=c(color0, color1))  -> fig
+  scale_color_manual(values=
+                       c("darkred", "darkgreen"))  -> fig
 save(fig, file="fig/3.4.RData")
 ```
 

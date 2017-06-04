@@ -14,44 +14,137 @@ dat_updated <- list(N=N, T=T, S=S, n=pts, t=length(pts))
 
 ### Part 2.  Paths in a simulation
 
-When you simulate a clinical trial, you won't do this two times. You'll do it several thousand times, because computer cycles are cheap. You can run these simulations before the trial starts, but you can continue to run them during the trial itself. You should even run a simulation after the trial ends, comparing the actual trial results with what you thought they might be prior to the start of the trial. Consider this a sort of "post mortem" analysis.
+```{r path2-prelims, message=FALSE, warning=FALSE}
+# For some reason, Stan is very slow for this simulation. 
+x <- rep((t+1):T, each=n_reps)
+j <- rep(1:n_reps, T-t)
+lambda <- rep(rgamma(n_reps, N*S+n, T*S+t), T-t)
+p <- rpois(n_reps*(T-t), lambda)
+df <- data.frame(x=x, j=j, p=p)
+df                                              %>%
+  group_by(j)                                   %>%
+  mutate(y=cumsum(p)+sum(pts))                  %>%
+  ungroup                                       %>%
+  group_by(x)                                   %>%
+  summarize(
+    q01=round(quantile(y, probs=0.01)), 
+    q25=round(quantile(y, probs=0.25)), 
+    q50=round(quantile(y, probs=0.50)), 
+    q75=round(quantile(y, probs=0.75)), 
+    q99=round(quantile(y, probs=0.99)))         %>%
+  mutate(q01=round(q01))                        %>%
+  mutate(q99=round(q99))                        %>%
+  ungroup                                       %>%
+  data.frame                                    -> sim_tr2
 
-```{r path1-prelims, message=FALSE, warning=FALSE}
-# For some reason, Stan is very slow for this simulation. I still want to
-# use Stan though because it serves as a good springboard for many of the
-# later simulations.
-f <- "2-paths-before-trial.stan"
-fit_tr1 <- stan(file=f,
-  data=dat_prior, iter= 1000, warmup=100, chains = 4)
+df                                              %>%
+  filter(j==1)                                  %>%
+  mutate(y1=cumsum(p)+sum(pts))                 %>%
+  select(y1)                                    -> path1
 
-fit_tr1              %>%
-  as.data.frame                %>%
-  select(starts_with('Nstar')) -> sim_tr1
-sim_tr1$j <- 1:dim(sim_tr1)[1]
-sim_tr1 %<>% gather(x, y, starts_with('Nstar'))
+df                                              %>%
+  filter(j==2)                                  %>%
+  mutate(y2=cumsum(p)+sum(pts))                 %>%
+  select(y2)                                    -> path2
 
-sim_tr1$x %<>%
-  sub("Nstar\\[", "", .) %>%
-  sub("\\]", "", .)      %>%
-  as.numeric
-sim_tr1                                         %>%
-  filter(x==1095)                               %>%
-  use_series(y)                                 %>%
-  quantile(pctl_list/100)                       -> y_ticks
+sim_tr2                                         %>%
+  filter(x==T)                                  %>%
+  select(q01, q25, q50, q75, q99)               %>%
+  unlist                                        -> y_ticks
 y_ticks                                         %>%
   round                                         %>%
   paste0(" (", pctl_list, "%)")                 -> y_labels
 
-sim_tr1 %>%
-  ggplot(aes(x, y, group=j))                     +
-  geom_step(alpha=0.01)                          +
+path0 <- data.frame(x=1:length(pts), y0=cumsum(pts))
+
+sim_tr2 %>%
+  bind_cols(path1)                              %>%
+  bind_cols(path2)                              %>%
+  full_join(path0)                              %>%
+  ggplot(aes(x, ymin=q01, ymax=q99))             +
+  expand_limits(x=c(0, 1336))                    +
+  geom_ribbon(fill="gray")                       +
+  geom_line(aes(y=q01),col="white")              +
+  geom_line(aes(y=q25),col="white")              +
+  geom_line(aes(y=q50),col="white")              +
+  geom_line(aes(y=q75),col="white")              +
+  geom_line(aes(y=q99),col="white")              +
+  geom_line(aes(y=y1), col="black")              +
+  geom_line(aes(y=y2), col="black")              +
+  scale_x_continuous(breaks=365*(0:3))           +
   scale_y_continuous(breaks=y_ticks,
                      labels=y_labels,
-                     position="right",
-                     minor_breaks=NULL)          +
+                     minor=NULL)                 +
+  xlab("Time (days)")                            +
+  ylab("Estimated number of patients (Update)")  +
+  geom_line(aes(y=y0))                           +
+  expand_limits(y=500)                          -> fig
+save(fig, file="fig/2.2.RData")
+```
+
+
+
+```{r path1-prelims, message=FALSE, warning=FALSE}
+# For some reason, Stan is very slow for this simulation. 
+x <- rep(1:T, each=n_reps)
+j <- rep(1:n_reps, T)
+lambda <- rep(rgamma(n_reps, N*S, T*S), T)
+p <- rpois(n_reps*T, lambda)
+df <- data.frame(x=x, j=j, p=p)
+df                                              %>%
+  group_by(j)                                   %>%
+  mutate(y=cumsum(p))                           %>%
+  ungroup                                       %>%
+  group_by(x)                                   %>%
+  summarize(
+    q01=round(quantile(y, probs=0.01)), 
+    q25=round(quantile(y, probs=0.25)), 
+    q50=round(quantile(y, probs=0.50)), 
+    q75=round(quantile(y, probs=0.75)), 
+    q99=round(quantile(y, probs=0.99)))         %>%
+  mutate(q01=round(q01))                        %>%
+  mutate(q99=round(q99))                        %>%
+  ungroup                                       %>%
+  data.frame                                    -> sim_tr1
+
+df                                              %>%
+  filter(j==1)                                  %>%
+  mutate(y1=cumsum(p))                          %>%
+  select(y1)                                    -> path1
+
+df                                              %>%
+  filter(j==2)                                  %>%
+  mutate(y2=cumsum(p))                          %>%
+  select(y2)                                    -> path2
+
+sim_tr1                                         %>%
+  filter(x==T)                                  %>%
+  select(q01, q25, q50, q75, q99)                %>%
+  unlist                                        -> y_ticks
+y_ticks                                         %>%
+  round                                         %>%
+  paste0(" (", pctl_list, "%)")                 -> y_labels
+
+
+sim_tr1 %>%
+  bind_cols(path1)                              %>%
+  bind_cols(path2)                              %>%
+  ggplot(aes(x, ymin=q01, ymax=q99))             +
+  geom_ribbon(fill="gray")                       +
+  geom_line(aes(y=q01),col="white")              +
+  geom_line(aes(y=q25),col="white")              +
+  geom_line(aes(y=q50),col="white")              +
+  geom_line(aes(y=q75),col="white")              +
+  geom_line(aes(y=q99),col="white")              +
+  geom_line(aes(y=y1), col="black")              +
+  geom_line(aes(y=y2), col="black")              +
   scale_x_continuous(breaks=365*(0:3))           +
+  scale_y_continuous(breaks=y_ticks,
+                     labels=y_labels,
+                     minor=NULL)                 +
   xlab("Time (days)")                            +
   ylab("Estimated number of patients (Prior)")   +
+  expand_limits(x=c(0, 1336))                    +
   expand_limits(y=500)                          -> fig
 save(fig, file="fig/2.1.RData")
 ```
@@ -61,46 +154,6 @@ save(fig, file="fig/2.1.RData")
 ```{r path1, fig.width=10, fig.height=5, eval=TRUE}
 load("fig/2.1.RData")
 print(fig)
-```
-
-I also want to talk about simulating a clinical trial during the trial. What this means is that you have information sample size up to a certain point in time and you want to simulate how rapidly the sample size might increase for the remainder of time in the trial.
-
-```{r path2-prelims}
-f <- "2-paths-during-trial.stan"
-fit_tr2 <- stan(file=f,
-  data=dat_updated, iter= 1000, warmup=100, chains = 4)
-
-fit_tr2              %>%
-  as.data.frame                %>%
-  select(starts_with('Nstar')) -> sim_tr2
-sim_tr2$j <- 1:dim(sim_tr2)[1]
-sim_tr2 %<>% gather(x, y, starts_with('Nstar'))
-
-sim_tr2$x %<>%
-  sub("Nstar\\[", "", .) %>%
-  sub("\\]", "", .)      %>%
-  as.numeric
-
-sim_tr2                                         %>%
-  filter(x==T)                                  %>%
-  use_series(y)                                 %>%
-  quantile(pctl_list/100)                       -> y_ticks
-y_ticks                                         %>%
-  round                                         %>%
-  paste0(" (", pctl_list, "%)")                 -> y_labels
-
-sim_tr2 %>%
-  ggplot(aes(x, y, group=j))                     +
-  geom_step(alpha=0.01)                          +
-  xlab("Time (days)")                            +
-  ylab("Estimated number of patients (Updated)") +
-  scale_y_continuous(breaks=y_ticks,
-                     labels=y_labels,
-                     position="right",
-                     minor_breaks=NULL)          +
-  scale_x_continuous(breaks=365*(0:3))           +
-  expand_limits(y=500)                          -> fig
-save(fig, file="fig/2.2.RData")
 ```
 
 ### Figure 2.2. 1000 simulations run during a clinical trial.
@@ -123,15 +176,30 @@ x5[x4] <- x5[x4] - (x3[x4]-(341-41))
 x6 <- c(rep(0, (1336-239-1-length(x5))), x5)
 x7 <- sample(x6)
 x8 <- cumsum(c(pts,x7))
-df <- data.frame(x=1:1336, y=x8, j=0)
+pathx <- data.frame(x=1:1336, yz=x8)
 ```
 
 ```{r path3-prelims-2}
-load("fig/2.1.RData")
-fig                                              +
-  expand_limits(x=1336)                          +
-  geom_line(data=df, aes(x, y, group=j), col=color2) +
-  geom_label(aes(x=1336, y=341, label="(1336,341)")) -> fig
+sim_tr1 %>%
+  full_join(pathx)                              %>%
+  ggplot(aes(x, ymin=q01, ymax=q99))             +
+  geom_ribbon(fill="gray")                       +
+  geom_line(aes(y=q01),col="white")              +
+  geom_line(aes(y=q25),col="white")              +
+  geom_line(aes(y=q50),col="white")              +
+  geom_line(aes(y=q75),col="white")              +
+  geom_line(aes(y=q99),col="white")              +
+  geom_line(aes(y=yz), col="red")                +
+  scale_x_continuous(breaks=365*(0:3))           +
+  scale_y_continuous(breaks=y_ticks,
+                     labels=y_labels,
+                     minor=NULL)                 +
+  xlab("Time (days)")                            +
+  ylab("Number of patients (Post mortem)")       +
+  geom_label(aes(x=1336, y=341, 
+                 label="(1336,341)"),
+             col="red") +
+  expand_limits(y=500)                          -> fig
 save(fig, file="fig/2.3.RData")
 ```
 
