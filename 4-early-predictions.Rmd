@@ -86,8 +86,9 @@ flat_predictions                                %>%
   mutate(lo=lo/365)                             %>%
   mutate(hi=hi/365)                             %>%
   ggplot(aes(x=t, ymin=lo, ymax=hi))             + 
-  expand_limits(y=overall_range)                 +
-  scale_y_log10(breaks=c(1:6,10*1:6), minor=NULL)+
+  # expand_limits(y=overall_range)                 +
+  # scale_y_log10(breaks=c(1:6,10*1:6), minor=NULL)+
+  scale_y_continuous()                           +
   geom_ribbon(alpha=0.2)                         +
   geom_line(aes(x=t, y=hi))                      +
   geom_line(aes(x=t, y=lo))                      +
@@ -107,8 +108,9 @@ informative_predictions %>%
   mutate(lo=lo/365)                             %>%
   mutate(hi=hi/365)                             %>%
   ggplot(aes(x=t, ymin=lo, ymax=hi))             +
-  expand_limits(y=overall_range)                 +
-  scale_y_log10(breaks=c(1:6,10*1:6), minor=NULL)+
+  # expand_limits(y=overall_range)                 +
+  # scale_y_log10(breaks=c(1:6,10*1:6), minor=NULL)+
+  scale_y_continuous()                           +
   geom_ribbon(alpha=0.2)                         +
   geom_line(aes(x=t, y=hi))                      +
   geom_line(aes(x=t, y=lo))                      +
@@ -129,8 +131,9 @@ weak_predictions %>%
   mutate(hi=hi/365)                             %>%
   ggplot(aes(x=t, ymin=lo, ymax=hi))             +
   geom_ribbon(alpha=0.2)                         +
-  expand_limits(y=overall_range)                 +
-  scale_y_log10(breaks=c(1:6,10*1:6), minor=NULL)+
+  # expand_limits(y=overall_range)                 +
+  # scale_y_log10(breaks=c(1:6,10*1:6), minor=NULL)+
+  scale_y_continuous()                           +
   geom_line(aes(x=t, y=hi))                      +
   geom_line(aes(x=t, y=lo))                      +
   ylab("Estimated trial duration (years)")       +

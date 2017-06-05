@@ -42,6 +42,10 @@ y_breaks <- 50*(0:9)
 
 simulated_paths                                 %>%
   ggplot(aes(x=t, y=n, group=g))                 +
+    theme(axis.title = element_text(color=dk))     +
+    theme(axis.text = element_text(color=dk))      +
+    theme(axis.ticks = element_line(color=dk))     +
+    theme(panel.background=element_rect(fill=lt)) +
   scale_x_continuous(breaks=x_breaks)            +
   scale_y_continuous(breaks=y_breaks)            +
   expand_limits(x=365*3.7, y=450)                +

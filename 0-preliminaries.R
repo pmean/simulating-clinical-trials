@@ -75,6 +75,15 @@ N_label2c <- N_label1c
 N_label2d <- N_label1d
 
 
+# colors
+
+co <- c(0, 1, 0)
+p0 <- 0.95; q0 <- 1-p0 # controls how light the light color is
+p1 <- 0.50             # controls how dark the dark color is
+lt <- rgb(p0+q0*co[1], p0+q0*co[2], p0+q0*co[3])
+dk <- rgb(p1*co[1], p1*co[2], p1*co[3])
+
+
 # functions for boxplots and scatterplots
 
 custom_boxplot <- function(df, y_label, rounding_level, 
@@ -90,7 +99,7 @@ custom_boxplot <- function(df, y_label, rounding_level,
     round(rounding_level)                       -> lb
   df                                            %>%
     ggplot(aes(x, y))                            +
-    theme(panel.background=element_rect(fill=lt))                  +
+    theme(panel.background=element_rect(fill=lt)) +
     geom_boxplot(color=dk, fill=lt)                       +
     scale_y_continuous(breaks=tm,
                        minor=NULL,
@@ -112,6 +121,12 @@ custom_boxplus <- function(df, y_label, rounding_level,
 }
 
 custom_scatterplot <- function(df, x_name, y_name, round_x=1, round_y=0,co="darkgreen") {
+  co <- c(0, 1, 0)
+  p0 <- 0.95; q0 <- 1-p0 # controls how light the light color is
+  p1 <- 0.50             # controls how dark the dark color is
+  lt <- rgb(p0+q0*co[1], p0+q0*co[2], p0+q0*co[3])
+  dk <- rgb(p1*co[1], p1*co[2], p1*co[3])
+  
   df                                              %>%
     use_series(x)                                 %>%
     quantile(pctl_list/100)                       -> x_ticks
@@ -126,16 +141,17 @@ custom_scatterplot <- function(df, x_name, y_name, round_x=1, round_y=0,co="dark
     ggplot(aes(x, y))                              +
     xlab(x_name)                                   +
     ylab(y_name)                                   +
-    theme(axis.title = element_text(color=co))     +
-    theme(axis.text = element_text(color=co))      +
-    theme(axis.ticks = element_line(color=co))     +
+    theme(axis.title = element_text(color=dk))     +
+    theme(axis.text = element_text(color=dk))      +
+    theme(axis.ticks = element_line(color=dk))     +
+    theme(panel.background=element_rect(fill=lt)) +
     scale_x_continuous(breaks=x_ticks,
                        minor_breaks=NULL,
                        labels=x_labels)            +
     scale_y_continuous(breaks=y_ticks,
                        minor_breaks=NULL,
                        labels=y_labels)            +
-    geom_point(col=co)                            %>%
+    geom_point(col=dk)                            %>%
     return
 }
 

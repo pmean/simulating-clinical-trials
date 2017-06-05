@@ -2,7 +2,9 @@
 title: "Simulating clinical trials--beta extension"
 author: "Steve Simon"
 date: "March 22, 2017"
-output: html_document
+output:
+  word_document: default
+  html_document: default
 ---
 
 ```{r delay-preliminaries, echo=FALSE, message=FALSE}
@@ -288,7 +290,7 @@ save(fig, file="fig/6.9d.RData")
 
 ### Figure 6.9. Effect of prior parameters on estimated total sample size.
 
-```{r delay-scaterplots, fig.width=4, fig.height=4}
+```{r delay-scaterplots, fig.width=3, fig.height=3}
 load("fig/6.9a.RData"); print(fig)
 load("fig/6.9b.RData"); print(fig)
 load("fig/6.9c.RData"); print(fig)

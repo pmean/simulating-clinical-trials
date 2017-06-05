@@ -2,7 +2,9 @@
 title: "Simulating clinical trials"
 author: "Steve Simon"
 date: "May 25, 2017"
-output: html_document
+output:
+  html_document: default
+  word_document: default
 ---
 
 # Simulation before, during, and after a clinical trial: A Bayesian approach
@@ -494,7 +496,7 @@ You should consider exploring how sensitive your estimated total sample size is 
 
 ### Figure 6.9. Effect of prior parameters on estimated total sample size.
 
-```{r delay-scaterplots, fig.width=4, fig.height=4}
+```{r delay-scaterplots, fig.width=3, fig.height=3}
 load("fig/6.9a.RData"); print(fig)
 load("fig/6.9b.RData"); print(fig)
 load("fig/6.9c.RData"); print(fig)
@@ -646,7 +648,7 @@ You should consider exploring how sensitive your estimated total sample size is 
 
 ### Figure 7.4. How the prior distributions affect the estimated total sample size.
 
-```{r binomial-scatterplots, fig.width=4, fig.height=4}
+```{r binomial-scatterplots, fig.width=3, fig.height=3}
 load("fig/7.4a.RData"); print(fig)
 load("fig/7.4b.RData"); print(fig)
 ```

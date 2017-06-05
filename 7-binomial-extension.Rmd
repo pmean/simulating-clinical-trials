@@ -150,7 +150,7 @@ save(fig, file="fig/7.4b.RData")
 
 ### Figure 7.4. How the prior distributions affect the estimated total sample size.
 
-```{r binomial-scatterplots, fig.width=4, fig.height=4}
+```{r binomial-scatterplots, fig.width=3, fig.height=3}
 load("fig/7.4a.RData"); print(fig)
 load("fig/7.4b.RData"); print(fig)
 ```

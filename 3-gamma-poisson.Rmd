@@ -181,7 +181,7 @@ For this trial, you were able to get 341 patients, but it took a lot longer than
 ```{r gamma-poisson-post-prelims}
 sim4 <- data.frame(x=" ", y=30*341/1336)
 
-sim2$y                                   %>%
+sim3$y                                   %>%
   is_less_than(sim4$y)                   %>%
   mean                                   %>%
   multiply_by(100)                       %>%
@@ -189,10 +189,10 @@ sim2$y                                   %>%
   paste0(" percentile")                  -> pctl
 y_label4 <- paste0("Monthly accrual rate (final, ", pctl, ")")
 
-y_range <- range(sim2$y, sim4$y)
+y_range <- range(sim3$y, sim4$y)
 
 # Boxplot of accrual rate
-custom_boxplus(sim2, l_label0, 1, co=color0) + expand_limits(y=y_range) -> fig
+custom_boxplus(sim3, l_label0, 1, co=color0) + expand_limits(y=y_range) -> fig
 save(fig, file="fig/3.6a.Rdata")
 custom_boxplus(sim4, y_label4, 1, co=color1)   + expand_limits(y=y_range) -> fig
 save(fig, file="fig/3.6b.RData")
