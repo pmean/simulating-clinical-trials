@@ -192,14 +192,20 @@ g_pattern <- rbind(c(2,2,2,2,NA),
                    c(1,1,1,1,3))
 grid.arrange(tst1, tst2, tst3, layout_matrix=g_pattern)
 
-x1 <- seq(-3, 3, by=0.01)
-y1 <- 3 + dnorm(x1, 0, 1)
-df1 <- data.frame(x1=x1, y1=y1)
 df <- data.frame(x=rnorm(100), y=rnorm(100))
+d1 <- density(df$x)
+d2 <- density(df$y)
 df %>% ggplot(aes(x, y)) + expand_limits(x=c(-3,4),y=c(-3,4)) +
   geom_point() +
-  stat_density(geom="line", y=density, position=identity) -> tst4
-tst4
+  geom_polygon(data=tidy(d1), aes(x, y/max(y)+3), fill="gray") +
+  geom_polygon(data=tidy(d2), aes(y/max(y)+3, x), fill="gray")
+
+df %>% ggplot(aes(x, y)) + expand_limits(x=c(-3,5),y=c(-3, 5)) +
+  geom_point() +
+  geom_vline(xintercept=3.6) +
+  geom_boxplot(aes(4, y)) +
+  geom_polygon(data=tidy(d1), aes(x, y/max(y)+4), fill="gray")
 
 # end of file
 =
+  
