@@ -48,6 +48,7 @@ simulated_paths                                 %>%
     theme(panel.background=element_rect(fill=lt)) +
   scale_x_continuous(breaks=x_breaks)            +
   scale_y_continuous(breaks=y_breaks)            +
+  geom_hline(yintercept=y_breaks, col="white")   +
   expand_limits(x=365*3.7, y=450)                +
   geom_line()                                    +
   geom_hline(yintercept=N)                       + 

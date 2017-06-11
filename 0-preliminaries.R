@@ -104,7 +104,8 @@ custom_boxplot <- function(df, y_label, rounding_level,
     scale_y_continuous(breaks=tm,
                        minor=NULL,
                        labels=lb)                +
-    theme(axis.title = element_text(color=dk))   +
+    theme(axis.title.x = element_text(color=dk)) +
+    theme(axis.title.y = NULL)                   +
     theme(axis.text = element_text(color=dk))    +
     theme(axis.ticks = element_line(color=dk))   +
     xlab(" ")                                    +
@@ -155,4 +156,50 @@ custom_scatterplot <- function(df, x_name, y_name, round_x=1, round_y=0,co="dark
     return
 }
 
+
+# tests of gridExtra
+df <- data.frame(x=rnorm(100), y=rnorm(100))
+df %>% ggplot(aes(x, y)) + expand_limits(x=c(-3,3),y=c(-3,3)) +
+  geom_point() +
+  theme_minimal() +
+  scale_x_continuous(labels=NULL) + xlab(NULL) +
+  scale_y_continuous(labels=NULL) + ylab(NULL) +
+  theme(axis.ticks.length=unit(0, "mm")) +
+  theme(plot.margin=unit(c(0, 0, 0, 0), "mm"))    -> tst1
+
+df %>% ggplot(aes(x)) + expand_limits(x=c(-3,3)) + geom_histogram(bins=50) +
+  theme_minimal() +
+  theme(plot.margin=unit(c(0, 0, 0, 0), "mm"))  +
+  scale_x_continuous(labels=NULL) +
+  scale_y_continuous(labels=NULL, breaks=NULL) +
+  theme(axis.ticks.length=unit(0, "mm")) +
+  ylab(NULL) +
+  xlab(NULL) -> tst2
+
+df %>% ggplot(aes(y)) + expand_limits(x=c(-3,3)) + geom_histogram(bins=50) +
+  theme_minimal() +
+  theme(plot.margin=unit(c(0, 0, 0, 0), "mm"))  +
+  scale_x_continuous(labels=NULL) +
+  scale_y_continuous(labels=NULL, breaks=NULL) +
+  theme(axis.ticks.length=unit(0, "mm")) +
+  ylab(NULL) +
+  xlab(NULL) + coord_flip() -> tst3
+
+g_pattern <- rbind(c(2,2,2,2,NA),
+                   c(1,1,1,1,3),
+                   c(1,1,1,1,3),
+                   c(1,1,1,1,3),
+                   c(1,1,1,1,3))
+grid.arrange(tst1, tst2, tst3, layout_matrix=g_pattern)
+
+x1 <- seq(-3, 3, by=0.01)
+y1 <- 3 + dnorm(x1, 0, 1)
+df1 <- data.frame(x1=x1, y1=y1)
+df <- data.frame(x=rnorm(100), y=rnorm(100))
+df %>% ggplot(aes(x, y)) + expand_limits(x=c(-3,4),y=c(-3,4)) +
+  geom_point() +
+  stat_density(geom="line", y=density, position=identity) -> tst4
+tst4
+
 # end of file
+=
